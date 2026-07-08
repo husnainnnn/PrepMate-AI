@@ -1,0 +1,97 @@
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { Landing } from '@/pages/Landing'
+import { Login } from '@/pages/Login'
+import NotFound from '@/pages/NotFound'
+
+// ─── Protected Route Wrapper ──────────────────────────────
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F7F9FC]">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#EAECF0] border-t-[#1a6fa8]" />
+      </div>
+    )
+  }
+  if (!user) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
+
+// Student pages (all from pages/student/, names match sidebar labels)
+import StudentDashboard from '@/pages/student/Dashboard'
+import StudentProfilePage from '@/pages/student/Profile'
+import MockInterviewsPage from '@/pages/student/MockInterviews'
+import PracticePage from '@/pages/student/Practice'
+import ResumeBuilderPage from '@/pages/student/ResumeBuilder'
+import JobMatches from '@/pages/student/JobMatches'
+import Applications from '@/pages/student/Applications'
+import LiveInterviewsPage from '@/pages/student/LiveInterviews'
+import AIFeedbackPage from '@/pages/student/AIFeedback'
+import AnalyticsPage from '@/pages/student/Analytics'
+import ResourcesPage from '@/pages/student/Resources'
+import StudentNotifications from '@/pages/student/Notifications'
+import SettingsPage from '@/pages/student/Settings'
+import SupportPage from '@/pages/student/Support'
+
+// Company pages
+// Company pages (all from pages/company/, names match sidebar labels)
+import CompanyDashboard from '@/pages/company/Dashboard'
+import PostJob from '@/pages/company/PostJob'
+import Applicants from '@/pages/company/Applicants'
+import AIScreeningPage from '@/pages/company/AIScreening'
+import CompanyInterviewsPage from '@/pages/company/Interviews'
+import Shortlisted from '@/pages/company/Shortlisted'
+import CompanyAnalytics from '@/pages/company/Analytics'
+import Messages from '@/pages/company/Messages'
+import CompanyProfilePage from '@/pages/company/CompanyProfile'
+import CompanyNotifications from '@/pages/company/Notifications'
+import CompanySettings from '@/pages/company/Settings'
+import CompanySupport from '@/pages/company/Support'
+
+function App() {
+  return (
+    <AuthProvider>
+    <Routes>
+      {/* Public routes */}
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<Login />} />
+
+      {/* Student routes — file names match sidebar labels */}
+      <Route path="/student/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+      <Route path="/student/profile" element={<ProtectedRoute><StudentProfilePage /></ProtectedRoute>} />
+      <Route path="/student/interviews" element={<ProtectedRoute><MockInterviewsPage /></ProtectedRoute>} />
+      <Route path="/student/questions" element={<ProtectedRoute><PracticePage /></ProtectedRoute>} />
+      <Route path="/student/resumes" element={<ProtectedRoute><ResumeBuilderPage /></ProtectedRoute>} />
+      <Route path="/student/job-matches" element={<ProtectedRoute><JobMatches /></ProtectedRoute>} />
+      <Route path="/student/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
+      <Route path="/student/live-interviews" element={<ProtectedRoute><LiveInterviewsPage /></ProtectedRoute>} />
+      <Route path="/student/feedback" element={<ProtectedRoute><AIFeedbackPage /></ProtectedRoute>} />
+      <Route path="/student/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+      <Route path="/student/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
+      <Route path="/student/notifications" element={<ProtectedRoute><StudentNotifications /></ProtectedRoute>} />
+      <Route path="/student/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/student/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+
+      {/* Company routes — file names match sidebar labels */}
+      <Route path="/company/dashboard" element={<CompanyDashboard />} />
+      <Route path="/company/post-job" element={<PostJob />} />
+      <Route path="/company/applicants" element={<Applicants />} />
+      <Route path="/company/screening" element={<AIScreeningPage />} />
+      <Route path="/company/interviews" element={<CompanyInterviewsPage />} />
+      <Route path="/company/shortlisted" element={<Shortlisted />} />
+      <Route path="/company/analytics" element={<CompanyAnalytics />} />
+      <Route path="/company/messages" element={<Messages />} />
+      <Route path="/company/profile" element={<CompanyProfilePage />} />
+      <Route path="/company/notifications" element={<CompanyNotifications />} />
+      <Route path="/company/settings" element={<CompanySettings />} />
+      <Route path="/company/support" element={<CompanySupport />} />
+
+      {/* Fallback */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+    </AuthProvider>
+  )
+}
+
+export default App
