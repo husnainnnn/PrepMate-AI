@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
-import { SendHorizontal, CheckCircle2, XCircle, Clock, Sparkles } from 'lucide-react'
+import { SendHorizontal, CheckCircle2, XCircle, Clock, Sparkles, Trash2, AlertTriangle } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
-type Stage = 'applied' | 'under_review' | 'shortlisted' | 'hired'
+type Stage = 'applied' | 'under_review' | 'shortlisted' | 'interview' | 'hired' | 'rejected'
 type FilterTab = 'all' | 'active' | 'hired' | 'rejected'
 
 interface ApplicationRecord {
+  _id: string
   id: string
   companyName: string
   jobTitle: string
@@ -16,12 +17,14 @@ interface ApplicationRecord {
   currentStage: Stage
 }
 
-const STAGE_ORDER: Stage[] = ['applied', 'under_review', 'shortlisted', 'hired']
+const STAGE_ORDER: Stage[] = ['applied', 'under_review', 'shortlisted', 'interview', 'hired']
 const STAGE_LABELS: Record<Stage, string> = {
   applied: 'Applied',
   under_review: 'Under Review',
   shortlisted: 'Shortlisted',
+  interview: 'Interview',
   hired: 'Hired',
+  rejected: 'Rejected',
 }
 
 async function fetchApplications(token?: string): Promise<ApplicationRecord[]> {
@@ -44,19 +47,38 @@ export default function Applications() {
   const [applications, setApplications] = useState<ApplicationRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<FilterTab>('all')
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const loadApps = async () => {
+    try {
+      const data = await fetchApplications(token)
+      setApplications(data)
+    } catch {
+      setApplications([])
+    }
+    setIsLoading(false)
+  }
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await fetchApplications(token)
-        setApplications(data)
-      } catch {
-        setApplications([])
-      }
-      setIsLoading(false)
-    }
-    load()
+    loadApps()
   }, [token])
+
+  const handleDelete = async () => {
+    if (!deleteConfirm || !token) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/company/application/${deleteConfirm}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        setApplications(prev => prev.filter(a => (a._id || a.id) !== deleteConfirm))
+      }
+    } catch { /* ignore */ }
+    setDeleteConfirm(null)
+    setDeleting(false)
+  }
 
   const filtered = applications.filter((app) => {
     if (filter === 'all') return true
@@ -96,6 +118,37 @@ export default function Applications() {
             </div>
           </div>
 
+          {/* Delete Warning Modal */}
+          {deleteConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setDeleteConfirm(null)}>
+              <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+                  <AlertTriangle className="h-6 w-6 text-red-500" />
+                </div>
+                <h3 className="mt-3 text-center text-[16px] font-semibold text-[#101828]">Delete Application?</h3>
+                <p className="mt-2 text-center text-[13px] text-[#667085]">
+                  This will <strong>permanently delete</strong> this application from the database.
+                  It will be removed from both your view and the company's view. This action cannot be undone.
+                </p>
+                <div className="mt-5 flex gap-3">
+                  <button
+                    onClick={() => setDeleteConfirm(null)}
+                    className="flex-1 rounded-lg border border-[#D0D5DD] py-2.5 text-[13px] font-medium text-[#667085]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="flex-1 rounded-lg bg-red-500 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                  >
+                    {deleting ? 'Deleting...' : 'Yes, Delete'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Filter tabs */}
           <div className="mb-6 flex flex-wrap gap-2">
             {tabs.map((tab) => (
@@ -120,20 +173,42 @@ export default function Applications() {
             </div>
           ) : (
             <div className="space-y-4">
-              {sorted.map((app) => (
-                <div key={app.id} className="rounded-2xl border border-[#EAECF0] bg-white p-6 shadow-sm">
+              {sorted.map((app) => {
+                const appId = app._id || app.id
+                return (
+                <div key={appId} className="rounded-2xl border border-[#EAECF0] bg-white p-6 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <h3 className="text-base font-semibold text-[#101828]">{app.jobTitle}</h3>
                       <p className="text-[13px] text-[#667085]">{app.companyName} &middot; {app.location}</p>
                     </div>
-                    <span className="text-[12px] text-[#98A2B3]">Applied {formatDate(app.appliedDate)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] text-[#98A2B3]">Applied {formatDate(app.appliedDate)}</span>
+                      {deleteConfirm === appId ? (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => handleDelete()} disabled={deleting} className="rounded-lg bg-red-500 px-2.5 py-1.5 text-[11px] font-medium text-white">
+                            {deleting ? '...' : 'Confirm'}
+                          </button>
+                          <button onClick={() => setDeleteConfirm(null)} className="rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085]">
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setDeleteConfirm(appId)}
+                          className="rounded-lg border border-[#EAECF0] p-1.5 text-[#98A2B3] transition-colors hover:bg-red-50 hover:text-red-500"
+                          title="Delete permanently"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Status stepper */}
                   <div className="mt-5 flex items-center">
                     {STAGE_ORDER.map((stage, index) => {
-                      const currentIdx = STAGE_ORDER.indexOf(app.currentStage)
+                      const currentIdx = STAGE_ORDER.indexOf(app.currentStage as Stage)
                       const isPast = index < currentIdx
                       const isCurrent = index === currentIdx
                       const isRejectedHere = app.isRejected && isCurrent
@@ -167,8 +242,10 @@ export default function Applications() {
                   </div>
 
                   {app.isRejected && (
-                    <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] text-red-600">
-                      This application wasn't successful at the <span className="font-medium">{STAGE_LABELS[app.currentStage]}</span> stage. Best of luck for next time!
+                    <div className="mt-4 flex items-center justify-between rounded-xl border border-red-100 bg-red-50 px-4 py-3">
+                      <p className="text-[13px] text-red-600">
+                        This application wasn't successful. Best of luck for next time!
+                      </p>
                     </div>
                   )}
                   {!app.isRejected && app.currentStage === 'hired' && (
@@ -177,7 +254,8 @@ export default function Applications() {
                     </div>
                   )}
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

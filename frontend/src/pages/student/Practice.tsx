@@ -14,7 +14,7 @@ import {
   BookOpen,
   BrainCircuit,
 } from 'lucide-react'
-import { fetchQuestions, type InterviewQuestion } from '@/services/mockInterviewData'
+import { fetchQuestions, evaluateSingleAnswer, type InterviewQuestion } from '@/services/mockInterviewData'
 
 type Difficulty = 'beginner' | 'intermediate' | 'pro'
 type Phase = 'setup' | 'quiz' | 'result'
@@ -45,72 +45,6 @@ const difficultyDotColors: Record<Difficulty, string> = {
   pro: 'bg-rose-500',
 }
 
-/**
- * Smart evaluation: extracts key terms from the question and checks the user's
- * answer against them. Also checks for answer length and relevance.
- */
-function evaluateAnswer(userAnswer: string, question: InterviewQuestion, difficulty: Difficulty): { score: number; feedback: string } {
-  const lower = userAnswer.toLowerCase().trim()
-  const wordCount = lower.split(/\s+/).filter(Boolean).length
-
-  // Extract key terms from the question itself
-  const stopWords = new Set([
-    'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
-    'should', 'may', 'might', 'can', 'shall', 'to', 'of', 'in', 'for',
-    'on', 'with', 'at', 'by', 'from', 'as', 'into', 'about', 'like',
-    'through', 'after', 'over', 'between', 'out', 'against', 'during',
-    'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those',
-    'it', 'its', 'you', 'your', 'they', 'their', 'them', 'explain',
-    'describe', 'tell', 'give', 'how', 'why', 'when', 'where', 'example',
-    'difference', 'between', 'compare', 'define', 'list', 'what',
-    'and', 'or', 'but', 'if', 'so', 'because', 'then', 'than',
-    'very', 'just', 'also', 'more', 'some', 'any', 'each', 'every',
-    'both', 'much', 'many', 'such', 'only', 'own', 'same',
-  ])
-
-  const terms = question.text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .split(/\s+/)
-    .filter((w: string) => w.length > 2 && !stopWords.has(w))
-
-  const matchedTerms = terms.filter((t: string) => lower.includes(t))
-  const matchRatio = terms.length > 0 ? matchedTerms.length / terms.length : 0.5
-
-  // Difficulty-based thresholds
-  const minWords = difficulty === 'beginner' ? 15 : difficulty === 'intermediate' ? 25 : 35
-  const lengthScore = Math.min(1, wordCount / (minWords * 2))
-
-  // Combined score (40% key terms, 40% length, 20% base)
-  let rawScore = (matchRatio * 4) + (lengthScore * 4) + 2
-  rawScore = Math.round(Math.min(10, Math.max(1, rawScore)))
-
-  // Build feedback
-  const parts: string[] = []
-  if (rawScore >= 8) {
-    parts.push('Excellent answer! Strong understanding demonstrated.')
-  } else if (rawScore >= 6) {
-    parts.push('Good answer! Core concepts covered well.')
-  } else if (rawScore >= 4) {
-    parts.push('Decent attempt. Review the key concepts for a stronger response.')
-  } else {
-    parts.push('Needs improvement. Study the fundamentals and try again.')
-  }
-
-  if (wordCount < minWords) {
-    parts.push(`Aim for ${minWords}+ words (current: ${wordCount})`)
-  }
-
-  if (matchedTerms.length > 0) {
-    parts.push(`Key topics covered: ${matchedTerms.slice(0, 5).join(', ')}`)
-  } else if (terms.length > 0) {
-    parts.push(`Consider addressing: ${terms.slice(0, 4).join(', ')}`)
-  }
-
-  return { score: rawScore, feedback: parts.join(' · ') }
-}
-
 export default function PracticePage() {
   const { token } = useAuth()
   const [phase, setPhase] = useState<Phase>('setup')
@@ -124,6 +58,7 @@ export default function PracticePage() {
   const [questions, setQuestions] = useState<InterviewQuestion[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [evaluating, setEvaluating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [profileLoaded, setProfileLoaded] = useState(false)
   const [userExperience, setUserExperience] = useState<string>('mid')
@@ -171,6 +106,14 @@ export default function PracticePage() {
     setError(null)
     setGenerating(true)
 
+    // Track session start immediately (even if user leaves midway)
+    if (token) {
+      fetch('/api/stats/practice-started', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {})
+    }
+
     try {
       const skillList = skillsInput.split(',').map(s => s.trim()).filter(Boolean)
       const fetched = await fetchQuestions(
@@ -192,18 +135,41 @@ export default function PracticePage() {
     setGenerating(false)
   }
 
-  // ─── Submit answer ──────────────────────────────────────
-  const submitAnswer = () => {
-    if (!userAnswer.trim()) return
+  // ─── Submit answer (AI-powered strict evaluation) ───────
+  const submitAnswer = async () => {
+    if (!userAnswer.trim() || evaluating) return
+    setEvaluating(true)
     const q = questions[currentIndex]
-    const { score, feedback } = evaluateAnswer(userAnswer, q, difficulty)
-    setAnswers(prev => [...prev, {
-      questionId: q.id,
-      questionText: q.text,
-      userAnswer,
-      score,
-      feedback,
-    }])
+    try {
+      const result = await evaluateSingleAnswer(field, q.text, userAnswer, q.topic, q.type)
+      setAnswers(prev => [...prev, {
+        questionId: q.id,
+        questionText: q.text,
+        userAnswer,
+        score: result.score,
+        feedback: result.feedback,
+      }])
+    } catch {
+      // Strict fallback — no free marks when AI is unavailable
+      const wordCount = userAnswer.trim().split(/\s+/).filter(Boolean).length
+      let fallbackScore = 0
+      let fallbackFeedback = 'AI evaluation unavailable. ';
+      if (wordCount < 5) {
+        fallbackFeedback += 'Answer too short — review the topic and try again.';
+      } else {
+        // Even long answers get at most 2 marks without AI validation
+        fallbackScore = Math.min(2, Math.round(wordCount / 50))
+        fallbackFeedback += 'Basic score given — AI was unavailable for proper evaluation.';
+      }
+      setAnswers(prev => [...prev, {
+        questionId: q.id,
+        questionText: q.text,
+        userAnswer,
+        score: fallbackScore,
+        feedback: fallbackFeedback,
+      }])
+    }
+    setEvaluating(false)
   }
 
   // ─── Next question / Finish ─────────────────────────────
@@ -252,10 +218,9 @@ export default function PracticePage() {
   if (phase === 'setup') {
     return (
       <StudentDashboardLayout>
-        <div className="p-4 sm:p-8">
-          <div className="mx-auto max-w-2xl">
+        <div className="space-y-6 px-6 py-6 lg:px-8">
             {/* Header */}
-            <div className="mb-6 flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
                 <BrainCircuit className="h-5 w-5 text-white" />
               </div>
@@ -269,7 +234,7 @@ export default function PracticePage() {
 
             {/* Profile autofill notice */}
             {profileLoaded && (
-              <div className="mb-5 rounded-xl border border-[#1a6fa8]/10 bg-blue-50/50 px-4 py-3">
+              <div className="rounded-xl border border-[#1a6fa8]/10 bg-blue-50/50 px-4 py-3">
                 <p className="text-[13px] text-[#667085]">
                   ✨ Field and skills autofilled from your{' '}
                   <a href="/student/profile" className="font-medium text-[#1a6fa8] underline hover:text-[#0b3b5c]">profile</a>.
@@ -278,14 +243,14 @@ export default function PracticePage() {
             )}
 
             {error && (
-              <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">
                 {error}
               </div>
             )}
 
-            <div className="space-y-6">
-              {/* Field */}
-              <div className="rounded-2xl border border-[#EAECF0] bg-white p-6 shadow-sm">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              {/* Setup form */}
+              <div className="lg:col-span-2 rounded-2xl border border-[#EAECF0] bg-white p-6 shadow-sm">
                 <h2 className="text-base font-semibold text-[#101828]">Setup</h2>
                 <p className="mb-4 text-[13px] text-[#667085]">
                   Configure your practice session. Fields marked with <span className="text-red-500">*</span> are required.
@@ -345,10 +310,22 @@ export default function PracticePage() {
                     </div>
                   </div>
                 </div>
+
+                <button
+                  onClick={startQuiz}
+                  disabled={generating || !field.trim() || !skillsInput.trim()}
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110 hover:shadow-xl hover:shadow-[#0b3b5c]/40 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {generating ? (
+                    <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Generating AI questions...</>
+                  ) : (
+                    <><BrainCircuit className="h-4 w-4" /> Start Practice <ArrowRight className="h-4 w-4" /></>
+                  )}
+                </button>
               </div>
 
               {/* Info card */}
-              <div className="rounded-2xl border border-[#EAECF0] bg-gradient-to-br from-[#F7F9FC] to-white p-5 shadow-sm">
+              <div className="rounded-2xl border border-[#EAECF0] bg-gradient-to-br from-[#F7F9FC] to-white p-5 shadow-sm h-fit">
                 <div className="flex items-start gap-3">
                   <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-[#1a6fa8]" />
                   <div>
@@ -361,20 +338,7 @@ export default function PracticePage() {
                   </div>
                 </div>
               </div>
-
-              <button
-                onClick={startQuiz}
-                disabled={generating || !field.trim() || !skillsInput.trim()}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110 hover:shadow-xl hover:shadow-[#0b3b5c]/40 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {generating ? (
-                  <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Generating AI questions...</>
-                ) : (
-                  <><BrainCircuit className="h-4 w-4" /> Start Practice <ArrowRight className="h-4 w-4" /></>
-                )}
-              </button>
             </div>
-          </div>
         </div>
       </StudentDashboardLayout>
     )
@@ -400,8 +364,7 @@ export default function PracticePage() {
 
     return (
       <StudentDashboardLayout>
-        <div className="p-4 sm:p-8">
-          <div className="mx-auto max-w-2xl">
+        <div className="space-y-6 px-6 py-6 lg:px-8">
             {/* Progress bar */}
             <div className="mb-6">
               <div className="flex items-center justify-between text-[13px] text-[#667085]">
@@ -466,10 +429,14 @@ export default function PracticePage() {
                   </div>
                   <button
                     onClick={submitAnswer}
-                    disabled={!userAnswer.trim()}
+                    disabled={!userAnswer.trim() || evaluating}
                     className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Submit Answer <CheckCircle2 className="h-4 w-4" />
+                    {evaluating ? (
+                      <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> AI Evaluating...</>
+                    ) : (
+                      <>Submit Answer <CheckCircle2 className="h-4 w-4" /></>
+                    )}
                   </button>
                 </div>
               ) : (
@@ -522,7 +489,6 @@ export default function PracticePage() {
                 </div>
               )}
             </div>
-          </div>
         </div>
       </StudentDashboardLayout>
     )
@@ -532,10 +498,8 @@ export default function PracticePage() {
   const stars = Math.round(avgScore / 2)
   const performanceLabel = avgScore >= 8 ? 'Outstanding! 🎉' : avgScore >= 6 ? 'Great Effort! 👏' : avgScore >= 4 ? 'Keep Practicing! 💪' : "Let's Try Again! 📚"
 
-  return (
-    <StudentDashboardLayout>
-      <div className="p-4 sm:p-8">
-        <div className="mx-auto max-w-2xl">
+  return (      <StudentDashboardLayout>
+        <div className="space-y-6 px-6 py-6 lg:px-8">
           <div className="rounded-2xl border border-[#EAECF0] bg-white p-6 shadow-sm sm:p-8">
             {/* Score circle */}
             <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
@@ -623,7 +587,6 @@ export default function PracticePage() {
             </div>
           </div>
         </div>
-      </div>
     </StudentDashboardLayout>
   )
 }

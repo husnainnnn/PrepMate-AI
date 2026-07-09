@@ -19,6 +19,7 @@ const resumeSchema = new mongoose.Schema({
   experience: { type: [mongoose.Schema.Types.Mixed], default: [] },
   education: { type: [mongoose.Schema.Types.Mixed], default: [] },
   templateId: { type: String, default: 'modern' },
+  resumeFileUrl: { type: String, default: '' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Resume', resumeSchema);

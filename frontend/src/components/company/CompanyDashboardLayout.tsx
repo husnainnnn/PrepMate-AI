@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   Briefcase,
@@ -16,8 +16,9 @@ import {
   Search,
 } from 'lucide-react'
 import { DashboardSidebar, type SidebarItem } from '@/components/shared/DashboardSidebar'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
+import { useAuth } from '@/context/AuthContext'
 
 interface CompanyDashboardLayoutProps {
   children: ReactNode
@@ -28,20 +29,29 @@ const sidebarItems: SidebarItem[] = [
   { label: 'Post Job', href: '/company/post-job', icon: Briefcase },
   { label: 'Applicants', href: '/company/applicants', icon: Users },
   { label: 'AI Screening', href: '/company/screening', icon: Brain },
-  { label: 'Interviews', href: '/company/interviews', icon: Mic },
   { label: 'Shortlisted', href: '/company/shortlisted', icon: UserCheck },
-  { label: 'Analytics', href: '/company/analytics', icon: BarChart3 },
+  { label: 'Interviews', href: '/company/interviews', icon: Mic },
   { label: 'Messages', href: '/company/messages', icon: MessageSquare },
+  { label: 'Analytics', href: '/company/analytics', icon: BarChart3 },
   { label: 'Company Profile', href: '/company/profile', icon: Building2 },
 ]
 
 const footerItems: SidebarItem[] = [
-  { label: 'Notifications', href: '/company/notifications', icon: Bell },
   { label: 'Settings', href: '/company/settings', icon: Settings },
   { label: 'Help & Support', href: '/company/support', icon: HelpCircle },
 ]
 
 export function CompanyDashboardLayout({ children }: CompanyDashboardLayoutProps) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const companyName = user?.companyName || 'Company';
+  const initials = companyName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login?role=company', { replace: true });
+  };
+
   return (
     <div className="min-h-screen bg-[#F7F9FC] text-[#101828]">
       {/* Shared sidebar */}
@@ -50,6 +60,7 @@ export function CompanyDashboardLayout({ children }: CompanyDashboardLayoutProps
         badge="Company"
         navItems={sidebarItems}
         footerItems={footerItems}
+        onLogout={handleLogout}
         upgradeCard={{
           title: 'Enterprise Plan',
           description: 'Unlock advanced AI screening and unlimited job postings.',
@@ -86,10 +97,9 @@ export function CompanyDashboardLayout({ children }: CompanyDashboardLayoutProps
 
               <div className="flex items-center gap-2 rounded-lg border border-[#EAECF0] py-1.5 pl-1.5 pr-3">
                 <Avatar className="h-7 w-7">
-                  <AvatarImage src="" alt="TechCorp" />
-                  <AvatarFallback className="bg-blue-50 text-[11px] font-semibold text-[#1a6fa8]">TC</AvatarFallback>
+                  <AvatarFallback className="bg-blue-50 text-[11px] font-semibold text-[#1a6fa8]">{initials}</AvatarFallback>
                 </Avatar>
-                <span className="hidden text-[13px] font-medium text-[#101828] sm:block">TechCorp Inc.</span>
+                <span className="hidden text-[13px] font-medium text-[#101828] sm:block">{companyName}</span>
               </div>
             </div>
           </header>

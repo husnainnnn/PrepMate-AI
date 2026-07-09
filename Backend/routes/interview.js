@@ -16,7 +16,9 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 async function askGemini(systemPrompt, userPrompt) {
   if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here') {
-    throw new Error('GEMINI_API_KEY not configured. Get a free key at https://aistudio.google.com/');
+    const err = new Error('GEMINI_API_KEY not configured');
+    err.isQuotaError = true; // fall through to Groq or local
+    throw err;
   }
 
   const res = await fetch(GEMINI_URL, {
@@ -208,11 +210,11 @@ function generateLocalAnalysis(field, experience, answers) {
   const latencyBonus = avgLatency < 3000 ? 1.5 : avgLatency < 6000 ? 0.5 : -1;
   const skippedPenalty = skippedQ.length * 1.5;
 
-  // Smart scoring based on actual metrics
-  let knowledge = Math.min(10, Math.round(5 + (avgWords / 30) * 3 + (avgDuration > 30 ? 1 : 0) - irrelevantCount * 2));
-  let confidence = Math.min(10, Math.round(5 + latencyBonus + (avgDuration > 20 ? 2 : avgDuration > 10 ? 1 : 0) + (fillerAvg < 3 ? 1 : 0) + (hasVoiceBonus ? 1.5 : 0) - skippedPenalty));
-  let communication = Math.min(10, Math.round(5 + (avgWords / 25) * 2 + (fillerAvg < 5 ? 1.5 : 0) + (hasVoiceBonus ? 1 : 0) - irrelevantCount));
-  const voiceClarity = Math.min(10, Math.round(7 - fillerAvg * 0.5));
+  // STRICT scoring — no free marks. Base is 0, scores build from actual performance.
+  let knowledge = Math.min(10, Math.round((avgWords / 40) * 4 + (avgDuration > 30 ? 2 : avgDuration > 15 ? 1 : 0) - irrelevantCount * 3));
+  let confidence = Math.min(10, Math.round(latencyBonus + 1 + (avgDuration > 20 ? 2 : avgDuration > 10 ? 1 : 0) + (fillerAvg < 3 ? 1 : 0) + (hasVoiceBonus ? 1 : 0) - skippedPenalty));
+  let communication = Math.min(10, Math.round((avgWords / 35) * 3 + (fillerAvg < 5 ? 1 : 0) + (hasVoiceBonus ? 0.5 : 0) - irrelevantCount * 2));
+  const voiceClarity = Math.min(10, Math.round(5 - fillerAvg * 0.5));
 
   knowledge = Math.max(0, knowledge);
   confidence = Math.max(0, confidence);
@@ -238,45 +240,32 @@ function generateLocalAnalysis(field, experience, answers) {
       errors.push('Answer was off-topic — did not address the actual question');
       solutions.push('Listen carefully to the question and directly address what is being asked');
     } else {
-      score = Math.min(10, Math.round(4 + (words / 25) * 3 + (a.durationSeconds > 15 ? 1.5 : 0)));
-      if (a.answeredByVoice) score = Math.min(10, score + 1);
+      // STRICT scoring — no free marks. Base score is 0.
+      if (words < 5) {
+        score = 0;
+        errors.push('Answer too short — does not demonstrate any knowledge');
+        solutions.push('Provide a detailed answer with specific technical examples');
+      } else if (words < 15) {
+        score = Math.min(2, Math.round(words / 10));
+        errors.push('Answer was too brief — lacks depth and technical detail');
+        solutions.push('Write at least 3-4 sentences per answer with concrete examples');
+      } else {
+        // Score based on length AND topic relevance
+        const lengthScore = Math.min(4, Math.round(words / 30));
+        const topicPrefix = a.questionTopic?.toLowerCase().slice(0, 6) || '';
+        const transcriptLower = (a.transcript || '').toLowerCase();
+        const topicMentioned = topicPrefix.length > 2 && transcriptLower.includes(topicPrefix);
+        const relevanceBonus = topicMentioned ? 3 : 0;
+        score = Math.min(10, lengthScore + relevanceBonus);
 
-      if (words < 15) {
-        errors.push('Answer was too brief — lacks depth');
-        solutions.push('Provide specific examples and technical details in your answers');
-      }
-      if (!a.answeredByVoice) {
-        errors.push('Answered by typing instead of speaking — practicing verbal answers builds confidence');
-        solutions.push('Try answering aloud using the microphone for higher scores');
-      }
-      if (a.answeredByVoice && a.fillerWordCount > 3) {
-        errors.push('Excessive filler words reduce clarity');
-        solutions.push('Pause briefly instead of using filler words like "um", "like", "basically"');
-      }
-
-      // Response latency feedback
-      if (a.responseLatencyMs > 8000) {
-        errors.push('Took too long to start answering — shows hesitation');
-        solutions.push('Practice responding more quickly. A short pause is fine, but avoid long silences');
-      } else if (a.responseLatencyMs > 4000 && errors.length < 3) {
-        errors.push('Could improve response time — aim to start speaking sooner');
-        solutions.push('Try to start your answer within a few seconds of hearing the question');
-      }
-
-      const topicPrefix = a.questionTopic?.toLowerCase().slice(0, 6) || '';
-      const transcriptLower = (a.transcript || '').toLowerCase();
-      const topicMentioned = topicPrefix.length > 2 && transcriptLower.includes(topicPrefix);
-      if (!topicMentioned) {
-        errors.push('Answer could be more technically specific to the topic');
-        solutions.push('Reference ' + (a.questionTopic || 'the relevant concept') + ' directly in your answer');
-      }
-
-      if (a.answeredByVoice && errors.length === 0) {
-        solutions.push('Excellent voice engagement — keep practicing this way!');
-      } else if (!a.answeredByVoice && errors.length === 0) {
-        solutions.push('Try using voice mode next time for bonus points');
-      } else if (errors.length === 0) {
-        solutions.push('Continue building on this strong foundation');
+        if (!topicMentioned) {
+          errors.push('Answer did not address the specific topic — off-topic or too generic');
+          solutions.push('Directly reference the concepts mentioned in the question');
+        }
+        if (words < 15) {
+          errors.push('Answer lacks depth');
+          solutions.push('Expand with technical details and specific examples');
+        }
       }
     }
 
@@ -330,6 +319,117 @@ function generateLocalAnalysis(field, experience, answers) {
     finalComments,
     hireDecision,
   };
+}
+
+// ─── Strict local evaluator (per-answer) ─────────────────
+
+/**
+ * STRICT local evaluation for a single practice answer.
+ * No free marks — 0 if wrong/short/irrelevant.
+ * Used when both Gemini and Groq are unavailable.
+ */
+function evaluateSingleAnswerLocally(question, answer, field) {
+  const qLower = question.toLowerCase();
+  const aLower = answer.toLowerCase().trim();
+  const words = aLower.split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
+
+  // 1) Empty or gibberish answer → 0
+  if (wordCount < 5) {
+    return {
+      score: 0,
+      feedback: 'Answer too short. Provide a detailed response with specific examples.',
+      errors: ['Answer is too brief to evaluate'],
+      solutions: ['Write at least 5-10 sentences explaining your understanding'],
+    };
+  }
+
+  // 2) Extract key technical terms from the question
+  const stopWords = new Set([
+    'the','a','an','is','are','was','were','be','been','being',
+    'have','has','had','do','does','did','will','would','could',
+    'should','may','might','can','shall','to','of','in','for',
+    'on','with','at','by','from','as','into','about','like',
+    'through','after','over','between','out','against','during',
+    'what','which','who','whom','this','that','these','those',
+    'it','its','you','your','they','their','them','explain',
+    'describe','tell','give','how','why','when','where','example',
+    'difference','between','compare','define','list','what',
+    'and','or','but','if','so','because','then','than',
+    'very','just','also','more','some','any','each','every',
+    'both','much','many','such','only','own','same',
+  ]);
+
+  const keyTerms = qLower
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stopWords.has(w));
+
+  const matchedTerms = keyTerms.filter(t => aLower.includes(t));
+  const matchRatio = keyTerms.length > 0 ? matchedTerms.length / keyTerms.length : 0;
+
+  // 3) Check for field-relevant terms in answer
+  const fieldTerms = (field || '').toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const fieldMatched = fieldTerms.filter(t => aLower.includes(t));
+
+  // 4) Scoring — STRICT
+  let score = 0;
+  const errors = [];
+  const solutions = [];
+
+  if (matchRatio < 0.15 && fieldMatched.length === 0) {
+    // Answer doesn't address the question at all
+    score = 0;
+    errors.push('Answer does not address the question — completely off-topic');
+    solutions.push('Read the question carefully and directly answer what is being asked');
+  } else if (matchRatio < 0.3) {
+    // Poorly addresses the question
+    score = Math.min(3, Math.round(matchRatio * 8));
+    errors.push('Answer only superficially addresses the question — lacks depth and key concepts');
+    solutions.push('Study the core concepts in the question and provide specific technical details');
+  } else if (matchRatio < 0.5) {
+    score = Math.min(5, Math.round(3 + matchRatio * 5));
+    errors.push('Answer covers some points but misses important aspects of the question');
+    solutions.push('Make sure to address all parts of the question with concrete examples');
+  } else {
+    // Decent match — score based on depth
+    const depthBonus = Math.min(3, Math.round(wordCount / 30));
+    score = Math.min(10, Math.round(5 + matchRatio * 3 + depthBonus));
+  }
+
+  // Word count penalty for brief answers (unless already scored 0)
+  if (score > 0 && wordCount < 10) {
+    score = Math.max(1, score - 3);
+    errors.push('Answer is too brief — expand with technical details and examples');
+    solutions.push('Write at least 3-4 sentences per answer with specific technologies and approaches');
+  }
+
+  // Build feedback
+  let feedback = '';
+  if (score === 0) {
+    feedback = '❌ Incorrect or irrelevant answer. Review the fundamentals and try again.';
+  } else if (score <= 3) {
+    feedback = '⚠️ Weak answer. Needs significant improvement — study the topic and practice more.';
+  } else if (score <= 5) {
+    feedback = '📖 Average answer. Core concepts partially covered but needs more depth and accuracy.';
+  } else if (score <= 7) {
+    feedback = '👍 Good answer! Solid understanding shown. Review edge cases for perfection.';
+  } else {
+    feedback = '🌟 Excellent answer! Strong understanding and well-articulated response.';
+  }
+
+  if (matchedTerms.length > 0) {
+    feedback += ` Key concepts covered: ${matchedTerms.slice(0, 4).join(', ')}.`;
+  } else if (keyTerms.length > 0) {
+    feedback += ` Consider addressing: ${keyTerms.slice(0, 3).join(', ')}.`;
+  }
+
+  if (errors.length === 0) {
+    errors.push('No major issues');
+    solutions.push('Continue practicing to strengthen your knowledge further');
+  }
+
+  return { score, feedback, errors, solutions };
 }
 
 // ─── Routes ───────────────────────────────────────────────
@@ -481,30 +581,35 @@ router.post('/analyze', async (req, res) => {
       )
       .join('\n\n');
 
-    const systemPrompt = `You are a STRICT HR manager conducting a performance review.
-Analyze the candidate's answers for a ${field} role (experience: ${experience}). 
-Be honest and critical — this is NOT practice, this is a real evaluation.
+    const systemPrompt = `You are a STRICT HR manager conducting a performance review. NO LENIENCY.
+Analyze the candidate's answers for a ${field} role (experience: ${experience}).
+This is a REAL interview evaluation — do NOT inflate scores.
 
-IMPORTANT SCORING RULES:
-- Each answer has a mode: "voice" (candidate listened to the question and spoke answer) or "typed" (candidate read and typed).
-- Voice-mode answers demonstrate better communication & confidence ✅ +1-2 bonus to confidence & communication
-- Typed answers may show more hesitation — score normally but note if they avoided speaking
+SCORING RULES — BE STRICT:
+- If an answer is wrong, irrelevant, or gibberish → perQuestion.score = 0
+- If an answer is too brief (< 10 words) → max score 2
+- If an answer only partially addresses the question → score 3-5
+- If an answer is correct but lacks detail → score 5-6
+- If an answer is good with examples → score 7-8
+- Only perfect, comprehensive answers get 9-10
 
-Score each category out of 10:
-1. Knowledge — does the candidate actually understand the concepts?
-2. Confidence — do they sound sure or hesitant? (+bonus for voice mode)
-3. Communication — are answers clear and structured? (+bonus for voice mode)
-4. Voice Clarity — ignore filler words
-    
-Also give per-question scores and very brief, direct feedback.
+Category scoring (out of 10):
+1. Knowledge — does the candidate actually understand the concepts? (be critical)
+2. Confidence — do they sound sure or hesitant?
+3. Communication — are answers clear and structured?
+4. Voice Clarity — based on filler words
+
+Do NOT give free marks. A bad answer = 0. A wrong answer = 0.
+Better to be too harsh than too generous.
+
 At the end, give a hire decision: "Strong Hire" | "Hire" | "Lean Hire" | "No Hire"
 
 Return ONLY valid JSON (no markdown, no explanation):
 {
-  "overallScore": <number 1-10>,
-  "categories": { "confidence": <1-10>, "knowledge": <1-10>, "communication": <1-10>, "voiceClarity": <1-10> },
+  "overallScore": <number 0-10>,
+  "categories": { "confidence": <0-10>, "knowledge": <0-10>, "communication": <0-10>, "voiceClarity": <0-10> },
   "perQuestion": [
-    { "questionText": "...", "score": <1-10>, "errors": ["concise error"], "solutions": ["concise fix"] }
+    { "questionText": "...", "score": <0-10>, "errors": ["concise error"], "solutions": ["concise fix"] }
   ],
   "finalComments": "2-3 sentence direct summary",
   "hireDecision": "Strong Hire | Hire | Lean Hire | No Hire"
@@ -539,6 +644,77 @@ Return ONLY valid JSON (no markdown, no explanation):
   } catch (err) {
     console.error('POST /api/interview/analyze error:', err);
     res.status(500).json({ error: 'Failed to analyze answers', details: err.message });
+  }
+});
+
+/**
+ * POST /api/interview/evaluate-answer
+ * AI-powered strict evaluation of a single practice answer.
+ * Gemini → Groq → strict local fallback.
+ */
+router.post('/evaluate-answer', async (req, res) => {
+  try {
+    const { field, question, answer, topic, type } = req.body;
+    if (!question || !answer) {
+      return res.status(400).json({ error: 'Question and answer are required.' });
+    }
+
+    const answerText = `Question: ${question}\nAnswer: ${answer}`;
+
+    const systemPrompt = `You are a STRICT technical examiner. No leniency. No free marks.
+Evaluate the candidate's answer for a ${field || 'technical'} role.
+
+SCORING RULES (be STRICT — this is a real interview, not practice):
+- Score 0 if the answer is wrong, irrelevant, gibberish, or too short (< 5 words)
+- Score 1-3 if the answer shows minimal understanding — major gaps in knowledge
+- Score 4-5 if the answer is partially correct but lacks depth, precision, or misses key points
+- Score 6-7 if the answer is good — covers the core concepts correctly
+- Score 8-9 if the answer is excellent — detailed, accurate, with specific examples
+- Score 10 only if the answer is PERFECT — comprehensive, precise, and demonstrates mastery
+
+CRITICAL: Do NOT inflate scores. If the candidate gives a vague or wrong answer, give 0 or a low score.
+Better to give a low honest score than a falsely high one.
+
+Return ONLY valid JSON (no markdown, no explanation):
+{
+  "score": <number 0-10>,
+  "feedback": "<2-3 sentence explanation of the score>",
+  "errors": ["<specific error>"],
+  "solutions": ["<actionable improvement>"]
+}`;
+
+    const userPrompt = `Evaluate this answer STRICTLY:\n\n${answerText}`;
+
+    let result;
+    try {
+      const raw = await askGemini(systemPrompt, userPrompt);
+      result = parseGeminiJson(raw);
+    } catch (geminiErr) {
+      if (geminiErr.isQuotaError) {
+        console.warn('Gemini quota — trying Groq for evaluation...');
+        try {
+          const raw = await askGroq(systemPrompt, userPrompt);
+          result = parseGeminiJson(raw);
+        } catch (groqErr) {
+          if (groqErr.isQuotaError) {
+            console.warn('Groq also quota exceeded — using strict local evaluation');
+            result = evaluateSingleAnswerLocally(question, answer, field);
+          } else {
+            throw groqErr;
+          }
+        }
+      } else {
+        throw geminiErr;
+      }
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error('POST /api/interview/evaluate-answer error:', err);
+    res.status(500).json({
+      error: 'Failed to evaluate answer',
+      details: err.message,
+    });
   }
 });
 

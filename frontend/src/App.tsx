@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { Landing } from '@/pages/Landing'
 import { Login } from '@/pages/Login'
@@ -7,6 +7,8 @@ import NotFound from '@/pages/NotFound'
 // ─── Protected Route Wrapper ──────────────────────────────
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
+  const location = useLocation()
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F7F9FC]">
@@ -14,7 +16,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) {
+    // Detect role from URL path so login page shows correct form
+    const role = location.pathname.startsWith('/company') ? 'company' : 'student'
+    return <Navigate to={`/login?role=${role}`} replace />
+  }
   return <>{children}</>
 }
 
@@ -33,6 +39,7 @@ import ResourcesPage from '@/pages/student/Resources'
 import StudentNotifications from '@/pages/student/Notifications'
 import SettingsPage from '@/pages/student/Settings'
 import SupportPage from '@/pages/student/Support'
+import StudentMessages from '@/pages/student/Messages'
 
 // Company pages
 // Company pages (all from pages/company/, names match sidebar labels)
@@ -69,23 +76,24 @@ function App() {
       <Route path="/student/feedback" element={<ProtectedRoute><AIFeedbackPage /></ProtectedRoute>} />
       <Route path="/student/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
       <Route path="/student/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
+      <Route path="/student/messages" element={<ProtectedRoute><StudentMessages /></ProtectedRoute>} />
       <Route path="/student/notifications" element={<ProtectedRoute><StudentNotifications /></ProtectedRoute>} />
       <Route path="/student/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/student/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
 
       {/* Company routes — file names match sidebar labels */}
-      <Route path="/company/dashboard" element={<CompanyDashboard />} />
-      <Route path="/company/post-job" element={<PostJob />} />
-      <Route path="/company/applicants" element={<Applicants />} />
-      <Route path="/company/screening" element={<AIScreeningPage />} />
-      <Route path="/company/interviews" element={<CompanyInterviewsPage />} />
-      <Route path="/company/shortlisted" element={<Shortlisted />} />
-      <Route path="/company/analytics" element={<CompanyAnalytics />} />
-      <Route path="/company/messages" element={<Messages />} />
-      <Route path="/company/profile" element={<CompanyProfilePage />} />
-      <Route path="/company/notifications" element={<CompanyNotifications />} />
-      <Route path="/company/settings" element={<CompanySettings />} />
-      <Route path="/company/support" element={<CompanySupport />} />
+      <Route path="/company/dashboard" element={<ProtectedRoute><CompanyDashboard /></ProtectedRoute>} />
+      <Route path="/company/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
+      <Route path="/company/applicants" element={<ProtectedRoute><Applicants /></ProtectedRoute>} />
+      <Route path="/company/screening" element={<ProtectedRoute><AIScreeningPage /></ProtectedRoute>} />
+      <Route path="/company/interviews" element={<ProtectedRoute><CompanyInterviewsPage /></ProtectedRoute>} />
+      <Route path="/company/shortlisted" element={<ProtectedRoute><Shortlisted /></ProtectedRoute>} />
+      <Route path="/company/analytics" element={<ProtectedRoute><CompanyAnalytics /></ProtectedRoute>} />
+      <Route path="/company/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+      <Route path="/company/profile" element={<ProtectedRoute><CompanyProfilePage /></ProtectedRoute>} />
+      <Route path="/company/notifications" element={<ProtectedRoute><CompanyNotifications /></ProtectedRoute>} />
+      <Route path="/company/settings" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
+      <Route path="/company/support" element={<ProtectedRoute><CompanySupport /></ProtectedRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<NotFound />} />

@@ -19,12 +19,33 @@ interface DashboardSidebarProps {
     description: string
     buttonText: string
   }
+  onLogout?: () => void
 }
 
-export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgradeCard }: DashboardSidebarProps) {
+export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgradeCard, onLogout }: DashboardSidebarProps) {
   const { pathname } = useLocation()
 
   return (
+    <>
+      <style>{`
+        @keyframes typewriter {
+          from { width: 0; opacity: 1; }
+          to { width: var(--tw); opacity: 1; }
+        }
+        .typewriter-label {
+          overflow: hidden;
+          white-space: nowrap;
+          display: inline-block;
+          vertical-align: middle;
+          width: 0;
+          opacity: 0;
+          transition: opacity 0.15s;
+        }
+        .group:hover .typewriter-label {
+          opacity: 1;
+          animation: typewriter 0.35s steps(var(--steps, 10), end) forwards;
+        }
+      `}</style>
     <aside className="fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-r border-[#EAECF0] bg-white lg:flex">
       {/* Logo */}
       <Link to={logoHref} className="flex items-center gap-2 px-6 py-6">
@@ -39,7 +60,7 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
         )}
       </Link>
 
-      {/* Nav */}
+      {/* Nav (scrollable) */}
       <nav className="flex-1 overflow-y-auto px-3">
         <ul className="space-y-0.5">
           {navItems.map((item) => {
@@ -63,32 +84,64 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
             )
           })}
         </ul>
-
-        <div className="my-3 border-t border-[#EAECF0]" />
-
-        <ul className="space-y-0.5 pb-4">
-          {footerItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <li key={item.label}>
-                <Link
-                  to={item.href}
-                  className={cn(
-                    'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors',
-                    isActive
-                      ? 'bg-blue-50 text-[#1a6fa8]'
-                      : 'text-[#667085] hover:bg-[#F7F9FC] hover:text-[#101828]'
-                  )}
-                >
-                  <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
       </nav>
+
+      {/* Footer items (fixed — outside scrollable area) */}
+      {footerItems.length > 0 && (
+        <div className="px-3 py-2">
+          <ul className="space-y-0.5">
+            {footerItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+              return (
+                <li key={item.label}>
+                  <Link
+                    to={item.href}
+                    className={cn(
+                      'group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors',
+                      isActive
+                        ? 'bg-blue-50 text-[#1a6fa8]'
+                        : 'text-[#98A2B3] hover:bg-[#F7F9FC] hover:text-[#667085]'
+                    )}
+                    title={item.label}
+                  >
+                    <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+                    <span
+                      className="typewriter-label text-[12px]"
+                      style={{ '--tw': `${item.label.length * 8 + 4}px`, '--steps': item.label.length } as React.CSSProperties}
+                    >
+                      {item.label}
+                    </span>
+                  </Link>
+                </li>
+              )
+            })}
+
+            {/* Logout button */}
+            {onLogout && (
+              <li>
+                <button
+                  onClick={onLogout}
+                  className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium text-[#98A2B3] transition-colors hover:bg-red-50 hover:text-red-500"
+                  title="Logout"
+                >
+                  <svg className="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  <span
+                    className="typewriter-label text-[12px]"
+                    style={{ '--tw': '48px', '--steps': 6 } as React.CSSProperties}
+                  >
+                    Logout
+                  </span>
+                </button>
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
 
       {/* Upgrade card */}
       <div className="p-4">
@@ -108,5 +161,6 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
         </div>
       </div>
     </aside>
+    </>
   )
 }

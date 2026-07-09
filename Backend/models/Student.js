@@ -28,6 +28,7 @@ const studentSchema = new mongoose.Schema({
     totalScoreSum: { type: Number, default: 0 },
     avgScore: { type: Number, default: 0 },
     practiceQuestionsCount: { type: Number, default: 0 },
+    practiceSessionsCount: { type: Number, default: 0 },
     loginStreak: { type: Number, default: 0 },
     lastLoginDate: { type: String, default: '' },
     interviewsRemaining: { type: Number, default: 4 },

@@ -55,6 +55,7 @@ router.get('/dashboard', async (req, res) => {
         avgScore: stats.avgScore || 0,
         totalScoreSum: stats.totalScoreSum || 0,
         practiceQuestionsCount: stats.practiceQuestionsCount || 0,
+        practiceSessionsCount: stats.practiceSessionsCount || 0,
         loginStreak: stats.loginStreak || 0,
         lastLoginDate: stats.lastLoginDate || '',
         interviewsRemaining: stats.interviewsRemaining || 4,
@@ -156,6 +157,37 @@ router.post('/interview-completed', async (req, res) => {
   } catch (err) {
     console.error('POST /api/stats/interview-completed error:', err);
     res.status(500).json({ error: 'Failed to save interview stats.' });
+  }
+});
+
+// ─── POST /api/stats/practice-started ───────────────────
+// Called when a student STARTS a practice session (tracks every session)
+router.post('/practice-started', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'student') {
+      return res.status(401).json({ error: 'Not authenticated as student.' });
+    }
+
+    const student = await Student.findById(tokenData.id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found.' });
+    }
+
+    const current = student.stats?.practiceSessionsCount || 0;
+    const newCount = current + 1;
+
+    await Student.findByIdAndUpdate(tokenData.id, {
+      $set: { 'stats.practiceSessionsCount': newCount },
+    });
+
+    res.json({
+      success: true,
+      practiceSessionsCount: newCount,
+    });
+  } catch (err) {
+    console.error('POST /api/stats/practice-started error:', err);
+    res.status(500).json({ error: 'Failed to save practice session stats.' });
   }
 });
 

@@ -39,6 +39,7 @@ interface DashboardStats {
   avgScore: number
   totalScoreSum: number
   practiceQuestionsCount: number
+  practiceSessionsCount: number
   loginStreak: number
   lastLoginDate: string
   interviewsRemaining: number
@@ -76,6 +77,7 @@ const EMPTY_STATS: DashboardStats = {
   avgScore: 0,
   totalScoreSum: 0,
   practiceQuestionsCount: 0,
+  practiceSessionsCount: 0,
   loginStreak: 0,
   lastLoginDate: '',
   interviewsRemaining: 4,
@@ -115,9 +117,9 @@ function StatsSection({ stats }: { stats: DashboardStats }) {
       iconColor: "text-emerald-500",
     },
     {
-      label: "Questions Practiced",
-      value: String(stats.practiceQuestionsCount),
-      delta: `${stats.practiceQuestionsCount} total questions`,
+      label: "Practice Sessions",
+      value: String(stats.practiceSessionsCount),
+      delta: `${stats.practiceSessionsCount} session${stats.practiceSessionsCount !== 1 ? 's' : ''} started`,
       icon: BookOpen,
       iconBg: "bg-amber-50",
       iconColor: "text-amber-500",

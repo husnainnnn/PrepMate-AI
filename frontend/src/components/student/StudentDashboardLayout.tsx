@@ -1,11 +1,12 @@
 import { type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   Mic,
   BookOpen,
   FileText,
   Mail,
+  MessageSquare,
   Sparkles,
   Video,
   BarChart3,
@@ -16,7 +17,6 @@ import {
   Briefcase,
   Search,
   User,
-  LogOut,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { DashboardSidebar, type SidebarItem } from '@/components/shared/DashboardSidebar'
@@ -35,23 +35,30 @@ const sidebarItems: SidebarItem[] = [
   { label: 'Resume Builder', href: '/student/resumes', icon: FileText },
   { label: 'Job Matches', href: '/student/job-matches', icon: Briefcase },
   { label: 'Applications', href: '/student/applications', icon: Mail },
+  { label: 'Messages', href: '/student/messages', icon: MessageSquare },
   { label: 'Live Interviews', href: '/student/live-interviews', icon: Video },
   { label: 'AI Feedback', href: '/student/feedback', icon: Sparkles },
   { label: 'Analytics', href: '/student/analytics', icon: BarChart3 },
   { label: 'Resources', href: '/student/resources', icon: Library },
-  { label: 'Notifications', href: '/student/notifications', icon: Bell },
-  { label: 'Settings', href: '/student/settings', icon: Settings },
 ]
 
 const footerItems: SidebarItem[] = [
+  { label: 'Settings', href: '/student/settings', icon: Settings },
   { label: 'Help & Support', href: '/student/support', icon: HelpCircle },
 ]
 
 export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps) {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const initials = user?.fullName
     ? user.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
     : '?'
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login?role=student', { replace: true })
+  }
+
   return (
     <div className="min-h-screen bg-[#F7F9FC] text-[#101828]">
       {/* Shared sidebar */}
@@ -59,6 +66,7 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
         logoHref="/student/dashboard"
         navItems={sidebarItems}
         footerItems={footerItems}
+        onLogout={handleLogout}
         upgradeCard={{
           title: 'Upgrade to Pro',
           description: 'Unlock unlimited mock interviews and advanced AI feedback.',
@@ -100,10 +108,7 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
                 </Avatar>
                 <span className="hidden text-[13px] font-medium text-[#101828] sm:block">{user?.fullName || 'User'}</span>
               </div>
-              <button onClick={logout} title="Logout"
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#EAECF0] text-[#667085] transition-colors hover:bg-red-50 hover:text-red-500">
-                <LogOut className="h-[18px] w-[18px]" />
-              </button>
+
             </div>
           </header>
 

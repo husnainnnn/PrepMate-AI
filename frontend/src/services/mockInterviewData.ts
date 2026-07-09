@@ -62,6 +62,33 @@ export interface AnalysisResult {
   cheatReason?: string
 }
 
+/** Evaluate a single answer using AI (strict examiner) */
+export interface SingleAnswerEvaluation {
+  score: number
+  feedback: string
+  errors: string[]
+  solutions: string[]
+}
+
+export async function evaluateSingleAnswer(
+  field: string,
+  question: string,
+  answer: string,
+  topic?: string,
+  type?: string
+): Promise<SingleAnswerEvaluation> {
+  const res = await fetch("/api/interview/evaluate-answer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ field, question, answer, topic, type }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Evaluation failed" }))
+    throw new Error(err.error || "evaluate-answer endpoint failed")
+  }
+  return await res.json()
+}
+
 /** Fetch 7-10 AI-generated questions from backend (Gemini) */
 export async function fetchQuestions(setupData: SetupData, totalQuestions: number): Promise<InterviewQuestion[]> {
   try {

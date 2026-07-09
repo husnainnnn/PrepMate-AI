@@ -277,10 +277,9 @@ export default function LiveInterviewsPage() {
   if (status === 'idle') {
     return (
       <StudentDashboardLayout>
-        <div className="p-8">
-          <div className="mx-auto max-w-2xl">
+        <div className="space-y-6 px-6 py-6 lg:px-8">
             {/* Header */}
-            <div className="mb-6 flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
                 <Video className="h-5 w-5 text-white" />
               </div>
@@ -292,48 +291,49 @@ export default function LiveInterviewsPage() {
               </div>
             </div>
 
-            {/* No interviews state */}
-            <div className="rounded-2xl border border-[#EAECF0] bg-white p-8 text-center shadow-sm">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-[#F7F9FC]">
-                <Video className="h-8 w-8 text-[#98A2B3]" />
-              </div>
-              <h2 className="mt-4 text-lg font-semibold text-[#101828]">No upcoming interviews</h2>
-              <p className="mt-2 text-[13.5px] text-[#667085] max-w-md mx-auto">
-                When a company schedules a live interview with you, it will appear here.
-                You'll receive a notification with the date, time, and joining link.
-              </p>
-              <div className="mt-6 flex flex-col items-center gap-4">
-                <button
-                  onClick={scheduleDemoInterview}
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110"
-                >
-                  <Clock className="h-4 w-4" /> Try Demo Interview
-                </button>
-                <p className="text-[12px] text-[#98A2B3]">
-                  Demo will start in 30 seconds (no backend required — shows the room UI)
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              {/* No interviews state */}
+              <div className="lg:col-span-2 rounded-2xl border border-[#EAECF0] bg-white p-8 text-center shadow-sm">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-[#F7F9FC]">
+                  <Video className="h-8 w-8 text-[#98A2B3]" />
+                </div>
+                <h2 className="mt-4 text-lg font-semibold text-[#101828]">No upcoming interviews</h2>
+                <p className="mt-2 text-[13.5px] text-[#667085] max-w-md mx-auto">
+                  When a company schedules a live interview with you, it will appear here.
+                  You'll receive a notification with the date, time, and joining link.
                 </p>
+                <div className="mt-6 flex flex-col items-center gap-4">
+                  <button
+                    onClick={scheduleDemoInterview}
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110"
+                  >
+                    <Clock className="h-4 w-4" /> Try Demo Interview
+                  </button>
+                  <p className="text-[12px] text-[#98A2B3]">
+                    Demo will start in 30 seconds (no backend required — shows the room UI)
+                  </p>
+                </div>
               </div>
-            </div>
 
-            {/* Info card */}
-            <div className="mt-6 rounded-2xl border border-[#EAECF0] bg-gradient-to-br from-[#F7F9FC] to-white p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-[#101828]">How it works</h3>
-              <div className="mt-3 grid gap-4 sm:grid-cols-3">
-                {[
-                  { step: '1', text: 'Company schedules an interview at a convenient time' },
-                  { step: '2', text: 'Join the video room at the scheduled time' },
-                  { step: '3', text: 'Interview live with camera, mic, and screen sharing' },
-                ].map(item => (
-                  <div key={item.step} className="flex items-start gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] text-[11px] font-bold text-white">
-                      {item.step}
-                    </span>
-                    <p className="text-[13px] text-[#667085]">{item.text}</p>
-                  </div>
-                ))}
+              {/* Info card */}
+              <div className="rounded-2xl border border-[#EAECF0] bg-gradient-to-br from-[#F7F9FC] to-white p-5 shadow-sm h-fit">
+                <h3 className="text-sm font-semibold text-[#101828]">How it works</h3>
+                <div className="mt-3 space-y-4">
+                  {[
+                    { step: '1', text: 'Company schedules an interview at a convenient time' },
+                    { step: '2', text: 'Join the video room at the scheduled time' },
+                    { step: '3', text: 'Interview live with camera, mic, and screen sharing' },
+                  ].map(item => (
+                    <div key={item.step} className="flex items-start gap-3">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] text-[11px] font-bold text-white">
+                        {item.step}
+                      </span>
+                      <p className="text-[13px] text-[#667085]">{item.text}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
         </div>
       </StudentDashboardLayout>
     )

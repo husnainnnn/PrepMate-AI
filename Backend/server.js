@@ -38,6 +38,10 @@ const uploadRoutes = require('./routes/upload');
 const companiesRoutes = require('./routes/companies');
 const interviewRoutes = require('./routes/interview');
 const statsRoutes = require('./routes/stats');
+const companyDashboardRoutes = require('./routes/companyDashboard');
+const companyJobsRoutes = require('./routes/companyJobs');
+const jobsExtendedRoutes = require('./routes/jobsExtended');
+const messagesRoutes = require('./routes/messages');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -56,9 +60,13 @@ app.use('/api/resume', resumeRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/applications', applicationsRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/companies', companyDashboardRoutes); // MUST be before companiesRoutes (/:id would catch "dashboard")
 app.use('/api/companies', companiesRoutes);
 app.use('/api/interview', interviewRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/company', companyJobsRoutes);
+app.use('/api/jobs', jobsExtendedRoutes);
+app.use('/api/messages', messagesRoutes);
 
 // Health check — includes DB status
 app.get('/api/health', async (_req, res) => {

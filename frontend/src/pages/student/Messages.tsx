@@ -3,23 +3,11 @@ import {
   MessageSquare,
   Send,
   Search,
-  ChevronRight,
-  User,
   Building2,
   Briefcase,
-  Mail,
-  Phone,
-  ExternalLink,
-  Link as LinkIcon,
-  GraduationCap,
-  Star,
-  CheckCircle,
-  Ban,
   Trash2,
 } from "lucide-react";
-import { CompanyDashboardLayout } from "@/components/company/CompanyDashboardLayout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StudentDashboardLayout } from "@/components/student/StudentDashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 
 // ─── Types ──────────────────────────────────────────────────
@@ -65,7 +53,7 @@ function getInitials(name: string): string {
 
 // ─── Page ───────────────────────────────────────────────────
 
-export default function Messages() {
+export default function StudentMessages() {
   const { token } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConv, setActiveConv] = useState<Conversation | null>(null);
@@ -78,7 +66,6 @@ export default function Messages() {
   const [deletingMsg, setDeletingMsg] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ChatMessage | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Fetch conversations
   const fetchConversations = async () => {
@@ -118,7 +105,6 @@ export default function Messages() {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}` },
         });
-        // Update unread count locally
         setConversations(prev => prev.map(c =>
           c.otherId === activeConv.otherId ? { ...c, unreadCount: 0 } : c
         ));
@@ -144,7 +130,7 @@ export default function Messages() {
         },
         body: JSON.stringify({
           receiverId: activeConv.otherId,
-          receiverRole: 'student',
+          receiverRole: 'company',
           applicationId: activeConv.applicationId,
           jobTitle: activeConv.jobTitle,
           companyName: activeConv.companyName,
@@ -155,13 +141,11 @@ export default function Messages() {
         const data = await res.json();
         setChatMessages(prev => [...prev, data.message]);
         setMessageText('');
-        // Update last message in conversation list
         setConversations(prev => prev.map(c =>
           c.otherId === activeConv.otherId
             ? { ...c, lastMessage: data.message.content, lastMessageDate: data.message.createdAt }
             : c
         ));
-        // Move to top
         setConversations(prev => {
           const updated = [...prev];
           const idx = updated.findIndex(c => c.otherId === activeConv.otherId);
@@ -186,11 +170,11 @@ export default function Messages() {
   const filteredConversations = conversations.filter(c => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
-    return c.otherName?.toLowerCase().includes(q) || c.jobTitle?.toLowerCase().includes(q);
+    return c.otherName?.toLowerCase().includes(q) || c.jobTitle?.toLowerCase().includes(q) || c.companyName?.toLowerCase().includes(q);
   });
 
   return (
-    <CompanyDashboardLayout>
+    <StudentDashboardLayout>
       <div className="flex h-[calc(100vh-73px)]">
         {/* ── Left Panel: Conversation List ──────────────── */}
         <div className="w-80 shrink-0 border-r border-[#EAECF0] bg-white flex flex-col">
@@ -223,8 +207,8 @@ export default function Messages() {
             ) : filteredConversations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center px-4">
                 <MessageSquare className="h-8 w-8 text-[#D0D5DD]" strokeWidth={1.5} />
-                <p className="mt-3 text-[13px] font-medium text-[#667085]">No conversations yet</p>
-                <p className="mt-1 text-[11px] text-[#98A2B3]">Shortlist candidates and start messaging them here.</p>
+                <p className="mt-3 text-[13px] font-medium text-[#667085]">No messages yet</p>
+                <p className="mt-1 text-[11px] text-[#98A2B3]">Companies will message you here when they shortlist or hire you.</p>
               </div>
             ) : (
               filteredConversations.map((conv) => (
@@ -238,11 +222,11 @@ export default function Messages() {
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${
                     activeConv?.otherId === conv.otherId ? 'bg-[#1a6fa8] text-white' : 'bg-gray-100 text-[#667085]'
                   }`}>
-                    {getInitials(conv.otherName)}
+                    <Building2 className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-[13px] font-medium text-[#101828] truncate">{conv.otherName}</p>
+                      <p className="text-[13px] font-medium text-[#101828] truncate">{conv.companyName || conv.otherName || 'Company'}</p>
                       <span className="text-[10px] text-[#98A2B3] shrink-0">{formatTime(conv.lastMessageDate)}</span>
                     </div>
                     <p className="text-[12px] text-[#667085] truncate mt-0.5">{conv.lastMessage}</p>
@@ -268,18 +252,13 @@ export default function Messages() {
             <>
               {/* Chat Header */}
               <div className="flex items-center gap-3 border-b border-[#EAECF0] px-5 py-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a6fa8] text-[12px] font-semibold text-white">
-                  {getInitials(activeConv.otherName)}
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a6fa8] text-white">
+                  <Building2 className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13.5px] font-medium text-[#101828]">{activeConv.otherName}</p>
-                  <p className="text-[11px] text-[#667085] truncate">
-                    {activeConv.jobTitle} · {activeConv.otherEmail || 'No email'}
-                  </p>
+                  <p className="text-[13.5px] font-medium text-[#101828]">{activeConv.companyName || activeConv.otherName || 'Company'}</p>
+                  <p className="text-[11px] text-[#667085] truncate">{activeConv.jobTitle}</p>
                 </div>
-                <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 text-[10px] font-medium text-emerald-700">
-                  <Star className="h-3 w-3 mr-1" /> Shortlisted
-                </Badge>
               </div>
 
               {/* Messages Area */}
@@ -292,26 +271,25 @@ export default function Messages() {
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <MessageSquare className="h-10 w-10 text-[#D0D5DD]" strokeWidth={1.5} />
                     <p className="mt-3 text-[13px] font-medium text-[#667085]">No messages yet</p>
-                    <p className="mt-1 text-[11px] text-[#98A2B3]">Send a message to start the conversation.</p>
+                    <p className="mt-1 text-[11px] text-[#98A2B3]">The company will reach out to you here.</p>
                   </div>
                 ) : (
                   chatMessages.map((msg) => {
-                    const isCompanyMsg = msg.senderRole === 'company';
+                    const isStudent = msg.senderRole === 'student';
                     return (
-                      <div key={msg._id} className={`group flex ${isCompanyMsg ? 'justify-end' : 'justify-start'}`}>
+                      <div key={msg._id} className={`group flex ${isStudent ? 'justify-end' : 'justify-start'}`}>
                         <div className="relative max-w-[75%]">
                           <div className={`rounded-2xl px-4 py-2.5 ${
-                            isCompanyMsg
+                            isStudent
                               ? 'bg-[#1a6fa8] text-white rounded-br-md'
                               : 'bg-gray-100 text-[#344054] rounded-bl-md'
                           }`}>
                             <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                             <div className="flex items-center gap-2 mt-1 justify-between">
-                              <p className={`text-[10px] ${isCompanyMsg ? 'text-blue-200' : 'text-[#98A2B3]'}`}>
+                              <p className={`text-[10px] ${isStudent ? 'text-blue-200' : 'text-[#98A2B3]'}`}>
                                 {formatTime(msg.createdAt)}
-                                {isCompanyMsg && msg.readAt && ' · Read'}
                               </p>
-                              {isCompanyMsg && (
+                              {isStudent && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -337,11 +315,10 @@ export default function Messages() {
               <div className="border-t border-[#EAECF0] p-4">
                 <div className="flex items-center gap-2">
                   <input
-                    ref={inputRef}
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type a message..."
+                    placeholder="Type a reply..."
                     className="flex-1 rounded-lg border border-[#D0D5DD] px-4 py-2.5 text-[13px] text-[#101828] outline-none focus:border-[#1a6fa8] focus:ring-1 focus:ring-[#1a6fa8]/20 placeholder:text-[#98A2B3]"
                   />
                   <button
@@ -365,9 +342,9 @@ export default function Messages() {
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
                   <MessageSquare className="h-8 w-8 text-[#1a6fa8]" />
                 </div>
-                <h2 className="mt-4 text-lg font-semibold text-[#101828]">Select a Conversation</h2>
+                <h2 className="mt-4 text-lg font-semibold text-[#101828]">Your Messages</h2>
                 <p className="mt-1 text-[13px] text-[#667085] max-w-xs">
-                  Choose a candidate from the left to start messaging.
+                  Companies will message you here about your applications.
                 </p>
               </div>
             </div>
@@ -423,6 +400,6 @@ export default function Messages() {
           </div>
         </div>
       )}
-    </CompanyDashboardLayout>
+    </StudentDashboardLayout>
   );
 }

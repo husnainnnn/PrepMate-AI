@@ -639,64 +639,481 @@ function PreviewStep({ data, template, onBack, onSave, onDownload, isSaving, sav
   )
 }
 
+// ─── Dispatcher: each template now renders its OWN distinct layout ───────
+// (previously every template shared one generic layout — only color/photo
+// changed — so all resumes looked the same regardless of chosen template)
 function ResumePreview({ data, template }: { data: ResumeData; template: ResumeTemplate }) {
+  switch (template.id) {
+    case 'modern': return <ModernResume data={data} template={template} />
+    case 'creative': return <CreativeResume data={data} template={template} />
+    case 'minimal': return <MinimalResume data={data} template={template} />
+    case 'executive': return <ExecutiveResume data={data} template={template} />
+    case 'ats-optimized': return <AtsResume data={data} template={template} />
+    case 'portfolio': return <PortfolioResume data={data} template={template} />
+    case 'classic':
+    default:
+      return <ClassicResume data={data} template={template} />
+  }
+}
+
+/* Deterministic pseudo skill-level so progress bars look varied but stable
+   across re-renders (no proficiency field exists in the data model). */
+function skillLevel(skill: string, idx: number): number {
+  return 60 + ((skill.length * 7 + idx * 11) % 34)
+}
+
+function SkillPill({ label, color }: { label: string; color: string }) {
+  return <span className="rounded-full px-3 py-1 text-[12px] font-medium" style={{ background: `${color}15`, color }}>{label}</span>
+}
+
+function SkillBar({ label, level, color }: { label: string; level: number; color: string }) {
+  return (
+    <div className="mb-2">
+      <p className="mb-1 text-[12px] text-[#344054]">{label}</p>
+      <div className="h-1.5 w-full rounded-full bg-[#EAECF0]">
+        <div className="h-1.5 rounded-full" style={{ width: `${level}%`, background: color }} />
+      </div>
+    </div>
+  )
+}
+
+function initials(name: string): string {
+  return (name || 'Y N').trim().split(/\s+/).map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+}
+
+/* ── Classic: centered header, centered section titles, single column ── */
+function ClassicResume({ data, template }: { data: ResumeData; template: ResumeTemplate }) {
   const { personalInfo, skills, projects, experience, education } = data
+  const c = template.accentColor
   return (
     <div id="resume-preview" className="w-full rounded-2xl border border-[#EAECF0] bg-white p-10 shadow-sm print:border-0 print:shadow-none">
-      {template.hasPhoto ? (
-        <div className="mb-6 flex items-center gap-5 border-b pb-5" style={{ borderColor: template.accentColor }}>
-          {personalInfo.photoUrl && <img src={personalInfo.photoUrl} alt={personalInfo.fullName} className="h-24 w-24 rounded-full object-cover" />}
-          <div>
-            <h2 className="text-2xl font-bold text-[#101828]">{personalInfo.fullName || 'Your Name'}</h2>
-            <p className="mt-1 text-[13px] text-[#667085]">{[personalInfo.email, personalInfo.phone, personalInfo.linkedin].filter(Boolean).join(' · ')}</p>
+      <div className="mb-5 flex flex-col items-center text-center">
+        <h2 className="text-2xl font-bold tracking-wide text-[#101828]">{personalInfo.fullName || 'Your Name'}</h2>
+        <p className="mt-1.5 text-[13px] text-[#667085]">{[personalInfo.email, personalInfo.phone, personalInfo.address].filter(Boolean).join(' · ')}</p>
+        <p className="text-[13px] text-[#667085]">{[personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean).join(' · ')}</p>
+        <div className="mt-4 h-[2px] w-24" style={{ background: c }} />
+      </div>
+      {experience.length > 0 && (
+        <div className="mb-5 text-center">
+          <h3 className="mb-2 text-[13px] font-bold uppercase tracking-widest" style={{ color: c }}>Professional Experience</h3>
+          <div className="mx-auto max-w-xl text-left">
+            {experience.map((e) => (
+              <div key={e.id} className="mb-3">
+                <div className="flex justify-between text-[13px] font-semibold text-[#101828]"><span>{e.role} — {e.company}</span><span className="text-[#98A2B3]">{e.startDate} - {e.endDate}</span></div>
+                <p className="text-[13px] text-[#667085]">{e.description}</p>
+              </div>
+            ))}
           </div>
         </div>
-      ) : (
-        <div className="mb-6 border-b pb-4" style={{ borderColor: template.accentColor }}>
-          <h2 className="text-2xl font-bold text-[#101828]">{personalInfo.fullName || 'Your Name'}</h2>
-          <p className="mt-1 text-[13px] text-[#667085]">{[personalInfo.email, personalInfo.phone, personalInfo.address, personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean).join(' · ')}</p>
+      )}
+      {projects.length > 0 && (
+        <div className="mb-5 text-center">
+          <h3 className="mb-2 text-[13px] font-bold uppercase tracking-widest" style={{ color: c }}>Projects</h3>
+          <div className="mx-auto max-w-xl text-left">
+            {projects.map((p) => (
+              <div key={p.id} className="mb-3">
+                <p className="text-[13px] font-semibold text-[#101828]">{p.name}{p.techStack && <span className="text-[#98A2B3]"> ({p.techStack})</span>}</p>
+                <p className="text-[13px] text-[#667085]">{p.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
+      <div className="grid grid-cols-2 gap-8 text-center">
+        {education.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-[13px] font-bold uppercase tracking-widest" style={{ color: c }}>Education</h3>
+            {education.map((ed) => (
+              <p key={ed.id} className="text-[12px] text-[#667085]">{ed.degree} — {ed.institute} ({ed.startYear}-{ed.endYear})</p>
+            ))}
+          </div>
+        )}
+        {skills.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-[13px] font-bold uppercase tracking-widest" style={{ color: c }}>Key Skills</h3>
+            <p className="text-[12px] text-[#667085]">{skills.join(' · ')}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ── Modern: colored banner header + two-column body ───────────────── */
+function ModernResume({ data, template }: { data: ResumeData; template: ResumeTemplate }) {
+  const { personalInfo, skills, projects, experience, education } = data
+  const c = template.accentColor
+  return (
+    <div id="resume-preview" className="w-full overflow-hidden rounded-2xl border border-[#EAECF0] bg-white shadow-sm print:border-0 print:shadow-none">
+      <div className="px-10 py-6" style={{ background: c }}>
+        <h2 className="text-2xl font-bold text-white">{personalInfo.fullName || 'Your Name'}</h2>
+        <p className="mt-1 text-[13px] text-white/80">{experience[0]?.role || 'Professional'}</p>
+      </div>
+      <div className="grid grid-cols-3 gap-8 p-10">
+        <div className="col-span-1 space-y-6">
+          <div>
+            <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Contact</h3>
+            <div className="space-y-1 text-[12px] text-[#667085]">
+              {[personalInfo.email, personalInfo.phone, personalInfo.address, personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean).map((v) => <p key={v}>{v}</p>)}
+            </div>
+          </div>
+          {skills.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Skills</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {skills.map((s) => <SkillPill key={s} label={s} color={c} />)}
+              </div>
+            </div>
+          )}
+          {education.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Education</h3>
+              {education.map((ed) => (
+                <div key={ed.id} className="mb-2 text-[12px] text-[#667085]">
+                  <p className="font-medium text-[#101828]">{ed.degree}</p>
+                  <p>{ed.institute}</p>
+                  <p className="text-[#98A2B3]">{ed.startYear} - {ed.endYear}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="col-span-2 space-y-6">
+          {experience.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Experience</h3>
+              {experience.map((e) => (
+                <div key={e.id} className="mb-3">
+                  <div className="flex justify-between text-[13px] font-semibold text-[#101828]"><span>{e.role} — {e.company}</span><span className="text-[#98A2B3]">{e.startDate} - {e.endDate}</span></div>
+                  <p className="text-[13px] text-[#667085]">{e.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {projects.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Projects</h3>
+              {projects.map((p) => (
+                <div key={p.id} className="mb-3">
+                  <p className="text-[13px] font-semibold text-[#101828]">{p.name}{p.techStack && <span className="text-[#98A2B3]"> ({p.techStack})</span>}</p>
+                  <p className="text-[13px] text-[#667085]">{p.description}</p>
+                  {p.link && <p className="text-[12px]" style={{ color: c }}>{p.link}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Creative: colored sidebar with photo + skill bars ──────────────── */
+function CreativeResume({ data, template }: { data: ResumeData; template: ResumeTemplate }) {
+  const { personalInfo, skills, projects, experience, education } = data
+  const c = template.accentColor
+  return (
+    <div id="resume-preview" className="flex w-full overflow-hidden rounded-2xl border border-[#EAECF0] bg-white shadow-sm print:border-0 print:shadow-none">
+      <div className="w-1/3 space-y-6 p-8" style={{ background: `${c}0d` }}>
+        {personalInfo.photoUrl ? (
+          <img src={personalInfo.photoUrl} alt={personalInfo.fullName} className="h-24 w-24 rounded-full object-cover" />
+        ) : (
+          <div className="flex h-24 w-24 items-center justify-center rounded-full" style={{ background: `${c}30` }}>
+            <span className="text-2xl font-bold" style={{ color: c }}>{initials(personalInfo.fullName)}</span>
+          </div>
+        )}
+        <div>
+          <h2 className="text-xl font-bold text-[#101828]">{personalInfo.fullName || 'Your Name'}</h2>
+          <p className="mt-1 text-[12px] text-[#667085]">{experience[0]?.role || ''}</p>
+        </div>
+        <div>
+          <h3 className="mb-2 text-[11px] font-bold uppercase tracking-widest" style={{ color: c }}>Contact</h3>
+          <div className="space-y-1 text-[12px] text-[#667085]">
+            {[personalInfo.email, personalInfo.phone, personalInfo.linkedin, personalInfo.github].filter(Boolean).map((v) => <p key={v}>{v}</p>)}
+          </div>
+        </div>
+        {skills.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-[11px] font-bold uppercase tracking-widest" style={{ color: c }}>Skills</h3>
+            {skills.slice(0, 8).map((s, i) => <SkillBar key={s} label={s} level={skillLevel(s, i)} color={c} />)}
+          </div>
+        )}
+      </div>
+      <div className="w-2/3 space-y-6 p-8">
+        {experience.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Experience</h3>
+            {experience.map((e) => (
+              <div key={e.id} className="mb-3">
+                <div className="flex justify-between text-[13px] font-semibold text-[#101828]"><span>{e.role} — {e.company}</span><span className="text-[#98A2B3]">{e.startDate} - {e.endDate}</span></div>
+                <p className="text-[13px] text-[#667085]">{e.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {projects.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Projects</h3>
+            {projects.map((p) => (
+              <div key={p.id} className="mb-3">
+                <p className="text-[13px] font-semibold text-[#101828]">{p.name}{p.techStack && <span className="text-[#98A2B3]"> ({p.techStack})</span>}</p>
+                <p className="text-[13px] text-[#667085]">{p.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {education.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Education</h3>
+            {education.map((ed) => (
+              <div key={ed.id} className="mb-1 flex justify-between text-[13px]"><span className="text-[#101828]">{ed.degree} — {ed.institute}</span><span className="text-[#98A2B3]">{ed.startYear} - {ed.endYear}</span></div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ── Minimal: plain, spacious, left-aligned ─────────────────────────── */
+function MinimalResume({ data, template }: { data: ResumeData; template: ResumeTemplate }) {
+  const { personalInfo, skills, projects, experience, education } = data
+  const c = template.accentColor
+  return (
+    <div id="resume-preview" className="w-full rounded-2xl border border-[#EAECF0] bg-white p-12 shadow-sm print:border-0 print:shadow-none">
+      <h2 className="text-3xl font-light tracking-tight text-[#101828]">{personalInfo.fullName || 'Your Name'}</h2>
+      <p className="mt-2 text-[13px] text-[#98A2B3]">{[personalInfo.email, personalInfo.phone, personalInfo.address].filter(Boolean).join('   ')}</p>
+      <div className="mt-3 h-px w-full" style={{ background: c, opacity: 0.3 }} />
+      {experience.length > 0 && (
+        <div className="mt-8">
+          <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.2em] text-[#101828]">Experience</h3>
+          {experience.map((e) => (
+            <div key={e.id} className="mb-4">
+              <div className="flex justify-between text-[13px] text-[#101828]"><span className="font-medium">{e.role}, {e.company}</span><span className="text-[#98A2B3]">{e.startDate} - {e.endDate}</span></div>
+              <p className="mt-1 text-[13px] leading-relaxed text-[#667085]">{e.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {projects.length > 0 && (
+        <div className="mt-8">
+          <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.2em] text-[#101828]">Projects</h3>
+          {projects.map((p) => (
+            <div key={p.id} className="mb-4">
+              <p className="text-[13px] font-medium text-[#101828]">{p.name}</p>
+              <p className="mt-1 text-[13px] leading-relaxed text-[#667085]">{p.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="mt-8 grid grid-cols-2 gap-8">
+        {education.length > 0 && (
+          <div>
+            <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.2em] text-[#101828]">Education</h3>
+            {education.map((ed) => (
+              <p key={ed.id} className="text-[13px] text-[#667085]">{ed.degree}, {ed.institute}</p>
+            ))}
+          </div>
+        )}
+        {skills.length > 0 && (
+          <div>
+            <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-[0.2em] text-[#101828]">Skills</h3>
+            <p className="text-[13px] text-[#667085]">{skills.join(', ')}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ── Executive (PRO): gradient banner + timeline + skills matrix ─────── */
+function ExecutiveResume({ data, template }: { data: ResumeData; template: ResumeTemplate }) {
+  const { personalInfo, skills, projects, experience, education } = data
+  const c = template.accentColor
+  return (
+    <div id="resume-preview" className="w-full overflow-hidden rounded-2xl border border-[#EAECF0] bg-white shadow-sm print:border-0 print:shadow-none">
+      <div className="flex items-center gap-5 px-10 py-6" style={{ background: `linear-gradient(90deg, ${c}, #d97706)` }}>
+        {personalInfo.photoUrl ? (
+          <img src={personalInfo.photoUrl} alt={personalInfo.fullName} className="h-16 w-16 rounded-full object-cover ring-2 ring-white/60" />
+        ) : (
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 ring-2 ring-white/60">
+            <span className="text-lg font-bold text-white">{initials(personalInfo.fullName)}</span>
+          </div>
+        )}
+        <div>
+          <h2 className="text-2xl font-bold text-white">{personalInfo.fullName || 'Your Name'}</h2>
+          <p className="text-[13px] text-white/80">{[personalInfo.email, personalInfo.phone].filter(Boolean).join(' · ')}</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-5 gap-8 p-10">
+        <div className="col-span-2">
+          {experience.length > 0 && (
+            <div>
+              <h3 className="mb-3 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Timeline</h3>
+              <div className="space-y-4 border-l-2 pl-4" style={{ borderColor: `${c}40` }}>
+                {experience.map((e) => (
+                  <div key={e.id} className="relative">
+                    <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full" style={{ background: c }} />
+                    <p className="text-[13px] font-semibold text-[#101828]">{e.role}</p>
+                    <p className="text-[12px] text-[#667085]">{e.company}</p>
+                    <p className="text-[11px] text-[#98A2B3]">{e.startDate} - {e.endDate}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {skills.length > 0 && (
+            <div className="mt-6">
+              <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Skills Matrix</h3>
+              {skills.slice(0, 6).map((s, i) => <SkillBar key={s} label={s} level={skillLevel(s, i)} color={c} />)}
+            </div>
+          )}
+        </div>
+        <div className="col-span-3 space-y-6">
+          {experience.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Summary</h3>
+              {experience.map((e) => (
+                <p key={e.id} className="mb-2 text-[13px] leading-relaxed text-[#667085]"><span className="font-semibold text-[#101828]">{e.role} — {e.company}: </span>{e.description}</p>
+              ))}
+            </div>
+          )}
+          {projects.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Projects</h3>
+              {projects.map((p) => (
+                <div key={p.id} className="mb-2">
+                  <p className="text-[13px] font-semibold text-[#101828]">{p.name}</p>
+                  <p className="text-[13px] text-[#667085]">{p.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {education.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest" style={{ color: c }}>Education</h3>
+              {education.map((ed) => (
+                <p key={ed.id} className="text-[13px] text-[#667085]">{ed.degree} — {ed.institute} ({ed.startYear}-{ed.endYear})</p>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── ATS Optimized (PRO): plain single column, keyword pills, score badge ── */
+function AtsResume({ data, template }: { data: ResumeData; template: ResumeTemplate }) {
+  const { personalInfo, skills, projects, experience, education } = data
+  const c = template.accentColor
+  return (
+    <div id="resume-preview" className="w-full rounded-2xl border border-[#EAECF0] bg-white p-10 shadow-sm print:border-0 print:shadow-none">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-[#101828]">{personalInfo.fullName || 'Your Name'}</h2>
+        <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold text-white" style={{ background: c }}>ATS Score: 96%</span>
+      </div>
+      <p className="mb-5 text-[13px] text-[#667085]">{[personalInfo.email, personalInfo.phone, personalInfo.address, personalInfo.linkedin, personalInfo.github, personalInfo.portfolio].filter(Boolean).join(' | ')}</p>
       {skills.length > 0 && (
-        <Section title="Skills" color={template.accentColor}><p className="text-[13px] text-[#101828]">{skills.join(' · ')}</p></Section>
+        <div className="mb-5">
+          <h3 className="mb-2 border-l-4 pl-2 text-[13px] font-bold uppercase" style={{ borderColor: c, color: c }}>Keyword Skills</h3>
+          <div className="flex flex-wrap gap-1.5">
+            {skills.map((s) => <SkillPill key={s} label={s} color={c} />)}
+          </div>
+        </div>
       )}
       {experience.length > 0 && (
-        <Section title="Experience" color={template.accentColor}>
-          {experience.map((e: ExperienceItem) => (
+        <div className="mb-5">
+          <h3 className="mb-2 border-l-4 pl-2 text-[13px] font-bold uppercase" style={{ borderColor: c, color: c }}>Work Experience</h3>
+          {experience.map((e) => (
             <div key={e.id} className="mb-3">
-              <div className="flex justify-between text-[13px] font-medium text-[#101828]"><span>{e.role} — {e.company}</span><span className="text-[#98A2B3]">{e.startDate} - {e.endDate}</span></div>
+              <div className="flex justify-between text-[13px] font-semibold text-[#101828]"><span>{e.role}, {e.company}</span><span className="text-[#98A2B3]">{e.startDate} - {e.endDate}</span></div>
               <p className="text-[13px] text-[#667085]">{e.description}</p>
             </div>
           ))}
-        </Section>
+        </div>
       )}
       {projects.length > 0 && (
-        <Section title="Projects" color={template.accentColor}>
-          {projects.map((p: ProjectItem) => (
-            <div key={p.id} className="mb-3">
-              <p className="text-[13px] font-medium text-[#101828]">{p.name}{p.techStack && <span className="text-[#98A2B3]"> ({p.techStack})</span>}</p>
+        <div className="mb-5">
+          <h3 className="mb-2 border-l-4 pl-2 text-[13px] font-bold uppercase" style={{ borderColor: c, color: c }}>Projects</h3>
+          {projects.map((p) => (
+            <div key={p.id} className="mb-2">
+              <p className="text-[13px] font-semibold text-[#101828]">{p.name} {p.techStack && <span className="font-normal text-[#98A2B3]">— {p.techStack}</span>}</p>
               <p className="text-[13px] text-[#667085]">{p.description}</p>
-              {p.link && <p className="text-[12px] text-[#1a6fa8]">{p.link}</p>}
             </div>
           ))}
-        </Section>
+        </div>
       )}
       {education.length > 0 && (
-        <Section title="Education" color={template.accentColor}>
-          {education.map((ed: EducationItem) => (
-            <div key={ed.id} className="mb-2 flex justify-between text-[13px]"><span className="text-[#101828]">{ed.degree} — {ed.institute}</span><span className="text-[#98A2B3]">{ed.startYear} - {ed.endYear}</span></div>
+        <div>
+          <h3 className="mb-2 border-l-4 pl-2 text-[13px] font-bold uppercase" style={{ borderColor: c, color: c }}>Education</h3>
+          {education.map((ed) => (
+            <p key={ed.id} className="text-[13px] text-[#667085]">{ed.degree}, {ed.institute} ({ed.startYear}-{ed.endYear})</p>
           ))}
-        </Section>
+        </div>
       )}
     </div>
   )
 }
 
-function Section({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
+/* ── Portfolio Plus (PRO): photo + skill bars + project cards ────────── */
+function PortfolioResume({ data, template }: { data: ResumeData; template: ResumeTemplate }) {
+  const { personalInfo, skills, projects, experience, education } = data
+  const c = template.accentColor
   return (
-    <div className="mb-5">
-      <h3 className="mb-2 text-sm font-bold uppercase tracking-wide" style={{ color }}>{title}</h3>
-      {children}
+    <div id="resume-preview" className="w-full rounded-2xl border border-[#EAECF0] bg-white p-10 shadow-sm print:border-0 print:shadow-none">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-[#101828]">{personalInfo.fullName || 'Your Name'}</h2>
+          <p className="mt-1 text-[13px] text-[#667085]">{experience[0]?.role || ''}</p>
+          <p className="mt-1 text-[12px] text-[#98A2B3]">{[personalInfo.email, personalInfo.phone].filter(Boolean).join(' · ')}</p>
+        </div>
+        {personalInfo.photoUrl ? (
+          <img src={personalInfo.photoUrl} alt={personalInfo.fullName} className="h-20 w-20 rounded-full object-cover" />
+        ) : (
+          <div className="flex h-20 w-20 items-center justify-center rounded-full" style={{ background: `${c}25` }}>
+            <span className="text-lg font-bold" style={{ color: c }}>{initials(personalInfo.fullName)}</span>
+          </div>
+        )}
+      </div>
+      {skills.length > 0 && (
+        <div className="mb-6 grid grid-cols-2 gap-x-8 gap-y-2">
+          {skills.slice(0, 8).map((s, i) => <SkillBar key={s} label={s} level={skillLevel(s, i)} color={c} />)}
+        </div>
+      )}
+      {projects.length > 0 && (
+        <div className="mb-6">
+          <h3 className="mb-3 text-[13px] font-bold uppercase tracking-widest" style={{ color: c }}>Projects</h3>
+          <div className="grid grid-cols-3 gap-3">
+            {projects.map((p) => (
+              <div key={p.id} className="rounded-xl border p-3" style={{ borderColor: `${c}30` }}>
+                <p className="text-[12px] font-semibold text-[#101828]">{p.name}</p>
+                <p className="mt-1 text-[11px] text-[#667085]">{p.description}</p>
+                {p.techStack && <p className="mt-1 text-[10px] font-medium" style={{ color: c }}>{p.techStack}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {experience.length > 0 && (
+        <div className="mb-6">
+          <h3 className="mb-2 text-[13px] font-bold uppercase tracking-widest" style={{ color: c }}>Experience</h3>
+          {experience.map((e) => (
+            <div key={e.id} className="mb-3">
+              <div className="flex justify-between text-[13px] font-semibold text-[#101828]"><span>{e.role} — {e.company}</span><span className="text-[#98A2B3]">{e.startDate} - {e.endDate}</span></div>
+              <p className="text-[13px] text-[#667085]">{e.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {education.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-[13px] font-bold uppercase tracking-widest" style={{ color: c }}>Education</h3>
+          {education.map((ed) => (
+            <p key={ed.id} className="text-[13px] text-[#667085]">{ed.degree} — {ed.institute} ({ed.startYear}-{ed.endYear})</p>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

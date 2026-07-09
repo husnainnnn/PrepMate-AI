@@ -62,7 +62,7 @@ router.post('/', async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated as student.' });
     }
 
-    const { personalInfo, skills, projects, experience, education, templateId } = req.body;
+    const { personalInfo, skills, projects, experience, education, templateId, resumeFileUrl } = req.body;
 
     // Upsert: update existing or create new
     const resume = await Resume.findOneAndUpdate(
@@ -75,6 +75,7 @@ router.post('/', async (req, res) => {
           experience: experience || [],
           education: education || [],
           templateId: templateId || 'modern',
+          resumeFileUrl: resumeFileUrl || '',
         },
       },
       { upsert: true, new: true }
