@@ -233,11 +233,13 @@ export default function JobMatches() {
   const [error, setError] = useState<string | null>(null)
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [profileLoaded, setProfileLoaded] = useState(false)
+  const [aiPowered, setAiPowered] = useState(false)
 
   // Derive profile data from user
   const profileSkills = user?.skills || []
   const profileEducation = user?.education || []
   const profileExperience = user?.experience || ''
+  const profileField = user?.field || ''
   const hasProfileData = profileSkills.length > 0 || profileEducation.length > 0
   const isProfileComplete = profileSkills.length > 0 && profileEducation.length > 0
 
@@ -253,6 +255,8 @@ export default function JobMatches() {
       body.profileData = {
         education: profileEducation,
         experience: profileExperience,
+        field: profileField, // ⬅️ FIX: was missing before — AI scoring's #1
+                              // priority (field match, 60% weight) needs this
       }
 
       if (search.trim()) body.search = search.trim()
@@ -278,12 +282,13 @@ export default function JobMatches() {
       if (!res.ok) throw new Error('Failed to fetch jobs')
       const data = await res.json()
       setAllMatches(data.matches || [])
+      setAiPowered(data.aiPowered || false)
     } catch (err: any) {
       setError(err.message)
     }
     setLoading(false)
     setProfileLoaded(true)
-  }, [token, profileSkills, profileEducation, profileExperience])
+  }, [token, profileSkills, profileEducation, profileExperience, profileField])
 
   // Initial fetch when user data is available
   useEffect(() => {
@@ -390,15 +395,23 @@ export default function JobMatches() {
               </div>
               <p className="text-[13px] text-[#344054]">
                 <span className="font-medium text-[#101828]">Matching with your profile</span> &mdash;
+                {profileField && <><span className="text-[#1a6fa8] font-medium">{profileField}</span> · </>}
                 {profileSkills.length > 0 && ` ${profileSkills.length} skills`}
                 {profileEducation.length > 0 && ` · ${getDegreeList(profileEducation)}`}
                 {profileExperience && profileExperience !== 'fresher' && ` · ${formatLabel(profileExperience)}`}
               </p>
-              {recommendedCount > 0 && (
-                <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-medium text-[#1a6fa8]">
-                  {recommendedCount} recommended
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {aiPowered && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-50 to-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-purple-700 border border-purple-200">
+                    <Sparkles className="h-3 w-3" /> AI-Powered
+                  </span>
+                )}
+                {recommendedCount > 0 && (
+                  <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-medium text-[#1a6fa8]">
+                    {recommendedCount} recommended
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}

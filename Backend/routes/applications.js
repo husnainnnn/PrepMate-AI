@@ -3,7 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const Application = require('../models/Application');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prepmate-ai-jwt-secret-2026';
+const JWT_SECRET = process.env.JWT_SECRET || '';
 
 function getUserFromToken(req) {
   const auth = req.headers.authorization;

@@ -21,6 +21,7 @@ import { CompanyDashboardLayout } from "@/components/company/CompanyDashboardLay
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
+import { io } from "socket.io-client";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -66,7 +67,7 @@ function getInitials(name: string): string {
 // ─── Page ───────────────────────────────────────────────────
 
 export default function Messages() {
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConv, setActiveConv] = useState<Conversation | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -79,6 +80,9 @@ export default function Messages() {
   const [deleteTarget, setDeleteTarget] = useState<ChatMessage | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const activeConvRef = useRef<Conversation | null>(null);
+  // Keep ref in sync with state so socket handler reads latest value
+  useEffect(() => { activeConvRef.current = activeConv; }, [activeConv]);
 
   // Fetch conversations
   const fetchConversations = async () => {
@@ -96,6 +100,27 @@ export default function Messages() {
   };
 
   useEffect(() => { fetchConversations(); }, [token]);
+
+  // ─── Socket.io real-time messages ────────────────────────
+  useEffect(() => {
+    if (!token || !user) return;
+    const socket = io('http://localhost:3001');
+
+    socket.on('connect', () => {
+      socket.emit('join', user.id || user._id);
+    });
+
+    socket.on('new-message', (msg: ChatMessage) => {
+      // Use ref to read latest activeConv (avoid stale closure)
+      const conv = activeConvRef.current;
+      if (conv && msg.senderId === conv.otherId) {
+        setChatMessages(prev => [...prev, msg]);
+      }
+      fetchConversations();
+    });
+
+    return () => { socket.disconnect(); };
+  }, [token, user?.id, user?._id]);
 
   // Fetch chat messages when a conversation is selected
   useEffect(() => {

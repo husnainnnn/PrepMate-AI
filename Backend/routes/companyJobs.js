@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const Company = require('../models/Company');
 const Job = require('../models/Job');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prepmate-ai-jwt-secret-2026';
+const JWT_SECRET = process.env.JWT_SECRET || '';
 
 function getUserFromToken(req) {
   const auth = req.headers.authorization;
@@ -363,6 +363,45 @@ router.patch('/applicants/:id/reject', async (req, res) => {
   }
 });
 
+// ─── Gemini AI config (new key for AI Screening) ──────────
+const GEMINI_AI_KEY = process.env.GEMINI_AI_KEY || '';
+const GEMINI_MODEL_S = 'gemini-3.5-flash';
+const GEMINI_URL_S = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_S}:generateContent`;
+
+async function askGeminiScreening(systemPrompt, userPrompt) {
+  if (!GEMINI_AI_KEY || GEMINI_AI_KEY === 'your_gemini_api_key_here') {
+    const err = new Error('GEMINI_AI_KEY not configured');
+    err.isFallback = true;
+    throw err;
+  }
+  const res = await fetch(GEMINI_URL_S, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_AI_KEY },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
+    }),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    const err = new Error(`Gemini API error (${res.status}): ${errText.slice(0, 200)}`);
+    err.isFallback = true;
+    throw err;
+  }
+  const data = await res.json();
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+function parseGeminiScreeningJson(raw) {
+  let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  try { return JSON.parse(cleaned); }
+  catch {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) try { return JSON.parse(match[0]); } catch {}
+    return null;
+  }
+}
+
 // ─── GET /api/company/screening ────────────────────────────
 // Get all applicants with AI match scores, filtered (≥50), sorted by score desc
 router.get('/screening', async (req, res) => {
@@ -376,7 +415,7 @@ router.get('/screening', async (req, res) => {
     if (!company) return res.status(404).json({ error: 'Company not found.' });
 
     // Get all company jobs with their requiredSkills
-    const jobs = await Job.find({ companyId: company._id }).select('_id jobTitle companyName requiredSkills').lean();
+    const jobs = await Job.find({ companyId: company._id }).select('_id jobTitle companyName requiredSkills description').lean();
     const jobMap = {};
     jobs.forEach(j => { jobMap[j._id.toString()] = j; });
     const jobIds = jobs.map(j => j._id);
@@ -397,18 +436,123 @@ router.get('/screening', async (req, res) => {
       });
     }
 
+    // ── Field matching (for screening fallback) ─────────────
+    // Checks if applicant's target field relates to job title/description
+    function computeFieldMatch(studentField, job) {
+      if (!studentField || !job) return 0;
+      const studentLower = studentField.toLowerCase().trim();
+      const studentWords = studentLower.split(/[\s,\/-]+/).filter(w => w.length > 1);
+      if (studentWords.length === 0) return 0;
+
+      const title = (job.jobTitle || '').toLowerCase();
+      const category = (job.jobCategory || '').toLowerCase();
+      const desc = (job.description || '').toLowerCase().slice(0, 300);
+      const targets = [title, category, desc].filter(Boolean).join(' ');
+      if (!targets) return 0;
+
+      let matchCount = 0;
+      for (const word of studentWords) {
+        if (targets.includes(word)) {
+          matchCount++;
+        }
+      }
+      return matchCount / studentWords.length;
+    }
+
+    // Fetch all students' fields for domain matching
+    const studentIds = [...new Set(applications.map(a => a.studentId?.toString()).filter(Boolean))];
+    const students = await Student.find({ _id: { $in: studentIds } }).select('_id field').lean();
+    const studentFieldMap = {};
+    students.forEach(s => { studentFieldMap[s._id.toString()] = s.field || ''; });
+
+    // Try AI-based screening, fall back to skill matching
+    let useAi = false;
+    let aiScores = {};
+
+    try {
+      const appSummaries = applications.slice(0, 30).map((app, i) => {
+        const job = jobMap[app.jobId?.toString()];
+        return `Applicant ${i + 1} for "${job?.jobTitle || 'Job'}": Skills: ${(app.skills || []).join(', ')}. Education: ${app.education || 'N/A'}. Experience: ${app.experience || 'N/A'}. Cover Letter: ${(app.coverLetter || '').slice(0, 150)}.`;
+      }).join('\n');
+
+      const jobDescriptions = Object.values(jobMap).map((j, i) =>
+        `Job ${i + 1}: "${j.jobTitle}". Required Skills: ${(j.requiredSkills || []).join(', ')}. Description: ${(j.description || '').slice(0, 200)}`
+      ).join('\n');
+
+      const systemPrompt = `You are a strict HR screening specialist. Score each applicant (0-100) using STRICT PRIORITY ORDER:
+
+1️⃣ FIELD/DOMAIN MATCH (most important — 60% of score)
+CRITICAL: Check if the applicant's education/background is ACTUALLY related to the job's domain.
+✅ Related: "Computer Science" → Software Engineer, Web Developer, Programmer
+✅ Related: "Data Science" → Data Analyst, ML Engineer
+❌ NOT related: "Healthcare degree" → Software Developer
+❌ NOT related: "Job title 'Test' or 'Demo' or generic names" → any field (vague titles get 0 field match)
+STRICT: A job with a generic/vague title (like "Test", "Demo", "Sample", "New Job") should ALWAYS get field match score = 0.
+The job title and description must CLEARLY relate to the applicant's field. Don't assume.
+
+2️⃣ TECHNICAL SKILLS (important — 30% of score)
+Check overlap between applicant's skills and job's required skills.
+Related skills count (e.g., "React"↔"Next.js", "Python"↔"Django", "JavaScript"↔"TypeScript")
+
+3️⃣ SOFT SKILLS + EXPERIENCE (minor — 10% of score, ONLY if field/skills match)
+Communication, leadership, teamwork, cover letter — only boost score if FIELD already matches.
+DO NOT let soft skills or a good cover letter push a score above 40 for unrelated fields.
+
+SCORING:
+- 80-100: Field clearly matches + technical skills align well + good experience
+- 60-79: Field related + most technical skills present
+- 40-59: Field somewhat related + some transferable skills
+- 20-39: Field different but some relevant technical skills exist
+- 0-19: Completely different field OR vague/generic job title — no relevant background
+
+Return ONLY valid JSON: { "scores": [ { "index": 0, "score": 75, "reason": "BSCS degree + React/Node skills match job requirements" }, ... ] }`;
+
+      const userPrompt = `Job Details:\n${jobDescriptions}\n\nApplicants:\n${appSummaries}\n\nScore each applicant using PRIORITY order: field/domain match FIRST, then technical skills, then soft skills (only as minor boost after field+skills match).`;
+
+      const raw = await askGeminiScreening(systemPrompt, userPrompt);
+      const parsed = parseGeminiScreeningJson(raw);
+      if (parsed && parsed.scores) {
+        useAi = true;
+        for (const s of parsed.scores) {
+          if (applications[s.index]) {
+            aiScores[applications[s.index]._id.toString()] = Math.min(100, Math.max(0, s.score));
+          }
+        }
+      }
+    } catch (geminiErr) {
+        /* Gemini unavailable (quota/key) — using local fallback scoring */
+      }
+
     // Compute match score for each application
     const scored = applications.map(app => {
       const job = jobMap[app.jobId?.toString()];
       const requiredSkills = job?.requiredSkills || [];
       const applicantSkills = app.skills || [];
 
-      let matchScore = 0;
-      let matchedSkills = [];
+      let matchScore;
+      let matchedSkills;
 
-      if (requiredSkills.length > 0) {
-        matchedSkills = requiredSkills.filter(rs => skillMatches(rs, applicantSkills));
-        matchScore = Math.round((matchedSkills.length / requiredSkills.length) * 100);
+      if (useAi && aiScores[app._id.toString()] !== undefined) {
+        matchScore = aiScores[app._id.toString()];
+        matchedSkills = requiredSkills.filter(rs => skillMatches(rs, applicantSkills));        } else {
+        // Fallback: field + skill matching (same priority as AI)
+        if (requiredSkills.length > 0) {
+          matchedSkills = requiredSkills.filter(rs => skillMatches(rs, applicantSkills));
+          const skillMatchScore = Math.round((matchedSkills.length / requiredSkills.length) * 100);
+          // Get actual student field from DB
+          const studentField = studentFieldMap[app.studentId?.toString()] || '';
+          const fieldMatchRatio = computeFieldMatch(studentField, job);
+          const fieldScore = Math.round(fieldMatchRatio * 100);
+          // Weighted: 60% field + 30% skills + 10% cover letter
+          matchScore = Math.round(
+            fieldScore * 0.6 +
+            skillMatchScore * 0.3 +
+            ((app.coverLetter || '').trim().length > 20 ? 10 : 0)
+          );
+        } else {
+          matchedSkills = [];
+          matchScore = 0;
+        }
       }
 
       return {
@@ -424,7 +568,7 @@ router.get('/screening', async (req, res) => {
     // Filter by score >= 50 and sort descending
     const filtered = scored.filter(a => a.matchScore >= 50).sort((a, b) => b.matchScore - a.matchScore);
 
-    res.json({ applicants: filtered });
+    res.json({ applicants: filtered, aiPowered: useAi });
   } catch (err) {
     console.error('GET /api/company/screening error:', err);
     res.status(500).json({ error: 'Failed to fetch screening results.' });

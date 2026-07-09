@@ -3,7 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const Interview = require('../models/Interview');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prepmate-ai-jwt-secret-2026';
+const JWT_SECRET = process.env.JWT_SECRET || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_MODEL = 'gemini-3.5-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;

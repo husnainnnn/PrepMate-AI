@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const Student = require('../models/Student');
 const Interview = require('../models/Interview');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prepmate-ai-jwt-secret-2026';
+const JWT_SECRET = process.env.JWT_SECRET || '';
 
 // ─── Helper: get user from token ────────────────────────
 function getUserFromToken(req) {
@@ -98,8 +98,47 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
+// ─── POST /api/stats/interview-started ──────────────────
+// Called when a student STARTS a mock interview — count increments HERE
+router.post('/interview-started', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'student') {
+      return res.status(401).json({ error: 'Not authenticated as student.' });
+    }
+
+    const student = await Student.findById(tokenData.id);
+    if (!student) {
+      return res.status(404).json({ error: 'Student not found.' });
+    }
+
+    const stats = student.stats || {};
+    const newCount = (stats.interviewCount || 0) + 1;
+    const newRemaining = Math.max(0, (stats.interviewsRemaining || 4) - 1);
+    const today = new Date().toISOString().split('T')[0];
+
+    await Student.findByIdAndUpdate(tokenData.id, {
+      $set: {
+        'stats.interviewCount': newCount,
+        'stats.interviewsRemaining': newRemaining,
+        'stats.lastInterviewDate': today,
+      },
+    });
+
+    res.json({
+      success: true,
+      interviewCount: newCount,
+      interviewsRemaining: newRemaining,
+      planLocked: newRemaining <= 0 && (stats.plan || 'free') === 'free',
+    });
+  } catch (err) {
+    console.error('POST /api/stats/interview-started error:', err);
+    res.status(500).json({ error: 'Failed to save interview start stats.' });
+  }
+});
+
 // ─── POST /api/stats/interview-completed ────────────────
-// Called when a student finishes a mock interview
+// Called when a student finishes a mock interview — only updates score (count already incremented on start)
 router.post('/interview-completed', async (req, res) => {
   try {
     const tokenData = getUserFromToken(req);
@@ -118,41 +157,31 @@ router.post('/interview-completed', async (req, res) => {
     }
 
     const stats = student.stats || {};
-    const newCount = (stats.interviewCount || 0) + 1;
+    const currentCount = stats.interviewCount || 0;
 
-    let newSum, newAvg, newRemaining;
+    let newSum, newAvg;
 
     if (cheated) {
-      // Cheated interview: count as taken but don't affect average score
-      // Reset remaining only if on free plan
-      newSum = stats.totalScoreSum || 0; // don't add 0 score to sum
+      // Cheated interview: don't affect average score
+      newSum = stats.totalScoreSum || 0;
       newAvg = stats.avgScore || 0;
-      newRemaining = Math.max(0, (stats.interviewsRemaining || 4) - 1);
     } else {
       newSum = (stats.totalScoreSum || 0) + score;
-      newAvg = Math.round((newSum / newCount) * 10) / 10;
-      newRemaining = Math.max(0, (stats.interviewsRemaining || 4) - 1);
+      newAvg = currentCount > 0 ? Math.round((newSum / currentCount) * 10) / 10 : score;
     }
-
-    const today = new Date().toISOString().split('T')[0];
 
     await Student.findByIdAndUpdate(tokenData.id, {
       $set: {
-        'stats.interviewCount': newCount,
         'stats.totalScoreSum': newSum,
         'stats.avgScore': newAvg,
-        'stats.interviewsRemaining': newRemaining,
-        'stats.lastInterviewDate': today,
       },
     });
 
     res.json({
       success: true,
-      interviewCount: newCount,
+      interviewCount: currentCount,
       avgScore: newAvg,
-      interviewsRemaining: newRemaining,
       cheated: !!cheated,
-      planLocked: newRemaining <= 0 && (student.stats?.plan || 'free') === 'free',
     });
   } catch (err) {
     console.error('POST /api/stats/interview-completed error:', err);

@@ -4,7 +4,7 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const Resume = require('../models/Resume');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prepmate-ai-jwt-secret-2026';
+const JWT_SECRET = process.env.JWT_SECRET || '';
 
 function getUserFromToken(req) {
   const auth = req.headers.authorization;

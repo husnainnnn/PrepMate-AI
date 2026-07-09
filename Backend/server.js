@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
 
 // Load .env file if present (for GEMINI_API_KEY)
 try {
@@ -45,6 +47,22 @@ const messagesRoutes = require('./routes/messages');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// ─── HTTP Server + Socket.io ────────────────────────────
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*', methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] },
+});
+app.set('io', io);
+
+// Socket.io — real-time messaging
+io.on('connection', (socket) => {
+  socket.on('join', (userId) => {
+    if (userId) {
+      socket.join(userId.toString());
+    }
+  });
+});
 
 // Middleware
 app.use(cors());
@@ -107,7 +125,7 @@ app.use((err, _req, res, _next) => {
 async function start() {
   const connectDB = require('./config/db');
   await connectDB();
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Backend server running on http://localhost:${PORT}`);
   });
 }

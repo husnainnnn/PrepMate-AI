@@ -142,6 +142,11 @@ export default function MockInterviewsPage() {
   const startRecognitionRef = useRef<(() => void) | null>(null)
   const stopTypewriterCleanupRef = useRef<(() => void) | null>(null)
 
+  // Refs for stable recognition handlers (avoid stale closures)
+  const answerStartTimeRef = useRef<number | null>(null)
+  const lastSpeechTimeRef = useRef<number>(Date.now())
+  const stageRef = useRef<Stage>('setup')
+
   // Profile autofill
   useEffect(() => {
     if (!token) return
@@ -252,10 +257,21 @@ export default function MockInterviewsPage() {
       return
     }
 
+    // Stop any existing recognition first to avoid multiple instances
+    if (recognitionRef.current) {
+      const old = recognitionRef.current
+      old.onend = null
+      old.onerror = null
+      old.onresult = null
+      try { old.stop() } catch { /* ignore */ }
+      recognitionRef.current = null
+    }
+
     const recognition = new SpeechRecognitionCtor()
     recognition.continuous = true
     recognition.interimResults = true
     recognition.lang = 'en-US'
+    recognition.maxAlternatives = 1
 
     recognition.onresult = (event: any) => {
       let transcript = ''
@@ -263,27 +279,30 @@ export default function MockInterviewsPage() {
         const result = event.results[i]
         if (result.isFinal && i === 0) {
           // First final result — user started speaking
-          if (answerStartTime === null) {
-            setAnswerStartTime(Date.now())
+          if (answerStartTimeRef.current === null) {
+            answerStartTimeRef.current = Date.now()
+            setAnswerStartTime(answerStartTimeRef.current)
           }
         }
         transcript += result[0].transcript + ' '
       }
       setLiveTranscript(transcript.trim())
-      setLastSpeechTime(Date.now())
+      lastSpeechTimeRef.current = Date.now()
+      setLastSpeechTime(lastSpeechTimeRef.current)
       setIsSpeakingAnswer(true)
       autoSubmitPendingRef.current = false
     }
 
     recognition.onerror = () => {
-      // Don't show error — auto-restart
-      recognition.stop()
+      // Error already ends recognition — onend will handle restart
+      // Don't call stop() here, that breaks the natural flow
     }
 
     recognition.onend = () => {
       setIsSpeakingAnswer(false)
       // Auto-restart recognition unless we're leaving interview stage
-      if (stage === 'interview' || stage === 'followup') {
+      const currentStage = stageRef.current
+      if (currentStage === 'interview' || currentStage === 'followup') {
         try {
           recognition.start()
         } catch { /* might be in cleanup */ }
@@ -294,7 +313,7 @@ export default function MockInterviewsPage() {
     try {
       recognition.start()
     } catch { /* ignore */ }
-  }, [answerStartTime, lastSpeechTime, stage])
+  }, []) // Stable — no re-creation on state changes
 
   const stopRecognition = useCallback(() => {
     try {
@@ -307,6 +326,11 @@ export default function MockInterviewsPage() {
       }
     } catch { /* ignore */ }
   }, [])
+
+  // Keep refs in sync with state (for stable recognition handlers)
+  useEffect(() => { answerStartTimeRef.current = answerStartTime }, [answerStartTime])
+  useEffect(() => { lastSpeechTimeRef.current = lastSpeechTime }, [lastSpeechTime])
+  useEffect(() => { stageRef.current = stage }, [stage])
 
   // Keep stable refs so kickoff effect doesn't re-run on every speech change
   useEffect(() => { startRecognitionRef.current = startRecognition }, [startRecognition])
@@ -555,6 +579,21 @@ export default function MockInterviewsPage() {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       streamRef.current = stream
       if (videoRef.current) videoRef.current.srcObject = stream
+
+      // Count this interview as started — even if user goes back, count stays
+      if (token) {
+        try {
+          const res = await fetch('/api/stats/interview-started', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          })
+          if (res.ok) {
+            const data = await res.json()
+            setUsageCount(data.interviewCount || 0)
+          }
+        } catch { /* ignore */ }
+      }
+
       setStage('interview')
       setCurrentIndex(0)
       setTabViolations(0)
@@ -744,12 +783,11 @@ export default function MockInterviewsPage() {
 
     if (analysis?.overallScore) {
       try {
-        const res = await fetch('/api/stats/interview-completed', {
+        await fetch('/api/stats/interview-completed', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ score: analysis.overallScore }),
         })
-        if (res.ok) setUsageCount(prev => prev + 1)
       } catch { /* stats save failed */ }
     }
     setStage('report')

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
-import { User, Save, Plus, X } from 'lucide-react'
+import { User, Save, Plus, X, FileText, Upload, CheckCircle, ExternalLink } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 
 interface EducationItem {
@@ -44,7 +45,7 @@ const defaultProfile: ProfileData = {
 }
 
 export default function StudentProfilePage() {
-  const { token } = useAuth()
+  const { token, refreshUser } = useAuth()
   const [profile, setProfile] = useState<ProfileData>(defaultProfile)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -52,6 +53,12 @@ export default function StudentProfilePage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [toastVisible, setToastVisible] = useState(false)
   const toastTimerRef = useRef<number | null>(null)
+
+  // Resume state
+  const [resumeFileName, setResumeFileName] = useState<string>('')
+  const [resumeFileUrl, setResumeFileUrl] = useState<string>('')
+  const [uploadingResume, setUploadingResume] = useState(false)
+  const [savedResumeName, setSavedResumeName] = useState<string>('')
 
   // Load profile from backend
   useEffect(() => {
@@ -74,7 +81,13 @@ export default function StudentProfilePage() {
             field: user.field || '',
             skills: user.skills || [],
             experience: user.experience || 'fresher',
-            education: user.education || [],
+            education: (user.education || []).map((e: any) => ({
+              id: e.id || makeId(),
+              institute: e.institute || '',
+              degree: e.degree || '',
+              startYear: e.startYear || '',
+              endYear: e.endYear || '',
+            })),
             introduction: user.introduction || '',
           })
         }
@@ -82,6 +95,29 @@ export default function StudentProfilePage() {
       setLoading(false)
     }
     loadProfile()
+
+    // Also load saved resume info
+    const loadResume = async () => {
+      if (!token) return
+      try {
+        const res = await fetch('/api/resume/latest', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.resumeFileUrl) {
+            setResumeFileUrl(data.resumeFileUrl)
+            setResumeFileName('Saved resume')
+            setSavedResumeName('Saved resume file')
+          } else if (data.skills?.length > 0 || data.education?.length > 0 || data.personalInfo?.fullName) {
+            // Structured resume exists (saved from ResumeBuilder but no PDF yet)
+            // Suggest user to re-save from Resume Builder to generate PDF
+            setSavedResumeName('Resume data saved — open Resume Builder to generate PDF')
+          }
+        }
+      } catch { /* no saved resume */ }
+    }
+    loadResume()
   }, [token])
 
   // Cleanup toast timer on unmount
@@ -102,6 +138,12 @@ export default function StudentProfilePage() {
         body: JSON.stringify(profile),
       })
       if (!res.ok) throw new Error('Save failed')
+      try {
+        await refreshUser()
+      } catch {
+        // User data refresh failed, but save itself succeeded
+        console.warn('Profile saved but failed to refresh user context')
+      }
       setMessage({ type: 'success', text: 'Profile saved successfully!' })
       setToastVisible(true)
       if (toastTimerRef.current !== null) clearTimeout(toastTimerRef.current)
@@ -306,6 +348,87 @@ export default function StudentProfilePage() {
                   <p className="text-[13px] text-[#98A2B3]">No education added yet.</p>
                 )}
               </div>
+            </div>
+
+            {/* Resume */}
+            <div className="rounded-2xl border border-[#EAECF0] bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-[#101828]">Resume</h2>
+                  <p className="text-[13px] text-[#667085]">Upload a resume file or build one with the Resume Builder.</p>
+                </div>
+              </div>
+
+              {/* Upload */}
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#EAECF0] bg-white px-4 py-2.5 text-[13px] font-medium text-[#667085] transition-colors hover:bg-[#F7F9FC] disabled:opacity-50">
+                  {uploadingResume ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#D0D5DD] border-t-[#1a6fa8]" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {uploadingResume ? 'Uploading...' : 'Upload Resume (PDF/DOC)'}
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0]
+                      if (!f || !token) return
+                      setUploadingResume(true)
+                      try {
+                        const fd = new FormData()
+                        fd.append('resume', f)
+                        const uploadRes = await fetch('/api/upload/resume', {
+                          method: 'POST',
+                          headers: { Authorization: `Bearer ${token}` },
+                          body: fd,
+                        })
+                        if (!uploadRes.ok) throw new Error('Upload failed')
+                        const data = await uploadRes.json()
+
+                        // Save URL to Resume model
+                        await fetch('/api/resume', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                          body: JSON.stringify({ resumeFileUrl: data.url }),
+                        })
+
+                        setResumeFileUrl(data.url)
+                        setResumeFileName(f.name)
+                        setSavedResumeName(f.name)
+                      } catch { /* upload failed */ }
+                      setUploadingResume(false)
+                      e.target.value = ''
+                    }}
+                  />
+                </label>
+
+                <Link to="/student/resumes"
+                  className="flex items-center gap-2 rounded-xl border border-[#EAECF0] bg-white px-4 py-2.5 text-[13px] font-medium text-[#667085] transition-colors hover:bg-[#F7F9FC]">
+                  <FileText className="h-4 w-4" />
+                  Open Resume Builder
+                </Link>
+              </div>
+
+              {/* Saved resume info */}
+              {savedResumeName && (
+                <div className="mt-3 flex items-center gap-2 text-[13px] text-emerald-600">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>{savedResumeName}</span>
+                  {resumeFileUrl && (
+                    <a href={resumeFileUrl} target="_blank" rel="noopener noreferrer"
+                      className="ml-2 flex items-center gap-1 text-[#1a6fa8] underline hover:text-[#0b3b5c]">
+                      View <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+              )}
+              {!savedResumeName && (
+                <p className="mt-3 text-[12px] text-[#98A2B3]">
+                  No resume uploaded yet. Upload a PDF/DOC or use the Resume Builder.
+                </p>
+              )}
             </div>
 
             {/* Save Button */}

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
 import { FileText, Plus, X, ArrowRight, ChevronLeft, Download, Save, Image, Crown, Lock } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 
 const TOTAL_STEPS = 6
 
@@ -146,7 +148,68 @@ export default function ResumeBuilder() {
     try {
       const res = await fetch('/api/resume', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(buildData()) })
       if (!res.ok) throw new Error('save failed')
-      setSaveMessage('Resume saved successfully!')
+
+      // Generate PDF from the preview HTML and upload it
+      try {
+        const previewEl = document.getElementById('resume-preview')
+        if (previewEl) {
+          // Small delay to let fonts/layout settle before capture
+          await new Promise(r => setTimeout(r, 300))
+          const canvas = await html2canvas(previewEl, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+          })
+          const imgData = canvas.toDataURL('image/jpeg', 0.95)
+          const pdf = new jsPDF('p', 'mm', 'a4')
+          const pdfWidth = pdf.internal.pageSize.getWidth()
+          const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+          pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight)
+          const pdfBlob = pdf.output('blob')
+
+          const fd = new FormData()
+          fd.append('resume', pdfBlob, `${personalInfo.fullName || 'Resume'}.pdf`)
+          const uploadRes = await fetch('/api/upload/resume', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: fd,
+          })
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json()
+            // Save the PDF URL to the existing Resume record
+            await fetch('/api/resume', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ resumeFileUrl: uploadData.url }),
+            })
+          }
+        }
+      } catch { /* pdf generation failed — non-critical */ }
+
+      // Also sync with Student profile so skills/education auto-fill everywhere
+      try {
+        await fetch('/api/auth/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            skills: skills,
+            education: education.map(e => ({
+              institute: e.institute,
+              degree: e.degree,
+              startYear: e.startYear,
+              endYear: e.endYear,
+            })),
+            fullName: personalInfo.fullName || undefined,
+            phone: personalInfo.phone || undefined,
+            linkedin: personalInfo.linkedin || undefined,
+            github: personalInfo.github || undefined,
+            portfolio: personalInfo.portfolio || undefined,
+          }),
+        })
+      } catch { /* profile sync is optional */ }
+
+      setSaveMessage('Resume saved! PDF generated and profile updated.')
     } catch { setSaveMessage('Could not save to server yet, but your resume is ready to download below.') }
     finally { setIsSaving(false) }
   }

@@ -212,6 +212,10 @@ export default function JobDetailModal({ jobId, onClose, onApplied }: JobDetailM
           if (resume.resumeFileUrl) {
             base.resumeUrl = resume.resumeFileUrl;
             setResumeFileName('Saved resume attached');
+          } else if (resume.skills?.length > 0 || resume.education?.length > 0) {
+            // Structured resume exists from Resume Builder — still send resumeUrl as empty
+            // but mark it so user knows resume data will be used
+            setResumeFileName('Resume data from your profile will be used');
           }
         }
       } catch { /* resume not available */ }
@@ -267,7 +271,6 @@ export default function JobDetailModal({ jobId, onClose, onApplied }: JobDetailM
     if (!form.fullName.trim()) { setFormError('Full name is required.'); return; }
     if (!form.email.trim()) { setFormError('Email is required.'); return; }
     if (!form.education.trim()) { setFormError('Education is required.'); return; }
-    if (!form.resumeUrl.trim()) { setFormError('Please provide a Resume URL or upload your resume.'); return; }
 
     setSubmitting(true);
     setFormError(null);
@@ -585,7 +588,7 @@ export default function JobDetailModal({ jobId, onClose, onApplied }: JobDetailM
 
                 {/* Resume URL */}
                 <div>
-                  <label className="mb-1 block text-[12px] font-medium text-[#344054]">Resume URL or Upload <span className="text-red-500">*</span></label>
+                  <label className="mb-1 block text-[12px] font-medium text-[#344054]">Resume URL or Upload</label>
                   <div className="flex gap-2">
                     <input
                       value={form.resumeUrl}

@@ -2,6 +2,45 @@ const express = require('express');
 const router = express.Router();
 const Job = require('../models/Job');
 
+// ─── Gemini AI config (new key for Job Matches) ─────────
+const GEMINI_AI_KEY = process.env.GEMINI_AI_KEY || '';
+const GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+async function askGemini(systemPrompt, userPrompt) {
+  if (!GEMINI_AI_KEY || GEMINI_AI_KEY === 'your_gemini_api_key_here') {
+    const err = new Error('GEMINI_AI_KEY not configured');
+    err.isFallback = true;
+    throw err;
+  }
+  const res = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_AI_KEY },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 4096 },
+    }),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    const err = new Error(`Gemini API error (${res.status}): ${errText.slice(0, 200)}`);
+    err.isFallback = true;
+    throw err;
+  }
+  const data = await res.json();
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+function parseGeminiJson(raw) {
+  let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  try { return JSON.parse(cleaned); }
+  catch {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) try { return JSON.parse(match[0]); } catch {}
+    return null;
+  }
+}
+
 // ── Smart skill matching (handles spelling variants) ──────
 function skillMatches(requiredSkill, applicantSkills) {
   const normalize = s => s.toLowerCase().trim().replace(/[.\-\_\s#]/g, '');
@@ -19,6 +58,32 @@ function degreeMatches(jobDegree, studentEducation) {
   const degrees = studentEducation.map(e => (e.degree || '').toLowerCase().trim());
   const jd = jobDegree.toLowerCase().trim();
   return degrees.some(d => d.includes(jd) || jd.includes(d));
+}
+
+// ── Field/domain matching (for fallback) ────────────────────
+// Checks if the student's target field is related to the job title/description
+function computeFieldMatch(studentField, job) {
+  if (!studentField || !job) return 0;
+  const studentLower = studentField.toLowerCase().trim();
+  const studentWords = studentLower.split(/[\s,\/-]+/).filter(w => w.length > 1);
+  if (studentWords.length === 0) return 0;
+
+  // Build search text from job title + category + description (first 300 chars)
+  const title = (job.jobTitle || '').toLowerCase();
+  const category = (job.jobCategory || '').toLowerCase();
+  const desc = (job.description || '').toLowerCase().slice(0, 300);
+  const targets = [title, category, desc].filter(Boolean).join(' ');
+
+  if (!targets) return 0;
+
+  let matchCount = 0;
+  for (const word of studentWords) {
+    if (targets.includes(word)) {
+      matchCount++;
+    }
+  }
+
+  return matchCount / studentWords.length;
 }
 
 // ─── POST /api/jobs/match ──────────────────────────────────
@@ -78,18 +143,97 @@ router.post('/match', async (req, res) => {
     const normalizedSkills = skills.map((s) => s.toLowerCase().trim());
     const studentEducation = profileData?.education || [];
 
+    // Try AI-based matching first, fall back to skill-based
+    let useAi = false;
+    let aiScores = {};
+
+    if (jobs.length > 0) {
+      try {
+        const jobSummary = jobs.slice(0, 20).map((j, i) =>
+          `Job ${i + 1}: "${j.jobTitle}" at "${j.companyName}". Skills: ${(j.requiredSkills || []).join(', ')}. Description: ${(j.description || '').slice(0, 200)}`
+        ).join('\n');
+
+        const systemPrompt = `You are an AI job matching expert. Score each job (0-100) using STRICT PRIORITY ORDER:
+
+1️⃣ FIELD MATCH (most important — 60% of score)
+CRITICAL: Check if the candidate's field/role is ACTUALLY related to the job's domain.
+✅ Related: "Computer Science" → Software Engineer, Developer, Web Dev
+✅ Related: "Frontend Developer" → Web Development, UI Engineering, React Dev
+✅ Related: "Data Science" → Data Analysis, Machine Learning
+❌ NOT related: "Marketing" → Software Engineering, "Healthcare" → Web Development
+❌ NOT related: Job titled "Test" or "Demo" or vague names → no field matches at all
+STRICT: A job with generic/vague title ("Test", "Demo", "Sample", etc.) gets field match = 0.
+The job title and description must CLEARLY relate to the candidate's field. Don't assume or guess.
+
+2️⃣ TECHNICAL SKILLS (important — 30% of score)
+⚠️ CRITICAL: Score based on: what % of the JOB'S required skills does the candidate have?
+If a job requires [React] and candidate knows React → that's 100% skills match, even if candidate has 20 other skills.
+Do NOT compare candidate's total skills against the job's skills.
+Only check if the job's required skills are fulfilled by the candidate.
+Related skills count (e.g., "React"↔"Next.js", "Python"↔"Django", "JavaScript"↔"TypeScript", "Node.js"↔"Express")
+
+3️⃣ SOFT SKILLS (minor — 10% of score, ONLY if field matches)
+Communication, leadership, teamwork — only boost score if FIELD already matches.
+DO NOT let soft skills alone push a score above 40 if field doesn't match.
+
+SCORING:
+- 80-100: Field clearly matches + job's required skills are mostly present
+- 60-79: Field related + most of job's required skills are present
+- 40-59: Field somewhat related + some of job's required skills present
+- 20-39: Field different OR job title is vague/generic → max 39 even if skills match
+- 0-19: Completely different field, none of job's required skills
+
+Return ONLY valid JSON: { "scores": [ { "index": 0, "score": 85, "reason": "Web Developer field matches + has required skill (React)" }, ... ] }`;
+
+        const userPrompt = `Candidate Profile:\nTarget Field/Role: ${profileData?.field || 'N/A'}\nTechnical Skills: ${skills.join(', ')}\nEducation: ${JSON.stringify(studentEducation)}\nExperience Level: ${profileData?.experience || 'N/A'}\n\nJobs:\n${jobSummary}\n\nScore each job using PRIORITY order: field match FIRST, then check if JOB'S REQUIRED skills are present in candidate's skills (not the other way around). Soft skills only minor boost after field matches.`;
+
+        const raw = await askGemini(systemPrompt, userPrompt);
+        const parsed = parseGeminiJson(raw);
+        if (parsed && parsed.scores) {
+          useAi = true;
+          for (const s of parsed.scores) {
+            if (jobs[s.index]) {
+              aiScores[jobs[s.index]._id.toString()] = { score: Math.min(100, Math.max(0, s.score)), reason: s.reason || '' };
+            }
+          }
+        }
+      } catch (geminiErr) {
+        /* Gemini unavailable (quota/key) — using local fallback scoring */
+      }
+    }
+
     const matches = jobs
       .map((job) => {
-        const requiredSkills = job.requiredSkills || [];
-        const matched = requiredSkills.filter(rs => skillMatches(rs, normalizedSkills));
-        const missing = requiredSkills.filter(rs => !skillMatches(rs, normalizedSkills));
-        const skillMatchScore = requiredSkills.length > 0
-          ? Math.round((matched.length / requiredSkills.length) * 100)
-          : 0;
+        const jobId = job._id.toString();
+        let matchPercentage, isRecommended, matchedSkills, missingSkills;
 
-        // Degree boost: +10 if degree matches
-        const degreeMatch = degreeMatches(job.degree, studentEducation);
-        const finalScore = degreeMatch ? Math.min(100, skillMatchScore + 10) : skillMatchScore;
+        if (useAi && aiScores[jobId] !== undefined) {
+          // AI-based scoring
+          matchPercentage = aiScores[jobId].score;
+          isRecommended = matchPercentage >= 50;
+          // Still compute matched/missing for display
+          matchedSkills = (job.requiredSkills || []).filter(rs => skillMatches(rs, normalizedSkills));
+          missingSkills = (job.requiredSkills || []).filter(rs => !skillMatches(rs, normalizedSkills));
+        } else {
+          // Fallback: field + skill + degree matching (same priority as AI)
+          const requiredSkills = job.requiredSkills || [];
+          matchedSkills = requiredSkills.filter(rs => skillMatches(rs, normalizedSkills));
+          missingSkills = requiredSkills.filter(rs => !skillMatches(rs, normalizedSkills));
+          const skillMatchScore = requiredSkills.length > 0
+            ? Math.round((matchedSkills.length / requiredSkills.length) * 100)
+            : 0;
+          const degreeMatch = degreeMatches(job.degree, studentEducation);
+          // Field match: 0-100 based on keyword overlap with job title/description
+          const fieldMatchRatio = computeFieldMatch(profileData?.field || '', job);
+          const fieldScore = Math.round(fieldMatchRatio * 100);
+          // Weighted scoring: 60% field + 30% skills + 10% degree
+          matchPercentage = Math.round(
+            fieldScore * 0.6 +
+            skillMatchScore * 0.3 +
+            (degreeMatch ? 10 : 0)
+          );
+          isRecommended = matchPercentage >= 50;
+        }
 
         const location = [job.city, job.country].filter(Boolean).join(', ');
 
@@ -107,15 +251,15 @@ router.post('/match', async (req, res) => {
           country: job.country,
           city: job.city,
           createdAt: job.createdAt,
-          matchPercentage: finalScore,
-          matchedSkills: matched,
-          missingSkills: missing,
-          isRecommended: skillMatchScore > 0 || degreeMatch,
+          matchPercentage,
+          matchedSkills,
+          missingSkills,
+          isRecommended,
         };
       })
       .sort((a, b) => b.matchPercentage - a.matchPercentage);
 
-    res.json({ matches });
+    res.json({ matches, aiPowered: useAi });
   } catch (err) {
     console.error('POST /api/jobs/match error:', err);
     res.status(500).json({ error: 'Failed to compute job matches' });

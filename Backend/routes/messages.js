@@ -6,7 +6,7 @@ const Application = require('../models/Application');
 const Job = require('../models/Job');
 const Company = require('../models/Company');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prepmate-ai-jwt-secret-2026';
+const JWT_SECRET = process.env.JWT_SECRET || '';
 
 function getUserFromToken(req) {
   const auth = req.headers.authorization;
@@ -44,6 +44,17 @@ router.post('/', async (req, res) => {
     });
 
     await message.save();
+
+    // Emit real-time event via Socket.io
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        const msgObj = message.toObject();
+        io.to(receiverId.toString()).emit('new-message', msgObj);
+        io.to(tokenData.id.toString()).emit('new-message', msgObj);
+      }
+    } catch { /* socket emit non-critical */ }
+
     res.status(201).json({ message: message.toObject() });
   } catch (err) {
     console.error('POST /api/messages error:', err);

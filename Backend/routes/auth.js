@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const Student = require('../models/Student');
 const Company = require('../models/Company');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prepmate-ai-jwt-secret-2026';
+const JWT_SECRET = process.env.JWT_SECRET || '';
 const SALT_ROUNDS = 10;
 
 // ─── Helper: extract user from JWT ────────────────────────
