@@ -45,6 +45,16 @@ router.get('/dashboard', async (req, res) => {
     const filledTotal = filledFields + skillsFilled + educationFilled;
     const profileCompletion = Math.min(100, Math.round((filledTotal / totalProfileFields) * 100));
 
+    // Get live interview count from LiveInterview model
+    const LiveInterview = require('../models/LiveInterview');
+    let liveInterviewCount = 0;
+    try {
+      liveInterviewCount = await LiveInterview.countDocuments({
+        studentId: tokenData.id,
+        status: { $in: ['completed', 'in-progress'] }
+      });
+    } catch { /* ignore */ }
+
     // Build response
     const stats = student.stats || {};
     const today = new Date().toISOString().split('T')[0];
@@ -52,6 +62,7 @@ router.get('/dashboard', async (req, res) => {
     res.json({
       stats: {
         interviewCount: stats.interviewCount || 0,
+        liveInterviewCount,
         avgScore: stats.avgScore || 0,
         totalScoreSum: stats.totalScoreSum || 0,
         practiceQuestionsCount: stats.practiceQuestionsCount || 0,

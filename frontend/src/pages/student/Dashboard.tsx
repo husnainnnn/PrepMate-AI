@@ -36,6 +36,7 @@ import { useAuth } from "@/context/AuthContext";
 
 interface DashboardStats {
   interviewCount: number
+  liveInterviewCount: number
   avgScore: number
   totalScoreSum: number
   practiceQuestionsCount: number
@@ -101,7 +102,7 @@ function StatsSection({ stats }: { stats: DashboardStats }) {
 
   const statCards = [
     {
-      label: "Mock Interviews",
+      label: "Interviews",
       value: String(stats.interviewCount),
       delta: stats.lastInterviewDate ? `Last: ${new Date(stats.lastInterviewDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Not started yet',
       icon: Mic,
@@ -111,7 +112,7 @@ function StatsSection({ stats }: { stats: DashboardStats }) {
     {
       label: "Average Score",
       value: avgScoreDisplay,
-      delta: stats.interviewCount > 0 ? `Across ${stats.interviewCount} interview${stats.interviewCount > 1 ? 's' : ''}` : 'Complete an interview',
+      delta: stats.interviewCount > 0 ? `Across ${stats.interviewCount - (stats.liveInterviewCount || 0)} mock interview${stats.interviewCount - (stats.liveInterviewCount || 0) !== 1 ? 's' : ''}` : 'Complete an interview',
       icon: Target,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-500",
@@ -162,6 +163,12 @@ function StatsSection({ stats }: { stats: DashboardStats }) {
               <p className="mt-3 text-[12.5px] font-medium text-emerald-600">
                 {stat.delta}
               </p>
+              {stat.label === "Interviews" && (
+                <div className="mt-2 flex gap-3 text-[11px] text-[#98A2B3]">
+                  <span>Mock: <strong className="text-[#101828]">{stats.interviewCount - (stats.liveInterviewCount || 0)}</strong></span>
+                  <span>Live: <strong className="text-[#101828]">{stats.liveInterviewCount || 0}</strong></span>
+                </div>
+              )}
             </CardContent>
           </Card>
         );
@@ -233,9 +240,9 @@ function RecentInterviews({ data }: { data: DashboardData }) {
               </div>
             ))}
             {stats.interviewCount > 4 && (
-              <Link to="/student/interviews" className="block py-3 text-center text-[12.5px] font-medium text-[#1a6fa8] hover:underline">
-                View all {stats.interviewCount} interviews
-              </Link>
+              <div className="block py-3 text-center text-[12.5px] font-medium text-[#667085]">
+                Mock Interview Count: {stats.interviewCount}
+              </div>
             )}
           </div>
         )}

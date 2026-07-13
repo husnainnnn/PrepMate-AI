@@ -27,19 +27,19 @@ async function seed() {
   // ─── Create seed student ──────────────────────────────
   const hashedPw = await bcrypt.hash('12345', 10);
   const student = new Student({
-    fullName: 'Husnain Sattar',
-    email: 'husnainsattar54@gmail.com',
+    fullName: 'Test Student',
+    email: 'student@test.com',
     password: hashedPw,
-    phone: '+92 300 1234567',
-    linkedin: 'linkedin.com/in/husnain',
-    github: 'github.com/husnain',
-    portfolio: 'husnain.dev',
-    bio: 'Passionate web Developer',
+    phone: '+92 300 0000000',
+    linkedin: 'linkedin.com/in/teststudent',
+    github: 'github.com/teststudent',
+    portfolio: 'teststudent.dev',
+    bio: 'A passionate developer',
     field: 'Software Development',
     skills: ['React', 'Nest.js', 'Node.js', 'Express.js'],
     experience: 'fresher',
     education: [
-      { institute: 'FAST', degree: 'BSCS', startYear: '2023', endYear: '2027' }
+      { institute: 'FAST University', degree: 'BSCS', startYear: '2023', endYear: '2027' }
     ],
     stats: {
       interviewCount: 0,
@@ -125,7 +125,7 @@ async function seed() {
   await Student.findByIdAndUpdate(student._id, { $set: { 'stats.applicationsCount': apps.length } });
 
   console.log('\nSeed complete!');
-  console.log('Student email: husnainsattar54@gmail.com / password: 12345\n');
+  console.log('Seed student created — email: student@test.com / password: 12345\n');
   process.exit(0);
 }
 

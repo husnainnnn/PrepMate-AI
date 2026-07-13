@@ -101,13 +101,13 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#1a6fa8]" />
               </button>
 
-              <div className="flex items-center gap-2 rounded-lg border border-[#EAECF0] py-1.5 pl-1.5 pr-3">
+              <Link to="/student/profile" className="flex items-center gap-2 rounded-lg border border-[#EAECF0] py-1.5 pl-1.5 pr-3 transition-colors hover:bg-[#F7F9FC]">
                 <Avatar className="h-7 w-7">
                   <AvatarImage src="" alt={user?.fullName || 'User'} />
                   <AvatarFallback className="bg-blue-50 text-[11px] font-semibold text-[#1a6fa8]">{initials}</AvatarFallback>
                 </Avatar>
                 <span className="hidden text-[13px] font-medium text-[#101828] sm:block">{user?.fullName || 'User'}</span>
-              </div>
+              </Link>
 
             </div>
           </header>

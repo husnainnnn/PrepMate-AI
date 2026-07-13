@@ -43,7 +43,7 @@ function formatDate(iso: string): string {
 }
 
 export default function Applications() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const [applications, setApplications] = useState<ApplicationRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<FilterTab>('all')
@@ -63,6 +63,45 @@ export default function Applications() {
   useEffect(() => {
     loadApps()
   }, [token])
+
+  // ─── Socket.io — auto-refresh when interview is scheduled ───
+  useEffect(() => {
+    if (!token || !user) return
+
+    let socket: any = null
+
+    const connectSocket = async () => {
+      try {
+        const { io } = await import('socket.io-client')
+        socket = io('http://localhost:3001')
+
+        socket.on('connect', () => {
+          socket.emit('join', user.id || user._id)
+        })
+
+        // Interview scheduled → Application stage updated → refresh
+        socket.on('interview-scheduled', () => {
+          loadApps()
+        })
+
+        // Interview cancelled → refresh
+        socket.on('interview-cancelled', () => {
+          loadApps()
+        })
+
+        // Application shortlisted → refresh
+        socket.on('application-shortlisted', () => {
+          loadApps()
+        })
+      } catch { /* socket unavailable */ }
+    }
+
+    connectSocket()
+
+    return () => {
+      if (socket) socket.disconnect()
+    }
+  }, [token, user?.id, user?._id])
 
   const handleDelete = async () => {
     if (!deleteConfirm || !token) return

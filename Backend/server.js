@@ -44,6 +44,8 @@ const companyDashboardRoutes = require('./routes/companyDashboard');
 const companyJobsRoutes = require('./routes/companyJobs');
 const jobsExtendedRoutes = require('./routes/jobsExtended');
 const messagesRoutes = require('./routes/messages');
+const liveInterviewsRoutes = require('./routes/liveInterviews');
+const feedbackRoutes = require('./routes/feedback');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -55,12 +57,40 @@ const io = new Server(server, {
 });
 app.set('io', io);
 
-// Socket.io — real-time messaging
+// Socket.io — real-time messaging + WebRTC signaling
 io.on('connection', (socket) => {
   socket.on('join', (userId) => {
     if (userId) {
       socket.join(userId.toString());
     }
+  });
+
+  // ─── WebRTC Signaling for Live Interviews ────────────
+  socket.on('join-room', ({ roomId, userId, userName }) => {
+    socket.join(roomId);
+    socket.to(roomId).emit('user-joined', { userId, userName });
+    // Let the existing participant know to send offer
+    const clients = io.sockets.adapter.rooms.get(roomId);
+    if (clients && clients.size > 1) {
+      socket.to(roomId).emit('ready-to-offer');
+    }
+  });
+
+  socket.on('leave-room', ({ roomId }) => {
+    socket.leave(roomId);
+    socket.to(roomId).emit('peer-left');
+  });
+
+  socket.on('offer', ({ roomId, sdp }) => {
+    socket.to(roomId).emit('offer', { sdp });
+  });
+
+  socket.on('answer', ({ roomId, sdp }) => {
+    socket.to(roomId).emit('answer', { sdp });
+  });
+
+  socket.on('ice-candidate', ({ roomId, candidate }) => {
+    socket.to(roomId).emit('ice-candidate', { candidate });
   });
 });
 
@@ -85,6 +115,8 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/company', companyJobsRoutes);
 app.use('/api/jobs', jobsExtendedRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/live-interviews', liveInterviewsRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Health check — includes DB status
 app.get('/api/health', async (_req, res) => {
@@ -95,19 +127,6 @@ app.get('/api/health', async (_req, res) => {
     db: ['disconnected', 'connected', 'connecting', 'disconnecting'][dbState] || 'unknown',
     timestamp: new Date().toISOString() 
   });
-});
-
-// Debug endpoint — check if students exist in MongoDB
-app.get('/api/debug/students', async (_req, res) => {
-  try {
-    const mongoose = require('mongoose');
-    const Student = require('./models/Student');
-    const count = await Student.countDocuments();
-    const sample = await Student.find().limit(3).select('-password');
-    res.json({ count, students: sample, db: mongoose.connection.db?.databaseName || 'unknown' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
 // 404 handler

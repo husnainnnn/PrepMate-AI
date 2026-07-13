@@ -329,6 +329,18 @@ router.patch('/applicants/:id/shortlist', async (req, res) => {
     app.isRejected = false;
     await app.save();
 
+    // ── Notify student via socket.io ─────────────────────
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(app.studentId.toString()).emit('application-shortlisted', {
+          applicationId: app._id.toString(),
+          jobTitle: app.jobTitle,
+          companyName: app.companyName || job.companyName,
+        });
+      }
+    } catch { /* non-critical */ }
+
     res.json({ application: app.toObject() });
   } catch (err) {
     console.error('PATCH /api/company/applicants/:id/shortlist error:', err);

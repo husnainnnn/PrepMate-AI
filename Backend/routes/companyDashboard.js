@@ -63,8 +63,8 @@ router.get('/dashboard', async (req, res) => {
         if (student) studentName = student.fullName;
       }
 
-      // Get latest interview score for this student
-      if (app.studentId) {
+      // Get latest mock interview score for this student (only for shortlisted/hired/rejected stages)
+      if (app.studentId && ['shortlisted', 'hired', 'rejected'].includes(app.currentStage)) {
         const latestInterview = await Interview.findOne({ studentId: app.studentId })
           .sort({ completedAt: -1 })
           .select('overallScore')
