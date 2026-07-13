@@ -47,6 +47,9 @@ const messagesRoutes = require('./routes/messages');
 const liveInterviewsRoutes = require('./routes/liveInterviews');
 const feedbackRoutes = require('./routes/feedback');
 const resourcesRoutes = require('./routes/resources');
+const notificationRoutes = require('./routes/notifications');
+const supportRoutes = require('./routes/support');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -119,6 +122,9 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/live-interviews', liveInterviewsRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/resources', resourcesRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check — includes DB status
 app.get('/api/health', async (_req, res) => {
@@ -146,6 +152,11 @@ app.use((err, _req, res, _next) => {
 async function start() {
   const connectDB = require('./config/db');
   await connectDB();
+
+  // Seed super admin
+  const Admin = require('./models/Admin');
+  await Admin.seedSuperAdmin();
+
   server.listen(PORT, () => {
     console.log(`Backend server running on http://localhost:${PORT}`);
   });

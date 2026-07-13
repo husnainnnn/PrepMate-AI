@@ -46,11 +46,11 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
           animation: typewriter 0.35s steps(var(--steps, 10), end) forwards;
         }
       `}</style>
-    <aside className="fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-r border-[#EAECF0] bg-white lg:flex">
+    <aside className="fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-r border-[#EAECF0] dark:border-[#334155] bg-white dark:bg-[#1E293B] lg:flex">
       {/* Logo */}
       <Link to={logoHref} className="flex items-center gap-2 px-6 py-6">
         <img src="/images.png" alt="PrepMate AI" className="h-8 w-8 rounded-full" />
-        <span className="text-[15px] font-semibold tracking-tight text-[#101828]">
+        <span className="text-[15px] font-semibold tracking-tight text-[#101828] dark:text-[#F1F5F9]">
           PrepMate <span className="text-[#1a6fa8]">AI</span>
         </span>
         {badge && (
@@ -73,8 +73,8 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
                   className={cn(
                     'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors',
                     isActive
-                      ? 'bg-blue-50 text-[#1a6fa8]'
-                      : 'text-[#667085] hover:bg-[#F7F9FC] hover:text-[#101828]'
+                      ? 'bg-blue-50 dark:bg-[#1a6fa8]/20 text-[#1a6fa8]'
+                      : 'text-[#667085] dark:text-[#94A3B8] hover:bg-[#F7F9FC] dark:hover:bg-[#334155] hover:text-[#101828] dark:hover:text-[#F1F5F9]'
                   )}
                 >
                   <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
@@ -100,8 +100,8 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
                     className={cn(
                       'group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors',
                       isActive
-                        ? 'bg-blue-50 text-[#1a6fa8]'
-                        : 'text-[#98A2B3] hover:bg-[#F7F9FC] hover:text-[#667085]'
+                        ? 'bg-blue-50 dark:bg-[#1a6fa8]/20 text-[#1a6fa8]'
+                        : 'text-[#98A2B3] dark:text-[#64748B] hover:bg-[#F7F9FC] dark:hover:bg-[#334155] hover:text-[#667085] dark:hover:text-[#94A3B8]'
                     )}
                     title={item.label}
                   >

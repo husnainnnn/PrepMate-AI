@@ -7,6 +7,7 @@ const Job = require('../models/Job');
 const Company = require('../models/Company');
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
+const { createNotification } = require('../helpers/notifications');
 
 function getUserFromToken(req) {
   const auth = req.headers.authorization;
@@ -53,6 +54,18 @@ router.post('/', async (req, res) => {
         io.to(receiverId.toString()).emit('new-message', msgObj);
         io.to(tokenData.id.toString()).emit('new-message', msgObj);
       }
+
+      // Create notification for receiver
+      const senderLabel = tokenData.role === 'company' ? (companyName || 'Company') : 'Student';
+      await createNotification(req, {
+        userId: receiverId,
+        userRole: receiverRole || (tokenData.role === 'company' ? 'student' : 'company'),
+        type: 'message',
+        title: 'New Message',
+        message: `${senderLabel}: ${content.trim().slice(0, 100)}${content.trim().length > 100 ? '...' : ''}`,
+        link: '/student/messages',
+        relatedId: message._id.toString(),
+      });
     } catch { /* socket emit non-critical */ }
 
     res.status(201).json({ message: message.toObject() });

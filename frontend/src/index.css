@@ -24,6 +24,62 @@
     --input: 0 0% 18%;
   }
 
+  /* ── Dark mode CSS variables ───────────────────────── */
+  .dark {
+    --bg-page: #0F172A;
+    --bg-card: #1E293B;
+    --bg-sidebar: #1E293B;
+    --bg-header: #1E293B;
+    --bg-input: #334155;
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --border-color: #334155;
+    --hover-bg: #334155;
+  }
+
+  /* ── Global dark mode overrides ───────────────────── */
+  /* Cards, sections, containers */
+  html.dark .bg-white { background-color: #1E293B !important; }
+  html.dark .bg-\[\#F7F9FC\] { background-color: #0F172A !important; }
+
+  /* Primary text */
+  html.dark .text-\[\#101828\] { color: #F1F5F9 !important; }
+  html.dark .text-\[\#344054\] { color: #94A3B8 !important; }
+  html.dark .text-\[\#667085\] { color: #94A3B8 !important; }
+  html.dark .text-\[\#98A2B3\] { color: #64748B !important; }
+
+  /* Borders */
+  html.dark .border-\[\#EAECF0\] { border-color: #334155 !important; }
+  html.dark .border-\[\#E4E7EC\] { border-color: #334155 !important; }
+  html.dark .border-\[\#D0D5DD\] { border-color: #475569 !important; }
+  html.dark .divide-\[\#EAECF0\] > * + * { border-color: #334155 !important; }
+
+  /* Form controls (slightly lighter than card bg so they stand out) */
+  html.dark input,
+  html.dark textarea,
+  html.dark select {
+    background-color: #334155 !important;
+    border-color: #475569 !important;
+    color: #F1F5F9 !important;
+  }
+  html.dark input::placeholder,
+  html.dark textarea::placeholder {
+    color: #64748B !important;
+  }
+  html.dark label {
+    color: #94A3B8 !important;
+  }
+
+  /* Tables */
+  html.dark th, html.dark td {
+    color: #F1F5F9 !important;
+    border-color: #334155 !important;
+  }
+  html.dark hr {
+    border-color: #334155 !important;
+  }
+
   * {
     border-color: hsl(var(--border));
   }
@@ -33,10 +89,19 @@
     scrollbar-gutter: stable;
   }
 
+  html.dark {
+    color-scheme: dark;
+  }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: var(--font-body);
+  }
+
+  html.dark body {
+    background-color: #0F172A;
+    color: #F1F5F9;
   }
 }
 

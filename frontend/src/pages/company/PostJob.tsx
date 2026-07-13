@@ -15,6 +15,7 @@ import {
   Trash2,
   EyeOff,
   ChevronDown,
+  PencilLine,
 } from "lucide-react";
 
 import { CompanyDashboardLayout } from "@/components/company/CompanyDashboardLayout";
@@ -337,10 +338,14 @@ function JobManagementCard({
   jobs,
   token,
   onRefresh,
+  onEdit,
+  disabled,
 }: {
   jobs: Job[];
   token: string;
   onRefresh: () => void;
+  onEdit: (job: Job) => void;
+  disabled?: boolean;
 }) {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -429,12 +434,22 @@ function JobManagementCard({
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {/* Edit button — loads job data into form */}
+                <button
+                  onClick={() => onEdit(job)}
+                  disabled={disabled || actionLoading === job._id}
+                  className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-blue-50 hover:text-[#1a6fa8] disabled:opacity-30 disabled:cursor-not-allowed"
+                  title={disabled ? 'Save or cancel current edit first' : 'Edit job posting'}
+                >
+                  <PencilLine className="h-3.5 w-3.5" />
+                  Edit
+                </button>
                 {!job.isClosed && (
                   <button
                     onClick={() => handleClose(job._id)}
-                    disabled={actionLoading === job._id}
-                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:opacity-50"
-                    title="Close job (hide from students)"
+                    disabled={disabled || actionLoading === job._id}
+                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title={disabled ? 'Save or cancel current edit first' : 'Close job (hide from students)'}
                   >
                     <EyeOff className="h-3.5 w-3.5" />
                     Close
@@ -443,8 +458,9 @@ function JobManagementCard({
                 {job.isClosed && (
                   <button
                     onClick={() => handleReopen(job._id)}
-                    disabled={actionLoading === job._id}
-                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-50"
+                    disabled={disabled || actionLoading === job._id}
+                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title={disabled ? 'Save or cancel current edit first' : 'Reopen job'}
                   >
                     <EyeOff className="h-3.5 w-3.5" />
                     Reopen
@@ -454,14 +470,15 @@ function JobManagementCard({
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleDelete(job._id)}
-                      disabled={actionLoading === job._id}
-                      className="rounded-lg bg-red-500 px-2.5 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-red-600"
+                      disabled={disabled || actionLoading === job._id}
+                      className="rounded-lg bg-red-500 px-2.5 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       {actionLoading === job._id ? '...' : 'Confirm'}
                     </button>
                     <button
                       onClick={() => setDeleteConfirm(null)}
-                      className="rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085]"
+                      disabled={disabled}
+                      className="rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       Cancel
                     </button>
@@ -469,8 +486,9 @@ function JobManagementCard({
                 ) : (
                   <button
                     onClick={() => setDeleteConfirm(job._id)}
-                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-red-50 hover:text-red-600"
-                    title="Delete permanently from database"
+                    disabled={disabled}
+                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title={disabled ? 'Save or cancel current edit first' : 'Delete permanently from database'}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     Delete
@@ -499,6 +517,7 @@ export default function PostJob() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existingJobs, setExistingJobs] = useState<Job[]>([]);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
 
   const companyName = user?.companyName || user?.fullName || "";
 
@@ -557,6 +576,44 @@ export default function PostJob() {
     return true;
   };
 
+  // Load job data into form for editing
+  const startEditing = (job: Job) => {
+    setEditingJobId(job._id);
+    setForm({
+      jobTitle: job.jobTitle || '',
+      jobCategory: job.jobCategory || '',
+      employmentType: job.employmentType || '',
+      workplace: job.workplace || '',
+      country: job.country || '',
+      city: job.city || '',
+      officeAddress: job.officeAddress || '',
+      description: job.description || '',
+      responsibilities: job.responsibilities || '',
+      requirements: job.requirements || '',
+      requiredSkills: job.requiredSkills || [],
+      preferredSkills: job.preferredSkills || [],
+      degree: job.degree || '',
+      minCgpa: job.minCgpa?.toString() || '',
+      experienceLevel: job.experienceLevel || '',
+      salaryType: job.salaryType || '',
+      salaryMin: job.salaryMin?.toString() || '',
+      salaryMax: job.salaryMax?.toString() || '',
+      applicationDeadline: job.applicationDeadline ? job.applicationDeadline.split('T')[0] : '',
+      openPositions: job.openPositions?.toString() || '1',
+      hiringProcess: job.hiringProcess || [],
+    });
+    setError(null);
+    setSuccess(false);
+    // Scroll to form top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEditing = () => {
+    setEditingJobId(null);
+    setForm(emptyForm);
+    setError(null);
+  };
+
   // Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -579,8 +636,12 @@ export default function PostJob() {
         applicationDeadline: form.applicationDeadline || null,
       };
 
-      const res = await fetch('/api/company/jobs', {
-        method: 'POST',
+      const isEditing = editingJobId !== null;
+      const url = isEditing ? `/api/company/jobs/${editingJobId}` : '/api/company/jobs';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -590,11 +651,12 @@ export default function PostJob() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
-        throw new Error(errData?.error || 'Failed to create job');
+        throw new Error(errData?.error || 'Failed to save job');
       }
 
       setSuccess(true);
       setForm(emptyForm);
+      setEditingJobId(null);
       await loadJobs();
 
       // Scroll to top to show success
@@ -627,8 +689,12 @@ export default function PostJob() {
           <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
             <CheckCircle className="h-5 w-5 text-emerald-600" />
             <div>
-              <p className="text-[13.5px] font-medium text-emerald-800">Job posted successfully!</p>
-              <p className="text-[12.5px] text-emerald-600">Your job listing is now live and visible to students.</p>
+              <p className="text-[13.5px] font-medium text-emerald-800">
+                {editingJobId ? 'Job updated successfully!' : 'Job posted successfully!'}
+              </p>
+              <p className="text-[12.5px] text-emerald-600">
+                {editingJobId ? 'Changes are now live.' : 'Your job listing is now live and visible to students.'}
+              </p>
             </div>
           </div>
         )}
@@ -642,7 +708,7 @@ export default function PostJob() {
         )}
 
         {/* Existing Jobs Management */}
-        <JobManagementCard jobs={existingJobs} token={token || ''} onRefresh={loadJobs} />
+        <JobManagementCard jobs={existingJobs} token={token || ''} onRefresh={loadJobs} onEdit={startEditing} disabled={editingJobId !== null} />
 
         {/* Post Job Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -944,6 +1010,15 @@ export default function PostJob() {
 
           {/* ── Submit ──────────────────────────────────── */}
           <div className="flex items-center justify-end gap-3 pb-8">
+            {editingJobId && (
+              <button
+                type="button"
+                onClick={cancelEditing}
+                className="rounded-lg border border-[#D0D5DD] px-5 py-2.5 text-[13px] font-medium text-[#667085] transition-colors hover:bg-gray-50"
+              >
+                Cancel Edit
+              </button>
+            )}
             <button
               type="button"
               onClick={() => navigate('/company/dashboard')}
@@ -957,11 +1032,11 @@ export default function PostJob() {
               className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-6 py-2.5 text-[13px] font-medium text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? (
-                "Posting..."
+                editingJobId ? "Updating..." : "Posting..."
               ) : (
                 <>
                   <Send className="h-4 w-4" />
-                  Post Job
+                  {editingJobId ? 'Update Job' : 'Post Job'}
                 </>
               )}
             </button>

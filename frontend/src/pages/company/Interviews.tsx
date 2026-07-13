@@ -168,7 +168,7 @@ function ScheduleModal({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/5" onClick={onClose}>
       <div className="mx-4 w-full max-w-lg rounded-2xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#EAECF0] px-6 py-4">
@@ -340,7 +340,7 @@ function CancelModal({
   const [reason, setReason] = useState("");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/5" onClick={onClose}>
       <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
           <Ban className="h-6 w-6 text-red-500" />
@@ -712,7 +712,7 @@ function VideoRoom({
 
       {/* End confirmation */}
       {showEndConfirm && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
           <div className="mx-4 w-full max-w-xs rounded-2xl bg-white p-6 text-center shadow-2xl">
             <h3 className="text-[15px] font-semibold text-[#101828]">End Interview?</h3>
             <p className="mt-1 text-[12.5px] text-[#667085]">This will disconnect all participants.</p>
@@ -730,7 +730,7 @@ function VideoRoom({
 
       {/* Connecting overlay */}
       {status === "connecting" && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/5">
           <div className="rounded-2xl bg-white p-8 text-center shadow-2xl">
             <Loader2 className="mx-auto h-10 w-10 animate-spin text-[#1a6fa8]" />
             <p className="mt-3 text-[14px] font-medium text-[#101828]">Connecting to interview...</p>
@@ -1332,7 +1332,7 @@ export default function CompanyInterviewsPage() {
 
       {/* Hire Success Popup */}
       {hireSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={() => setHireSuccess(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/5" onClick={() => setHireSuccess(null)}>
           <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl text-center" onClick={e => e.stopPropagation()}>
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
               <CheckCircle className="h-8 w-8 text-emerald-500" />

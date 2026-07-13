@@ -22,6 +22,7 @@ const studentSchema = new mongoose.Schema({
   experience: { type: String, default: 'fresher' },
   education: { type: [educationSchema], default: [] },
   introduction: { type: String, default: '' },
+  profilePicture: { type: String, default: '' },
   // ─── Cached AI Feedback ───
   cachedFeedback: {
     text: { type: String, default: '' },
@@ -34,6 +35,15 @@ const studentSchema = new mongoose.Schema({
     items: { type: [mongoose.Schema.Types.Mixed], default: [] },
     profileHash: { type: String, default: '' },
     generatedAt: { type: Date, default: null },
+  },
+
+  // ─── Cached Job Matches ───
+  cachedJobMatches: {
+    matches: { type: [mongoose.Schema.Types.Mixed], default: [] },
+    jobCount: { type: Number, default: 0 },
+    profileHash: { type: String, default: '' },
+    generatedAt: { type: Date, default: null },
+    aiPowered: { type: Boolean, default: false },
   },
 
   // ─── Stats & Analytics ───

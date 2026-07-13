@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
-import { User, Save, Plus, X, FileText, Upload, CheckCircle, ExternalLink } from 'lucide-react'
+import { User, Save, Plus, X, FileText, Upload, CheckCircle, ExternalLink, Camera, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 
@@ -25,6 +25,7 @@ interface ProfileData {
   experience: string
   education: EducationItem[]
   introduction: string
+  profilePicture: string
 }
 
 function makeId(): string { return Math.random().toString(36).slice(2, 10) }
@@ -42,6 +43,7 @@ const defaultProfile: ProfileData = {
   experience: 'fresher',
   education: [],
   introduction: '',
+  profilePicture: '',
 }
 
 export default function StudentProfilePage() {
@@ -49,6 +51,8 @@ export default function StudentProfilePage() {
   const [profile, setProfile] = useState<ProfileData>(defaultProfile)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [skillInput, setSkillInput] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [toastVisible, setToastVisible] = useState(false)
@@ -89,6 +93,7 @@ export default function StudentProfilePage() {
               endYear: e.endYear || '',
             })),
             introduction: user.introduction || '',
+            profilePicture: user.profilePicture || '',
           })
         }
       } catch { /* no backend yet */ }
@@ -233,6 +238,60 @@ export default function StudentProfilePage() {
           </div>
 
           <div className="space-y-6">
+            {/* Profile Picture */}
+            <div className="rounded-2xl border border-[#EAECF0] bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-6">
+                <div className="group relative shrink-0">
+                  <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-[#D0D5DD] dark:border-[#475569] bg-[#F7F9FC] dark:bg-[#1E293B] transition-all group-hover:border-[#1a6fa8]">
+                    {profile.profilePicture ? (
+                      <img src={profile.profilePicture} alt="Profile" className="h-full w-full object-cover" />
+                    ) : (
+                      <User className="h-10 w-10 text-[#98A2B3]" />
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white dark:bg-[#1E293B] border border-[#EAECF0] dark:border-[#334155] shadow-sm text-[#667085] dark:text-[#94A3B8] hover:text-[#1a6fa8] hover:border-[#1a6fa8] transition-all"
+                  >
+                    {uploadingPhoto ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                  </button>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      // Show local preview
+                      const reader = new FileReader()
+                      reader.onload = (ev) => setProfile(prev => ({ ...prev, profilePicture: ev.target?.result as string }))
+                      reader.readAsDataURL(file)
+                      setUploadingPhoto(true)
+                      try {
+                        const fd = new FormData()
+                        fd.append('photo', file)
+                        const res = await fetch('/api/upload/profile-picture', { method: 'POST', body: fd })
+                        if (res.ok) {
+                          const data = await res.json()
+                          setProfile(prev => ({ ...prev, profilePicture: data.url }))
+                        }
+                      } catch { /* upload failed */ }
+                      setUploadingPhoto(false)
+                      e.target.value = ''
+                    }}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-[#101828]">Profile Photo</h3>
+                  <p className="mt-0.5 text-[13px] text-[#667085]">
+                    Upload a professional photo. It will show in the navbar and auto-fill your resume.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Personal Info */}
             <div className="rounded-2xl border border-[#EAECF0] bg-white p-6 shadow-sm">
               <h2 className="text-base font-semibold text-[#101828]">Personal Information</h2>

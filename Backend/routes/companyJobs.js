@@ -5,6 +5,7 @@ const Company = require('../models/Company');
 const Job = require('../models/Job');
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
+const { createNotification } = require('../helpers/notifications');
 
 function getUserFromToken(req) {
   const auth = req.headers.authorization;
@@ -93,6 +94,40 @@ router.post('/jobs', async (req, res) => {
     });
 
     await newJob.save();
+
+    // ── Notify matching students about new job ────────
+    try {
+      const Student = require('../models/Student');
+      const jobSkills = (newJob.requiredSkills || []).map(s => s.toLowerCase());
+      const jobField = (newJob.jobCategory || newJob.jobTitle || '').toLowerCase();
+
+      // Find students whose field or skills match this job
+      const fieldKeywords = jobField
+        .split(/\s+/)
+        .filter(w => w.length > 2)
+        .map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .join('|');
+
+      const matchingStudents = await Student.find({
+        $or: [
+          ...(fieldKeywords ? [{ field: { $regex: fieldKeywords, $options: 'i' } }] : []),
+          { skills: { $in: jobSkills } },
+        ],
+      }).select('_id').lean();
+
+      for (const student of matchingStudents) {
+        await createNotification(req, {
+          userId: student._id,
+          userRole: 'student',
+          type: 'new_job',
+          title: 'New Job Posted',
+          message: `${newJob.companyName} is hiring ${newJob.jobTitle}`,
+          link: '/student/job-matches',
+          relatedId: newJob._id.toString(),
+        });
+      }
+    } catch { /* non-critical */ }
+
     res.status(201).json({ job: newJob.toObject() });
   } catch (err) {
     console.error('POST /api/company/jobs error:', err);
@@ -300,6 +335,19 @@ router.patch('/applicants/:id/review', async (req, res) => {
     if (app.currentStage === 'applied') {
       app.currentStage = 'under_review';
       await app.save();
+
+      // ── Notify student ──────────────────────────────
+      try {
+        await createNotification(req, {
+          userId: app.studentId,
+          userRole: 'student',
+          type: 'application_review',
+          title: 'Application Under Review',
+          message: `Your application for ${app.jobTitle} at ${app.companyName} is now being reviewed`,
+          link: '/student/applications',
+          relatedId: app._id.toString(),
+        });
+      } catch { /* non-critical */ }
     }
 
     res.json({ application: app.toObject() });
@@ -329,7 +377,7 @@ router.patch('/applicants/:id/shortlist', async (req, res) => {
     app.isRejected = false;
     await app.save();
 
-    // ── Notify student via socket.io ─────────────────────
+    // ── Notify student ──────────────────────────────────
     try {
       const io = req.app.get('io');
       if (io) {
@@ -339,6 +387,15 @@ router.patch('/applicants/:id/shortlist', async (req, res) => {
           companyName: app.companyName || job.companyName,
         });
       }
+      await createNotification(req, {
+        userId: app.studentId,
+        userRole: 'student',
+        type: 'application_shortlisted',
+        title: 'Application Shortlisted 🎉',
+        message: `You've been shortlisted for ${app.jobTitle} at ${app.companyName || job.companyName}`,
+        link: '/student/applications',
+        relatedId: app._id.toString(),
+      });
     } catch { /* non-critical */ }
 
     res.json({ application: app.toObject() });
@@ -367,6 +424,19 @@ router.patch('/applicants/:id/reject', async (req, res) => {
     app.currentStage = 'rejected';
     app.isRejected = true;
     await app.save();
+
+    // ── Notify student ──────────────────────────────────
+    try {
+      await createNotification(req, {
+        userId: app.studentId,
+        userRole: 'student',
+        type: 'application_rejected',
+        title: 'Application Update',
+        message: `Your application for ${app.jobTitle} at ${app.companyName} was not selected. Keep trying!`,
+        link: '/student/applications',
+        relatedId: app._id.toString(),
+      });
+    } catch { /* non-critical */ }
 
     res.json({ application: app.toObject() });
   } catch (err) {
@@ -644,6 +714,19 @@ router.patch('/applicants/:id/hire', async (req, res) => {
     app.currentStage = 'hired';
     app.isRejected = false;
     await app.save();
+
+    // ── Notify student ──────────────────────────────────
+    try {
+      await createNotification(req, {
+        userId: app.studentId,
+        userRole: 'student',
+        type: 'application_hired',
+        title: 'Congratulations! 🎉',
+        message: `You've been hired for ${app.jobTitle} at ${app.companyName}!`,
+        link: '/student/applications',
+        relatedId: app._id.toString(),
+      });
+    } catch { /* non-critical */ }
 
     res.json({ application: app.toObject() });
   } catch (err) {

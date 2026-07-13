@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
+import { DarkModeProvider } from '@/context/DarkModeContext'
 import { Landing } from '@/pages/Landing'
 import { Login } from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
@@ -18,8 +19,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
   if (!user) {
     // Detect role from URL path so login page shows correct form
-    const role = location.pathname.startsWith('/company') ? 'company' : 'student'
+    const role = location.pathname.startsWith('/company') ? 'company'
+      : location.pathname.startsWith('/admin') ? 'admin'
+      : 'student'
     return <Navigate to={`/login?role=${role}`} replace />
+  }
+
+  // Admin routes: only allow admin users
+  if (location.pathname.startsWith('/admin') && user.role !== 'admin') {
+    return <Navigate to="/" replace />
   }
   return <>{children}</>
 }
@@ -34,7 +42,6 @@ import JobMatches from '@/pages/student/JobMatches'
 import Applications from '@/pages/student/Applications'
 import LiveInterviewsPage from '@/pages/student/LiveInterviews'
 import AIFeedbackPage from '@/pages/student/AIFeedback'
-import AnalyticsPage from '@/pages/student/Analytics'
 import ResourcesPage from '@/pages/student/Resources'
 import StudentNotifications from '@/pages/student/Notifications'
 import SettingsPage from '@/pages/student/Settings'
@@ -49,16 +56,20 @@ import Applicants from '@/pages/company/Applicants'
 import AIScreeningPage from '@/pages/company/AIScreening'
 import CompanyInterviewsPage from '@/pages/company/Interviews'
 import Shortlisted from '@/pages/company/Shortlisted'
-import CompanyAnalytics from '@/pages/company/Analytics'
 import Messages from '@/pages/company/Messages'
 import CompanyProfilePage from '@/pages/company/CompanyProfile'
 import CompanyNotifications from '@/pages/company/Notifications'
 import CompanySettings from '@/pages/company/Settings'
 import CompanySupport from '@/pages/company/Support'
 
+// Admin pages
+import AdminDashboard from '@/pages/admin/Dashboard'
+import AdminLogin from '@/pages/admin/AdminLogin'
+
 function App() {
   return (
     <AuthProvider>
+    <DarkModeProvider>
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<Landing />} />
@@ -74,12 +85,15 @@ function App() {
       <Route path="/student/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
       <Route path="/student/live-interviews" element={<ProtectedRoute><LiveInterviewsPage /></ProtectedRoute>} />
       <Route path="/student/feedback" element={<ProtectedRoute><AIFeedbackPage /></ProtectedRoute>} />
-      <Route path="/student/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
       <Route path="/student/resources" element={<ProtectedRoute><ResourcesPage /></ProtectedRoute>} />
       <Route path="/student/messages" element={<ProtectedRoute><StudentMessages /></ProtectedRoute>} />
       <Route path="/student/notifications" element={<ProtectedRoute><StudentNotifications /></ProtectedRoute>} />
       <Route path="/student/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/student/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+
+      {/* Admin routes */}
+      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
 
       {/* Company routes — file names match sidebar labels */}
       <Route path="/company/dashboard" element={<ProtectedRoute><CompanyDashboard /></ProtectedRoute>} />
@@ -88,7 +102,6 @@ function App() {
       <Route path="/company/screening" element={<ProtectedRoute><AIScreeningPage /></ProtectedRoute>} />
       <Route path="/company/interviews" element={<ProtectedRoute><CompanyInterviewsPage /></ProtectedRoute>} />
       <Route path="/company/shortlisted" element={<ProtectedRoute><Shortlisted /></ProtectedRoute>} />
-      <Route path="/company/analytics" element={<ProtectedRoute><CompanyAnalytics /></ProtectedRoute>} />
       <Route path="/company/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
       <Route path="/company/profile" element={<ProtectedRoute><CompanyProfilePage /></ProtectedRoute>} />
       <Route path="/company/notifications" element={<ProtectedRoute><CompanyNotifications /></ProtectedRoute>} />
@@ -98,6 +111,7 @@ function App() {
       {/* Fallback */}
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </DarkModeProvider>
     </AuthProvider>
   )
 }

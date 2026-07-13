@@ -206,7 +206,13 @@ router.put('/profile', async (req, res) => {
     }
 
     if (tokenData.role === 'company') {
-      const companyAllowed = ['companyName', 'email', 'website', 'description', 'logo'];
+      const companyAllowed = [
+        'companyName', 'email', 'website', 'description', 'logo',
+        'ceoName', 'ceoMessage', 'phone', 'address', 'city', 'country',
+        'industry', 'employeeCount', 'foundedYear',
+        'linkedin', 'twitter', 'facebook',
+        'benefits', 'culture',
+      ];
       const companyUpdate = {};
       for (const key of companyAllowed) {
         if (req.body[key] !== undefined) companyUpdate[key] = req.body[key];
@@ -221,6 +227,7 @@ router.put('/profile', async (req, res) => {
     const allowed = [
       'fullName', 'email', 'phone', 'linkedin', 'github', 'portfolio',
       'bio', 'field', 'skills', 'experience', 'education', 'introduction',
+      'profilePicture',
     ];
 
     const update = {};
@@ -241,6 +248,125 @@ router.put('/profile', async (req, res) => {
   } catch (err) {
     console.error('PUT /api/auth/profile error:', err);
     res.status(500).json({ error: 'Failed to update profile.' });
+  }
+});
+
+// ─── DELETE /api/auth/profile ─────────────────────────────
+// Permanently delete student account + all linked data
+router.delete('/profile', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData) {
+      return res.status(401).json({ error: 'Not authenticated.' });
+    }
+
+    const userId = tokenData.id;
+    const userRole = tokenData.role;
+
+    if (userRole === 'company') {
+      // Delete company
+      await Company.findByIdAndDelete(userId);
+      // Delete all jobs posted by this company
+      const Job = require('../models/Job');
+      const jobs = await Job.find({ companyId: userId }).select('_id').lean();
+      const jobIds = jobs.map(j => j._id);
+      // Delete related applications
+      const Application = require('../models/Application');
+      await Application.deleteMany({ jobId: { $in: jobIds } });
+      // Delete jobs
+      await Job.deleteMany({ companyId: userId });
+      // Delete live interviews
+      const LiveInterview = require('../models/LiveInterview');
+      await LiveInterview.deleteMany({ companyId: userId });
+      // Delete messages
+      const Message = require('../models/Message');
+      await Message.deleteMany({ $or: [{ senderId: userId }, { receiverId: userId }] });
+      // Delete notifications
+      const Notification = require('../models/Notification');
+      await Notification.deleteMany({ userId });
+
+      return res.json({ success: true, message: 'Account and all associated data deleted.' });
+    }
+
+    // ── Student deletion ─────────────────────────────────
+    // Delete student record
+    await Student.findByIdAndDelete(userId);
+
+    // Delete all applications by this student
+    const Application = require('../models/Application');
+    await Application.deleteMany({ studentId: userId });
+
+    // Delete all interviews by this student
+    const Interview = require('../models/Interview');
+    await Interview.deleteMany({ studentId: userId });
+
+    // Delete live interviews (as student)
+    const LiveInterview = require('../models/LiveInterview');
+    await LiveInterview.deleteMany({ studentId: userId });
+
+    // Delete messages (sent or received)
+    const Message = require('../models/Message');
+    await Message.deleteMany({ $or: [{ senderId: userId }, { receiverId: userId }] });
+
+    // Delete notifications
+    const Notification = require('../models/Notification');
+    await Notification.deleteMany({ userId });
+
+    // Delete resumes
+    const Resume = require('../models/Resume');
+    await Resume.deleteMany({ studentId: userId });
+
+    res.json({ success: true, message: 'Account and all associated data permanently deleted.' });
+  } catch (err) {
+    console.error('DELETE /api/auth/profile error:', err);
+    res.status(500).json({ error: 'Failed to delete account.' });
+  }
+});
+
+// ─── PUT /api/auth/change-password — JWT protected ───────
+router.put('/change-password', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData) {
+      return res.status(401).json({ error: 'Not authenticated. Please login.' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required.' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ error: 'New password must be different from current password.' });
+    }
+
+    const Model = getUserModel(tokenData.role);
+    const user = await Model.findById(tokenData.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+
+    // Hash and save new password
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({ success: true, message: 'Password changed successfully.' });
+  } catch (err) {
+    console.error('PUT /api/auth/change-password error:', err);
+    res.status(500).json({ error: 'Failed to change password.' });
   }
 });
 

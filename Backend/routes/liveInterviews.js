@@ -8,6 +8,7 @@ const Student = require('../models/Student');
 const Application = require('../models/Application');
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
+const { createNotification } = require('../helpers/notifications');
 
 function getUserFromToken(req) {
   const auth = req.headers.authorization;
@@ -207,7 +208,7 @@ router.post('/schedule', async (req, res) => {
       }
     }
 
-    // ── Notify student via socket.io ─────────────────────
+    // ── Notify student via socket.io + notification ────
     try {
       const io = req.app.get('io');
       if (io) {
@@ -216,6 +217,21 @@ router.post('/schedule', async (req, res) => {
           companyName: company.companyName,
         });
       }
+
+      const scheduledDate = new Date(scheduledTime);
+      const timeStr = scheduledDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const dateStr = scheduledDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      // Student notification
+      await createNotification(req, {
+        userId: studentId,
+        userRole: 'student',
+        type: 'interview_scheduled',
+        title: 'Interview Scheduled 📅',
+        message: `${company.companyName} scheduled a live interview for ${jobTitle || 'your application'} on ${dateStr} at ${timeStr}`,
+        link: '/student/live-interviews',
+        relatedId: interview._id.toString(),
+      });
     } catch { /* non-critical */ }
 
     res.status(201).json({ interview: interview.toObject() });
@@ -329,6 +345,21 @@ router.patch('/:id/cancel', async (req, res) => {
           reason: interview.cancelReason,
         });
       }
+
+      // Create notification for the other party
+      const cancelledByLabel = tokenData.role === 'company' ? 'Company' : 'Student';
+      const recipientId = tokenData.role === 'company' ? interview.studentId : interview.companyId;
+      const recipientRole = tokenData.role === 'company' ? 'student' : 'company';
+
+      await createNotification(req, {
+        userId: recipientId,
+        userRole: recipientRole,
+        type: 'interview_cancelled',
+        title: 'Interview Cancelled',
+        message: `Your interview for ${interview.jobTitle} was cancelled by ${cancelledByLabel}: ${interview.cancelReason}`,
+        link: '/student/live-interviews',
+        relatedId: interview._id.toString(),
+      });
     } catch { /* non-critical */ }
 
     res.json({ interview: interview.toObject() });

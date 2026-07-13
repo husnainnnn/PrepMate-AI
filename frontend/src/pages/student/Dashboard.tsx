@@ -150,7 +150,7 @@ function StatsSection({ stats }: { stats: DashboardStats }) {
                   <p className="text-[13px] font-medium text-[#667085]">
                     {stat.label}
                   </p>
-                  <p className="mt-2 text-2xl font-semibold tracking-tight text-[#101828]">
+                  <p className="mt-2 text-2xl font-semibold tracking-tight text-[#101828] dark:text-[#F1F5F9]">
                     {stat.value}
                   </p>
                 </div>
@@ -163,10 +163,9 @@ function StatsSection({ stats }: { stats: DashboardStats }) {
               <p className="mt-3 text-[12.5px] font-medium text-emerald-600">
                 {stat.delta}
               </p>
-              {stat.label === "Interviews" && (
-                <div className="mt-2 flex gap-3 text-[11px] text-[#98A2B3]">
-                  <span>Mock: <strong className="text-[#101828]">{stats.interviewCount - (stats.liveInterviewCount || 0)}</strong></span>
-                  <span>Live: <strong className="text-[#101828]">{stats.liveInterviewCount || 0}</strong></span>
+              {stat.label === "Interviews" && (                  <div className="mt-2 flex gap-3 text-[11px] text-[#98A2B3] dark:text-[#64748B]">
+                  <span>Mock: <strong className="text-[#101828] dark:text-[#F1F5F9]">{stats.interviewCount - (stats.liveInterviewCount || 0)}</strong></span>
+                  <span>Live: <strong className="text-[#101828] dark:text-[#F1F5F9]">{stats.liveInterviewCount || 0}</strong></span>
                 </div>
               )}
             </CardContent>
@@ -185,7 +184,7 @@ function RecentInterviews({ data }: { data: DashboardData }) {
     <Card className="rounded-xl border-[#EAECF0] shadow-sm">
       <CardContent className="p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-[15px] font-semibold text-[#101828]">
+          <h3 className="text-[15px] font-semibold text-[#101828] dark:text-[#F1F5F9]">
             Recent Mock Interviews
           </h3>
           <Link to="/student/interviews" className="flex items-center gap-1 text-[13px] font-medium text-[#1a6fa8] hover:underline">
@@ -197,8 +196,8 @@ function RecentInterviews({ data }: { data: DashboardData }) {
         {recentInterviews.length === 0 ? (
           <div className="py-8 text-center">
             <Mic className="mx-auto h-8 w-8 text-[#D0D5DD]" />
-            <p className="mt-3 text-[13px] text-[#667085]">No interviews yet</p>
-            <p className="mt-1 text-[12px] text-[#98A2B3]">
+            <p className="mt-3 text-[13px] text-[#667085] dark:text-[#94A3B8]">No interviews yet</p>
+            <p className="mt-1 text-[12px] text-[#98A2B3] dark:text-[#64748B]">
               Start your first AI mock interview to see results here
             </p>
             <Link to="/student/interviews"
@@ -207,7 +206,7 @@ function RecentInterviews({ data }: { data: DashboardData }) {
             </Link>
           </div>
         ) : (
-          <div className="divide-y divide-[#EAECF0]">
+          <div className="divide-y divide-[#EAECF0] dark:divide-[#334155]">
             {recentInterviews.map((iv) => (
               <div key={iv._id} className="flex items-center justify-between gap-3 py-3.5">
                 <div className="flex items-center gap-3">
@@ -219,10 +218,10 @@ function RecentInterviews({ data }: { data: DashboardData }) {
                     )}
                   </div>
                   <div>
-                    <p className="text-[13.5px] font-medium text-[#101828]">
+                    <p className="text-[13.5px] font-medium text-[#101828] dark:text-[#F1F5F9]">
                       {iv.cheated ? '⚠️ Cheating Detected' : (iv.field || 'Mock Interview')}
                     </p>
-                    <div className="mt-0.5 flex items-center gap-3 text-[12px] text-[#667085]">
+                    <div className="mt-0.5 flex items-center gap-3 text-[12px] text-[#667085] dark:text-[#94A3B8]">
                       <span>{new Date(iv.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                       <span>{iv.answeredCount} answers</span>
                       {!iv.cheated && iv.hireDecision && (
@@ -240,7 +239,7 @@ function RecentInterviews({ data }: { data: DashboardData }) {
               </div>
             ))}
             {stats.interviewCount > recentInterviews.length && (
-              <div className="block py-3 pt-4 text-center text-[12.5px] font-medium text-[#667085]">
+              <div className="block py-3 pt-4 text-center text-[12.5px] font-medium text-[#667085] dark:text-[#94A3B8]">
                 +{stats.interviewCount - recentInterviews.length} more interview{(stats.interviewCount - recentInterviews.length) > 1 ? 's' : ''} completed
               </div>
             )}
@@ -268,10 +267,10 @@ function ProgressOverview({ data }: { data: DashboardData }) {
       <CardContent className="p-5">
         <div className="mb-1 flex items-center justify-between">
           <div>
-            <h3 className="text-[15px] font-semibold text-[#101828]">
+            <h3 className="text-[15px] font-semibold text-[#101828] dark:text-[#F1F5F9]">
               Progress Overview
             </h3>
-            <p className="text-[12.5px] text-[#667085]">
+            <p className="text-[12.5px] text-[#667085] dark:text-[#94A3B8]">
               {stats.interviewCount > 0
                 ? `Your average score across ${stats.interviewCount} interview${stats.interviewCount > 1 ? 's' : ''}`
                 : 'Complete an interview to see your progress'}
@@ -413,7 +412,7 @@ const FEATURE_CARDS = [
 function FeatureGrid() {
   return (
     <div>
-      <h3 className="mb-4 text-[15px] font-semibold text-[#101828]">
+      <h3 className="mb-4 text-[15px] font-semibold text-[#101828] dark:text-[#F1F5F9]">
         Explore Tools
       </h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -430,10 +429,10 @@ function FeatureGrid() {
                 >
                   <Icon className={`h-5 w-5 ${feature.iconColor}`} strokeWidth={2} />
                 </div>
-                <p className="text-[13.5px] font-semibold text-[#101828]">
+                <p className="text-[13.5px] font-semibold text-[#101828] dark:text-[#F1F5F9]">
                   {feature.title}
                 </p>
-                <p className="mt-1.5 flex-1 text-[12.5px] leading-relaxed text-[#667085]">
+                <p className="mt-1.5 flex-1 text-[12.5px] leading-relaxed text-[#667085] dark:text-[#94A3B8]">
                   {feature.description}
                 </p>
                 <Link
@@ -457,16 +456,16 @@ function FeatureGrid() {
 function DashboardSkeleton() {
   return (
     <div className="space-y-6 px-6 py-6 lg:px-8 animate-pulse">
-      <div className="h-8 w-64 rounded-lg bg-[#EAECF0]" />
-      <div className="h-4 w-48 rounded-lg bg-[#EAECF0]" />
+      <div className="h-8 w-64 rounded-lg bg-[#EAECF0] dark:bg-[#334155]" />
+      <div className="h-4 w-48 rounded-lg bg-[#EAECF0] dark:bg-[#334155]" />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="h-28 rounded-xl bg-[#F7F9FC] border border-[#EAECF0]" />
+          <div key={i} className="h-28 rounded-xl bg-[#F7F9FC] dark:bg-[#1E293B] border border-[#EAECF0] dark:border-[#334155]" />
         ))}
       </div>
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
-        <div className="xl:col-span-3 h-80 rounded-xl bg-[#F7F9FC] border border-[#EAECF0]" />
-        <div className="xl:col-span-2 h-80 rounded-xl bg-[#F7F9FC] border border-[#EAECF0]" />
+        <div className="xl:col-span-3 h-80 rounded-xl bg-[#F7F9FC] dark:bg-[#1E293B] border border-[#EAECF0] dark:border-[#334155]" />
+        <div className="xl:col-span-2 h-80 rounded-xl bg-[#F7F9FC] dark:bg-[#1E293B] border border-[#EAECF0] dark:border-[#334155]" />
       </div>
     </div>
   )
@@ -480,7 +479,8 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!token) return
+    if (!token || !user) return
+    setLoading(true)
     const fetchDashboard = async () => {
       try {
         // Check in for streak
@@ -501,7 +501,7 @@ export default function StudentDashboard() {
       setLoading(false)
     }
     fetchDashboard()
-  }, [token])
+  }, [token, user?.id]) // re-fetch when token OR user changes
 
   if (loading) {
     return (
@@ -526,10 +526,10 @@ export default function StudentDashboard() {
       <div className="space-y-6 px-6 py-6 lg:px-8">
         {/* Welcome */}
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#101828] dark:text-[#F1F5F9]">
             Welcome back, {user?.fullName?.split(' ')[0] || 'Student'} 👋
           </h1>
-          <p className="mt-1 text-[13.5px] text-[#667085]">
+          <p className="mt-1 text-[13.5px] text-[#667085] dark:text-[#94A3B8]">
             {stats.interviewCount === 0
               ? "Ready to ace your first interview?"
               : `Keep it up! You've completed ${stats.interviewCount} interview${stats.interviewCount > 1 ? 's' : ''} so far.`}

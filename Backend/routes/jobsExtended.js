@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const Job = require('../models/Job');
 const Application = require('../models/Application');
 const Student = require('../models/Student');
+const { createNotification } = require('../helpers/notifications');
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 
@@ -96,6 +97,23 @@ router.post('/apply', async (req, res) => {
 
     // Update student's applicationsCount
     await Student.findByIdAndUpdate(tokenData.id, { $inc: { 'stats.applicationsCount': 1 } });
+
+    // ── Notify company about new applicant ──────────────
+    try {
+      const companyId = job.companyId?.toString();
+      if (companyId) {
+        const studentName = fullName || tokenData.fullName || 'A student';
+        await createNotification(req, {
+          userId: companyId,
+          userRole: 'company',
+          type: 'new_applicant',
+          title: 'New Applicant',
+          message: `${studentName} applied for ${jobTitle} at ${companyName}`,
+          link: '/company/applicants',
+          relatedId: newApp._id.toString(),
+        });
+      }
+    } catch { /* non-critical */ }
 
     res.status(201).json({ application: newApp.toObject() });
   } catch (err) {

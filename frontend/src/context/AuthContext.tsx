@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from '
 
 interface User {
   id: string
-  role: 'student' | 'company'
+  role: 'student' | 'company' | 'admin'
   fullName?: string
   companyName?: string
   email: string
@@ -16,10 +16,25 @@ interface User {
   experience?: string
   education?: any[]
   introduction?: string
+  profilePicture?: string
   // Company fields
   website?: string
   description?: string
   logo?: string
+  ceoName?: string
+  ceoMessage?: string
+  phone?: string
+  address?: string
+  city?: string
+  country?: string
+  industry?: string
+  employeeCount?: string
+  foundedYear?: string
+  linkedin?: string
+  twitter?: string
+  facebook?: string
+  benefits?: string[]
+  culture?: string
 }
 
 interface AuthContextType {
@@ -52,7 +67,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = async (jwt: string) => {
     try {
-      const res = await fetch('/api/auth/me', {
+      // Try regular auth first, then admin
+      let res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${jwt}` },
+      })
+      if (res.ok) {
+        const userData = await res.json()
+        setUser(userData)
+        setLoading(false)
+        return
+      }
+
+      // If regular auth fails, try admin auth
+      res = await fetch('/api/admin/me', {
         headers: { Authorization: `Bearer ${jwt}` },
       })
       if (res.ok) {

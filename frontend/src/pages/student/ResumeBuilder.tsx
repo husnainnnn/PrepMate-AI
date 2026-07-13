@@ -89,6 +89,7 @@ export default function ResumeBuilder() {
           linkedin: user.linkedin ?? p.linkedin,
           github: user.github ?? p.github,
           portfolio: user.portfolio ?? p.portfolio,
+          photoUrl: user.profilePicture ?? p.photoUrl,
         }))
         if (user.skills?.length > 0) setSkills(user.skills)
         if (user.education?.length > 0) {

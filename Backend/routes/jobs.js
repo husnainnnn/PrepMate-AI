@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const Job = require('../models/Job');
+const Student = require('../models/Student');
+
+const JWT_SECRET = process.env.JWT_SECRET || '';
 
 // ─── Gemini AI config (new key for Job Matches) ─────────
 const GEMINI_AI_KEY = process.env.GEMINI_AI_KEY || '';
@@ -86,14 +90,65 @@ function computeFieldMatch(studentField, job) {
   return matchCount / studentWords.length;
 }
 
+// ─── Helper: get user from token ──────────────────────────
+
+function getUserFromToken(req) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) return null;
+  try {
+    const token = auth.split(' ')[1];
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
+    return null;
+  }
+}
+
+// ─── Helper: generate profile hash for job matches ────────
+
+function generateJobMatchHash(field, skills, experience) {
+  const data = [(field || ''), (skills || []).sort().join(','), (experience || '')].join('|||');
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return 'jm_v1_' + Math.abs(hash).toString(36);
+}
+
 // ─── POST /api/jobs/match ──────────────────────────────────
 // Send skills + optional filters, get back ranked job matches
+// Results are cached — only regenerated when new jobs are posted
 router.post('/match', async (req, res) => {
   try {
+    const tokenData = getUserFromToken(req);
     const { skills, search, filters, profileData } = req.body;
 
     if (!skills || !Array.isArray(skills)) {
       return res.status(400).json({ error: 'Please provide a skills array' });
+    }
+
+    // ── Check cache (only for default view — no filters/search) ──
+    const isDefaultView = !search && !filters && !(filters && Object.keys(filters).length > 0);
+    
+    if (isDefaultView && tokenData && tokenData.role === 'student') {
+      const student = await Student.findById(tokenData.id).select('cachedJobMatches field skills experience').lean();
+      if (student && student.cachedJobMatches) {
+        const cached = student.cachedJobMatches;
+        // Get current total job count
+        const totalJobs = await Job.countDocuments({ isClosed: { $ne: true } });
+        const profileHash = generateJobMatchHash(student.field, student.skills, student.experience);
+        
+        // If job count same + profile hash matches → return cached
+        if (cached.jobCount === totalJobs && cached.profileHash === profileHash && cached.matches && cached.matches.length > 0) {
+          return res.json({
+            matches: cached.matches,
+            aiPowered: cached.aiPowered || false,
+            cached: true,
+            generatedAt: cached.generatedAt,
+          });
+        }
+      }
     }
 
     // Build MongoDB query
@@ -258,6 +313,24 @@ Return ONLY valid JSON: { "scores": [ { "index": 0, "score": 85, "reason": "Web 
         };
       })
       .sort((a, b) => b.matchPercentage - a.matchPercentage);
+
+    // ── Save to cache (only for default view) ───────────
+    if (isDefaultView && tokenData && tokenData.role === 'student') {
+      const totalJobs = await Job.countDocuments({ isClosed: { $ne: true } });
+      const student = await Student.findById(tokenData.id).select('field skills experience').lean();
+      if (student) {
+        const profileHash = generateJobMatchHash(student.field, student.skills, student.experience);
+        await Student.findByIdAndUpdate(tokenData.id, {
+          $set: {
+            'cachedJobMatches.matches': matches,
+            'cachedJobMatches.jobCount': totalJobs,
+            'cachedJobMatches.profileHash': profileHash,
+            'cachedJobMatches.generatedAt': new Date(),
+            'cachedJobMatches.aiPowered': useAi,
+          },
+        });
+      }
+    }
 
     res.json({ matches, aiPowered: useAi });
   } catch (err) {
