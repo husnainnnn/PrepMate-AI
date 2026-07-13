@@ -243,20 +243,56 @@ export default function JobMatches() {
   const hasProfileData = profileSkills.length > 0 || profileEducation.length > 0
   const isProfileComplete = profileSkills.length > 0 && profileEducation.length > 0
 
-  // ── Fetch jobs on mount & when user/profile changes ───
-  const fetchMatches = useCallback(async (search: string, filterState: FiltersState) => {
-    if (!token) return
+  // ─── Profile hash for cache invalidation ────────────────
+  const profileHash = [
+    profileField,
+    [...profileSkills].sort().join(','),
+    profileEducation.map((e: any) => `${e.degree}|${e.institute}`).join(','),
+    profileExperience,
+  ].join('|||')
+
+  // ─── Load cached matches from localStorage ─────────────
+  const getCachedMatches = () => {
+    try {
+      const raw = localStorage.getItem('prepmate_job_matches')
+      if (!raw) return null
+      const cached = JSON.parse(raw)
+      if (cached.profileHash === profileHash && !cached.hasFilters) {
+        return cached.matches
+      }
+      return null
+    } catch { return null }
+  }
+
+  const saveCachedMatches = (matches: JobMatch[]) => {
+    try {
+      const data = { profileHash, matches, hasFilters: false, savedAt: Date.now() }
+      localStorage.setItem('prepmate_job_matches', JSON.stringify(data))
+    } catch { /* localStorage full */ }
+  }
+
+  // ─── Fetch jobs on mount & when user/profile changes ───
+  const fetchMatches = useCallback(async (search: string, filterState: FiltersState, isManualSearch = false) => {
+    if (!token) return      // If not a manual search/filter change, try cache first
+    if (!isManualSearch) {
+      const cached = getCachedMatches()
+      if (cached) {
+        setAllMatches(cached)
+        setProfileLoaded(true)
+        setLoading(false)
+        return
+      }
+    }
+
     setLoading(true)
     setError(null)
     try {
       const body: any = { skills: profileSkills }
 
-      // Always send profile data for matching
       body.profileData = {
         education: profileEducation,
         experience: profileExperience,
-        field: profileField, // ⬅️ FIX: was missing before — AI scoring's #1
-                              // priority (field match, 60% weight) needs this
+        field: profileField,
       }
 
       if (search.trim()) body.search = search.trim()
@@ -274,6 +310,8 @@ export default function JobMatches() {
         if (filterState.postedDays) body.filters.postedDays = filterState.postedDays
       }
 
+      const hasFilters = Object.keys(body.filters || {}).length > 0 || !!body.search
+
       const res = await fetch('/api/jobs/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -281,19 +319,25 @@ export default function JobMatches() {
       })
       if (!res.ok) throw new Error('Failed to fetch jobs')
       const data = await res.json()
-      setAllMatches(data.matches || [])
+      const matches = data.matches || []
+      setAllMatches(matches)
       setAiPowered(data.aiPowered || false)
+
+      // Cache only if no active filters (default view)
+      if (!hasFilters) {
+        saveCachedMatches(matches)
+      }
     } catch (err: any) {
       setError(err.message)
     }
     setLoading(false)
     setProfileLoaded(true)
-  }, [token, profileSkills, profileEducation, profileExperience, profileField])
+  }, [token, profileSkills, profileEducation, profileExperience, profileField, profileHash])
 
   // Initial fetch when user data is available
   useEffect(() => {
     if (token && user && !profileLoaded) {
-      fetchMatches(searchQuery, filters)
+      fetchMatches(searchQuery, filters, false)
     }
   }, [token, user])
 
@@ -308,16 +352,16 @@ export default function JobMatches() {
       ;(updated as any)[category] = arr
     }
     setFilters(updated)
-    fetchMatches(searchQuery, updated)
+    fetchMatches(searchQuery, updated, true)
   }
 
   const setFilterValue = (category: keyof FiltersState, value: string) => {
     const updated = { ...filters, [category]: value }
     setFilters(updated)
-    fetchMatches(searchQuery, updated)
+    fetchMatches(searchQuery, updated, true)
   }
 
-  const handleSearch = () => fetchMatches(searchQuery, filters)
+  const handleSearch = () => fetchMatches(searchQuery, filters, true)
 
   const clearAllFilters = () => {
     const cleared: FiltersState = {
@@ -326,7 +370,7 @@ export default function JobMatches() {
     setFilters(cleared)
     setSearchQuery('')
     setCountryInput('')
-    fetchMatches('', cleared)
+    fetchMatches('', cleared, true)
   }
 
   const hasActiveFilters = Object.values(filters).some(v =>
@@ -615,7 +659,7 @@ export default function JobMatches() {
                   <> &middot; <span className="text-emerald-600 font-medium">{recommendedCount} recommended</span> for you</>
                 )}
               </p>
-              <button onClick={() => fetchMatches(searchQuery, filters)} disabled={loading}
+              <button onClick={() => fetchMatches(searchQuery, filters, true)} disabled={loading}
                 className="flex items-center gap-1.5 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-medium text-[#667085] hover:bg-gray-50 disabled:opacity-50">
                 <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
               </button>

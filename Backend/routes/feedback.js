@@ -58,8 +58,77 @@ function getUserFromToken(req) {
   }
 }
 
+// ─── Helper: generate profile hash (for cache invalidation) ──
+
+function generateProfileHash(student) {
+  const data = [
+    student.field || '',
+    (student.skills || []).join(','),
+    student.experience || '',
+    (student.education || []).map(e => `${e.degree}|${e.institute}|${e.startYear}|${e.endYear}`).join(','),
+    student.bio || '',
+    student.linkedin || '',
+    student.github || '',
+    student.portfolio || '',
+    student.introduction || '',
+  ].join('|||');
+  // Simple hash
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return 'v2_' + Math.abs(hash).toString(36);
+}
+
+// ─── GET /api/feedback/profile ───────────────────────────
+// Get cached feedback (fast — no API call if profile unchanged)
+
+router.get('/profile', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'student') {
+      return res.status(401).json({ error: 'Not authenticated as student.' });
+    }
+
+    const student = await Student.findById(tokenData.id).select('-password').lean();
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+    const profileHash = generateProfileHash(student);
+    const cached = student.cachedFeedback;
+
+    // Profile + apps for response
+    const profileSummary = buildProfileSummary(student);
+    const appSummary = await buildAppSummary(tokenData.id);
+
+    // If cached feedback exists and profile hasn't changed, return it
+    if (cached && cached.text && cached.profileHash === profileHash) {
+      return res.json({
+        profile: profileSummary,
+        applications: appSummary,
+        feedback: cached.text,
+        cached: true,
+        generatedAt: cached.generatedAt,
+      });
+    }
+
+    // Otherwise return profile only (no feedback yet)
+    res.json({
+      profile: profileSummary,
+      applications: appSummary,
+      feedback: '',
+      cached: false,
+    });
+
+  } catch (err) {
+    console.error('GET /api/feedback/profile error:', err);
+    res.status(500).json({ error: 'Failed to fetch feedback.' });
+  }
+});
+
 // ─── POST /api/feedback/profile ──────────────────────────
-// Get AI-powered feedback on a student's profile
+// Generate NEW feedback (always calls Groq) or force-regenerate
 
 router.post('/profile', async (req, res) => {
   try {
@@ -68,37 +137,15 @@ router.post('/profile', async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated as student.' });
     }
 
-    // 1) Fetch student profile
     const student = await Student.findById(tokenData.id).select('-password').lean();
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found.' });
-    }
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
 
-    // 2) Fetch application statuses for this student
     const applications = await Application.find({ studentId: tokenData.id })
       .select('jobTitle companyName currentStage isRejected appliedDate')
       .sort({ appliedDate: -1 })
       .lean();
 
-    // 3) Build profile data for AI (exclude resumeUrl)
-    const profileSummary = {
-      fullName: student.fullName,
-      email: student.email,
-      phone: student.phone || 'Not provided',
-      field: student.field || 'Not specified',
-      bio: student.bio || 'Not provided',
-      introduction: student.introduction || 'Not provided',
-      skills: student.skills && student.skills.length > 0 ? student.skills : ['Not specified'],
-      experience: student.experience || 'Not specified',
-      education: student.education && student.education.length > 0
-        ? student.education.map(e => `${e.degree} from ${e.institute} (${e.startYear} - ${e.endYear || 'Present'})`)
-        : ['Not specified'],
-      linkedin: student.linkedin || 'Not provided',
-      github: student.github || 'Not provided',
-      portfolio: student.portfolio || 'Not provided',
-    };
-
-    // Application summary
+    const profileSummary = buildProfileSummary(student);
     const appSummary = applications.length > 0
       ? applications.map(a => ({
           job: a.jobTitle,
@@ -150,12 +197,24 @@ ${JSON.stringify(appSummary, null, 2)}
 Give strict, honest feedback. Focus on what they can improve. Be specific and actionable.`;
 
     const raw = await askGroq(systemPrompt, userPrompt);
+    const feedbackText = typeof raw === 'object' && raw.feedback ? raw.feedback : raw;
 
-    // Return profile data + AI feedback together
+    // Cache the feedback with profile hash
+    const profileHash = generateProfileHash(student);
+    await Student.findByIdAndUpdate(tokenData.id, {
+      $set: {
+        'cachedFeedback.text': feedbackText,
+        'cachedFeedback.profileHash': profileHash,
+        'cachedFeedback.generatedAt': new Date(),
+      },
+    });
+
     res.json({
       profile: profileSummary,
       applications: appSummary,
-      feedback: typeof raw === 'object' && raw.feedback ? raw.feedback : raw,
+      feedback: feedbackText,
+      cached: false,
+      generatedAt: new Date().toISOString(),
     });
 
   } catch (err) {
@@ -166,5 +225,42 @@ Give strict, honest feedback. Focus on what they can improve. Be specific and ac
     });
   }
 });
+
+// ─── Shared helpers ───────────────────────────────────────
+
+function buildProfileSummary(student) {
+  return {
+    fullName: student.fullName,
+    email: student.email,
+    phone: student.phone || 'Not provided',
+    field: student.field || 'Not specified',
+    bio: student.bio || 'Not provided',
+    introduction: student.introduction || 'Not provided',
+    skills: student.skills && student.skills.length > 0 ? student.skills : ['Not specified'],
+    experience: student.experience || 'Not specified',
+    education: student.education && student.education.length > 0
+      ? student.education.map(e => `${e.degree} from ${e.institute} (${e.startYear} - ${e.endYear || 'Present'})`)
+      : ['Not specified'],
+    linkedin: student.linkedin || 'Not provided',
+    github: student.github || 'Not provided',
+    portfolio: student.portfolio || 'Not provided',
+  };
+}
+
+async function buildAppSummary(studentId) {
+  const applications = await Application.find({ studentId })
+    .select('jobTitle companyName currentStage isRejected appliedDate')
+    .sort({ appliedDate: -1 })
+    .lean();
+  return applications.length > 0
+    ? applications.map(a => ({
+        job: a.jobTitle,
+        company: a.companyName,
+        stage: a.currentStage,
+        rejected: a.isRejected,
+        applied: a.appliedDate,
+      }))
+    : ['No applications yet'];
+}
 
 module.exports = router;

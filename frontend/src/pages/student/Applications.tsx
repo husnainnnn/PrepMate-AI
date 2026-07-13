@@ -15,6 +15,7 @@ interface ApplicationRecord {
   appliedDate: string
   isRejected: boolean
   currentStage: Stage
+  jobDeleted?: boolean
 }
 
 const STAGE_ORDER: Stage[] = ['applied', 'under_review', 'shortlisted', 'interview', 'hired']
@@ -244,7 +245,21 @@ export default function Applications() {
                     </div>
                   </div>
 
-                  {/* Status stepper */}
+                  {/* Job Deleted Banner */}
+                  {app.jobDeleted && (
+                    <div className="mt-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100">
+                        <XCircle className="h-4 w-4 text-red-500" />
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-semibold text-red-700">Job Deleted</p>
+                        <p className="text-[12px] text-red-500">This job has been removed by the company.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {!app.jobDeleted && (
+                  // Status stepper
                   <div className="mt-5 flex items-center">
                     {STAGE_ORDER.map((stage, index) => {
                       const currentIdx = STAGE_ORDER.indexOf(app.currentStage as Stage)
@@ -279,15 +294,16 @@ export default function Applications() {
                       )
                     })}
                   </div>
+                  )}
 
-                  {app.isRejected && (
+                  {!app.jobDeleted && app.isRejected && (
                     <div className="mt-4 flex items-center justify-between rounded-xl border border-red-100 bg-red-50 px-4 py-3">
                       <p className="text-[13px] text-red-600">
                         This application wasn't successful. Best of luck for next time!
                       </p>
                     </div>
                   )}
-                  {!app.isRejected && app.currentStage === 'hired' && (
+                  {!app.jobDeleted && !app.isRejected && app.currentStage === 'hired' && (
                     <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[13px] font-medium text-emerald-600">
                       <Sparkles className="h-4 w-4" /> Congratulations! You were hired for this role!
                     </div>

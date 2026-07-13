@@ -50,6 +50,8 @@ interface FeedbackResponse {
   profile: ProfileData;
   applications: AppSummary[] | string[];
   feedback: string;
+  cached?: boolean;
+  generatedAt?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────
@@ -119,18 +121,17 @@ export default function AIFeedbackPage() {
   const [error, setError] = useState('');
   const [expandedApps, setExpandedApps] = useState(false);
 
-  // Fetch profile (without feedback) on mount
+  // Fetch cached feedback on mount (GET — fast, no API call if unchanged)
   useEffect(() => {
     if (!token) return;
-    fetchProfileOnly();
+    fetchCachedFeedback();
   }, [token]);
 
-  const fetchProfileOnly = async () => {
+  const fetchCachedFeedback = async () => {
     try {
       const res = await fetch('/api/feedback/profile', {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       });
@@ -415,10 +416,23 @@ export default function AIFeedbackPage() {
                     </div>
                   </div>
                 ) : hasFeedback ? (
-                  <div
-                    className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: formatFeedback(feedback) }}
-                  />
+                  <>
+                    {/* Cached badge */}
+                    {data?.cached && data?.generatedAt && (
+                      <div className="mb-3 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-[12px] text-blue-700">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Feedback from {new Date(data.generatedAt).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                        &mdash; updates automatically when you change your profile
+                      </div>
+                    )}
+                    <div
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: formatFeedback(feedback) }}
+                    />
+                  </>
                 ) : feedback && typeof feedback === 'string' && feedback.startsWith('⚠️') ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50">

@@ -46,6 +46,7 @@ const jobsExtendedRoutes = require('./routes/jobsExtended');
 const messagesRoutes = require('./routes/messages');
 const liveInterviewsRoutes = require('./routes/liveInterviews');
 const feedbackRoutes = require('./routes/feedback');
+const resourcesRoutes = require('./routes/resources');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -117,6 +118,7 @@ app.use('/api/jobs', jobsExtendedRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/live-interviews', liveInterviewsRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/resources', resourcesRoutes);
 
 // Health check — includes DB status
 app.get('/api/health', async (_req, res) => {

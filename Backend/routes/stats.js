@@ -92,12 +92,12 @@ router.get('/dashboard', async (req, res) => {
       },
       recentInterviews: await Interview.find({ studentId: tokenData.id })
         .sort({ completedAt: -1 })
-        .limit(5)
+        .limit(50)
         .select('field overallScore hireDecision cheated answeredCount completedAt durationMinutes')
         .lean(),
       recentScores: await Interview.find({ studentId: tokenData.id, cheated: false })
         .sort({ completedAt: -1 })
-        .limit(10)
+        .limit(50)
         .select('overallScore completedAt')
         .lean()
         .then(scores => scores.map(s => ({ score: s.overallScore, date: s.completedAt }))),

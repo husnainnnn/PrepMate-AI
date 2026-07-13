@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const Application = require('../models/Application');
+const Job = require('../models/Job');
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 
@@ -23,6 +24,17 @@ router.get('/', async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated as student.' });
     }
     const applications = await Application.find({ studentId: tokenData.id }).sort({ createdAt: -1 }).lean();
+
+    // Check which jobs still exist (single query instead of N queries)
+    const jobIds = applications.map(a => a.jobId).filter(Boolean);
+    const existingJobs = await Job.find({ _id: { $in: jobIds } }).select('_id').lean();
+    const existingJobIds = new Set(existingJobs.map(j => j._id.toString()));
+    for (const app of applications) {
+      if (app.jobId && !existingJobIds.has(app.jobId.toString())) {
+        app.jobDeleted = true;
+      }
+    }
+
     res.json({ applications });
   } catch (err) {
     console.error('GET /api/applications error:', err);

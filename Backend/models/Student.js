@@ -22,6 +22,20 @@ const studentSchema = new mongoose.Schema({
   experience: { type: String, default: 'fresher' },
   education: { type: [educationSchema], default: [] },
   introduction: { type: String, default: '' },
+  // ─── Cached AI Feedback ───
+  cachedFeedback: {
+    text: { type: String, default: '' },
+    profileHash: { type: String, default: '' },
+    generatedAt: { type: Date, default: null },
+  },
+
+  // ─── Cached AI Resources ───
+  cachedResources: {
+    items: { type: [mongoose.Schema.Types.Mixed], default: [] },
+    profileHash: { type: String, default: '' },
+    generatedAt: { type: Date, default: null },
+  },
+
   // ─── Stats & Analytics ───
   stats: {
     interviewCount: { type: Number, default: 0 },

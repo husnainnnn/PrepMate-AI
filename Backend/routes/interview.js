@@ -8,7 +8,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_MODEL = 'gemini-3.5-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const GROQ_INTERVIEW_KEY = process.env.GROQ_INTERVIEW_KEY || process.env.GROQ_API_KEY || '';
 const GROQ_MODEL = 'llama-3.3-70b-versatile'; // fast, generous free tier
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
@@ -49,8 +49,8 @@ async function askGemini(systemPrompt, userPrompt) {
 // ─── Groq helper (OpenAI-compatible, generous free tier) ───
 
 async function askGroq(systemPrompt, userPrompt) {
-  if (!GROQ_API_KEY) {
-    const err = new Error('GROQ_API_KEY not configured');
+  if (!GROQ_INTERVIEW_KEY) {
+    const err = new Error('GROQ_INTERVIEW_KEY not configured');
     err.isQuotaError = true; // fall through to local templates
     throw err;
   }
@@ -59,7 +59,7 @@ async function askGroq(systemPrompt, userPrompt) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
+      'Authorization': `Bearer ${GROQ_INTERVIEW_KEY}`,
     },
     body: JSON.stringify({
       model: GROQ_MODEL,

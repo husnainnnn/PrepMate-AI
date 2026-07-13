@@ -208,7 +208,7 @@ function RecentInterviews({ data }: { data: DashboardData }) {
           </div>
         ) : (
           <div className="divide-y divide-[#EAECF0]">
-            {recentInterviews.slice(0, 4).map((iv) => (
+            {recentInterviews.map((iv) => (
               <div key={iv._id} className="flex items-center justify-between gap-3 py-3.5">
                 <div className="flex items-center gap-3">
                   <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${iv.cheated ? 'bg-red-50' : 'bg-blue-50'}`}>
@@ -239,9 +239,9 @@ function RecentInterviews({ data }: { data: DashboardData }) {
                 </Badge>
               </div>
             ))}
-            {stats.interviewCount > 4 && (
-              <div className="block py-3 text-center text-[12.5px] font-medium text-[#667085]">
-                Mock Interview Count: {stats.interviewCount}
+            {stats.interviewCount > recentInterviews.length && (
+              <div className="block py-3 pt-4 text-center text-[12.5px] font-medium text-[#667085]">
+                +{stats.interviewCount - recentInterviews.length} more interview{(stats.interviewCount - recentInterviews.length) > 1 ? 's' : ''} completed
               </div>
             )}
           </div>
