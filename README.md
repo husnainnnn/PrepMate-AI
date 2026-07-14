@@ -1,140 +1,153 @@
 # 🚀 PrepMate AI
 
-PrepMate AI is an AI-powered interview preparation and recruitment platform that connects students with companies. The platform helps students prepare for interviews while enabling companies to discover, evaluate, and hire the best candidates using AI-powered tools.
+An AI-powered Interview Preparation and Recruitment Platform that connects **Students**, **Companies**, and **Administrators** on a single platform.
+
+PrepMate AI helps students prepare for interviews using AI-powered tools while enabling companies to efficiently screen, evaluate, and hire top talent.
 
 ---
 
-## ✨ Features
+# ✨ Key Features
 
-### 👨‍🎓 Student Portal
+## 👨‍🎓 Student Portal
 
 - Secure Authentication
 - Student Dashboard
 - Profile Management
 - Resume Builder
-- AI Resume Feedback
 - AI Job Matching
+- AI Feedback & Career Suggestions
 - AI-Powered Learning Resources
 - Practice Questions
 - Mock Interviews
 - Live Interviews
-- Application Tracking
-- Notifications
-- Messaging with Companies
+- Job Applications Tracking
+- Company Messaging
+- Real-Time Notifications
 - Analytics Dashboard
 - Settings
 - Help & Support
 
 ---
 
-### 🏢 Company Portal
+## 🏢 Company Portal
 
-- Company Authentication
+- Secure Authentication
 - Company Dashboard
 - Company Profile
 - Job Posting
 - Applicant Management
-- AI Screening
-- AI Match Score
+- AI Resume Screening
+- AI Match Scoring
 - Candidate Shortlisting
 - Interview Scheduling
 - Live Interviews
-- Messaging with Students
-- Notifications
-- Analytics Dashboard
+- Student Messaging
+- Real-Time Notifications
+- Analytics
 - Settings
 - Help & Support
 
 ---
 
-## 🤖 AI Features
+## 👨‍💼 Admin Portal
 
-### AI Resume Screening
+- Dashboard
+- Manage Students
+- Manage Companies
+- Verify Company Accounts
+- Monitor Platform Activities
+- Resolve Reported Issues
+- Review Support Requests
 
-Automatically analyzes student profiles and recommends the best candidates based on skills, education, and experience.
+---
 
-### AI Job Matching
+# 🤖 AI Features
 
-Matches students with jobs using profile analysis and intelligent skill matching.
+## AI Resume Screening
 
-### AI Feedback
+Analyzes candidate profiles and recommends the best applicants using intelligent skill matching.
 
-Provides personalized feedback by analyzing:
+## AI Job Matching
+
+Recommends jobs to students based on:
+
+- Skills
+- Education
+- Experience
+- Career Interests
+
+## AI Feedback
+
+Provides personalized career improvement suggestions by analyzing:
 
 - Student Profile
 - Resume
-- Applications
-- Practice Sessions
+- Practice Performance
 - Mock Interviews
 
-### AI Resource Recommendation
+## AI Learning Resources
 
-Suggests learning resources according to the student's:
-
-- Field
-- Skills
-- Career Goals
+Recommends learning materials based on the student's field and profile.
 
 ---
 
-## 🎥 Live Interview System
+# 💬 Communication
 
-- Real-time Video Calling
+- Student ↔ Company Messaging
+- Message Management
+- Real-Time Communication
+
+---
+
+# 🎥 Live Interview
+
 - WebRTC Integration
 - Socket.IO
+- Video Calling
 - Screen Sharing
-- Company ↔ Student Communication
+- Interview Management
 
 ---
 
-## 💬 Messaging System
+# 🔔 Notification System
 
-- Student ↔ Company Chat
-- Real-time Messaging
-- Delete Messages
-- Conversation History
-
----
-
-## 🔔 Notification System
-
+- Real-Time Notifications
 - Desktop Notifications
-- In-App Notifications
-- Student Notifications
-- Company Notifications
+- Multiple Notification Tones
+- Enable / Disable Notifications
 
 ---
 
-## ⚙ Settings
+# ⚙ Settings
 
+- Dark Mode
+- Notification Preferences
+- 12+ Notification Tones
 - Change Password
 - Delete Profile
-- Notification Preferences
-- Notification Tone
-- Appearance Settings
+- Account Preferences
 
 ---
 
-## 🛠 Help & Support
+# 🛠 Help & Support
 
-- FAQs
+- Frequently Asked Questions (FAQs)
 - Report a Bug
 - Suggest a Feature
-- Need Help
+- Contact Support
 
 ---
 
-## 📊 Dashboards
+# 📊 Dashboards
 
 ### Student Dashboard
 
-- Job Matches
 - Applications
+- Job Matches
 - AI Feedback
-- Notifications
 - Live Interviews
+- Notifications
 - Resources
-- Resume Builder
 
 ### Company Dashboard
 
@@ -145,55 +158,49 @@ Suggests learning resources according to the student's:
 - Interview Management
 - Analytics
 
+### Admin Dashboard
+
+- User Management
+- Company Verification
+- Reports Management
+- Platform Monitoring
+
 ---
 
-## 🛠 Tech Stack
+# 🛠 Tech Stack
 
-### Frontend
+## Frontend
 
-- React
+- React.js
 - TypeScript
 - Tailwind CSS
 - Vite
 
-### Backend
+## Backend
 
 - Node.js
 - Express.js
 
-### Database
+## Database
 
 - MongoDB
 - Mongoose
 
-### Authentication
+## Authentication
 
 - JWT
 
-### AI
+## AI
 
 - Groq API
 - Llama 3.3 70B
 
-### Realtime
+## Real-Time Technologies
 
 - Socket.IO
 - WebRTC
-
 ---
 
-## 📌 Upcoming Features
+# 👨‍💻 Developer
 
-- AI Mock Interview Voice Assistant
-- Resume PDF Export
-- Company Verification System
-- Email Notifications
-- Interview Recording
-- AI Interview Analytics
-- Calendar Integration
-
----
-
-## 👨‍💻 Author
-
-Developed by **Husnain Sattar**
+**Husnain Sattar**
