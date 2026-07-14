@@ -41,4 +41,11 @@ const companySchema = new mongoose.Schema({
   plan: { type: String, default: 'free', enum: ['free', 'pro'] },
 }, { timestamps: true });
 
+// ─── Indexes for performance ─────────────────────────────
+companySchema.index({ email: 1 });
+companySchema.index({ createdAt: -1 });
+companySchema.index({ companyName: 1 });
+companySchema.index({ isVerified: 1 });
+companySchema.index({ plan: 1 });
+
 module.exports = mongoose.model('Company', companySchema);

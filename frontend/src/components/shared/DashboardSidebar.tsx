@@ -72,10 +72,10 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
                 <Link
                   to={item.href}
                   className={cn(
-                    'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors',
+                    'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-all duration-200',
                     isActive
                       ? 'bg-blue-50 dark:bg-[#1a6fa8]/20 text-[#1a6fa8]'
-                      : 'text-[#667085] dark:text-[#94A3B8] hover:bg-[#F7F9FC] dark:hover:bg-[#334155] hover:text-[#101828] dark:hover:text-[#F1F5F9]'
+                      : 'text-[#667085] dark:text-[#94A3B8] hover:bg-[#F7F9FC] dark:hover:bg-[#334155] hover:text-[#101828] dark:hover:text-[#F1F5F9] hover:translate-x-0.5'
                   )}
                 >
                   <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
@@ -88,7 +88,7 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
       </nav>
 
       {/* Footer items (fixed — outside scrollable area) */}
-      {footerItems.length > 0 && (
+      {(footerItems.length > 0 || onLogout) && (
         <div className="px-3 py-2">
           <ul className="space-y-0.5">
             {footerItems.map((item) => {
@@ -99,10 +99,10 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
                   <Link
                     to={item.href}
                     className={cn(
-                      'group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors',
+                      'group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-all duration-200',
                       isActive
                         ? 'bg-blue-50 dark:bg-[#1a6fa8]/20 text-[#1a6fa8]'
-                        : 'text-[#98A2B3] dark:text-[#64748B] hover:bg-[#F7F9FC] dark:hover:bg-[#334155] hover:text-[#667085] dark:hover:text-[#94A3B8]'
+                        : 'text-[#98A2B3] dark:text-[#64748B] hover:bg-[#F7F9FC] dark:hover:bg-[#334155] hover:text-[#667085] dark:hover:text-[#94A3B8] hover:translate-x-0.5'
                     )}
                     title={item.label}
                   >
@@ -123,7 +123,7 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
               <li>
                 <button
                   onClick={onLogout}
-                  className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium text-[#98A2B3] transition-colors hover:bg-red-50 hover:text-red-500"
+                  className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium text-[#98A2B3] transition-all duration-200 hover:bg-red-50 hover:text-red-500 hover:translate-x-0.5"
                   title="Logout"
                 >
                   <svg className="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -147,7 +147,7 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
       {/* Upgrade card — only shown if provided */}
       {upgradeCard && (
         <div className="p-4">
-          <div className="rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] p-4 text-white shadow-sm">
+          <div className="rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] p-4 text-white shadow-sm transition-all duration-300 hover:shadow-lg hover:shadow-[#0b3b5c]/30 hover:-translate-y-0.5">
             <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/15">
               <Crown className="h-4 w-4" />
             </div>

@@ -48,7 +48,7 @@ const difficultyDotColors: Record<Difficulty, string> = {
 }
 
 export default function PracticePage() {
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const [phase, setPhase] = useState<Phase>('setup')
   const [field, setField] = useState('')
   const [skills, setSkills] = useState<string[]>([])
@@ -73,44 +73,35 @@ export default function PracticePage() {
   const [monthlyPracticeCount, setMonthlyPracticeCount] = useState(0)
   const [practiceLocked, setPracticeLocked] = useState(false)
 
-  // ─── Load profile for autofill ──────────────────────────
+  // ─── Load profile from AuthContext + fetch plan in 1 call ──
   useEffect(() => {
     if (!token) {
       setLoading(false)
       return
     }
-    const loadProfile = async () => {
-      try {
-        const res = await fetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const user = await res.json()
-          if (user.field) setField(user.field)
-          if (user.skills?.length > 0) {
-            setSkills(user.skills)
-            setSkillsInput(user.skills.join(', '))
-          }
-          if (user.experience) setUserExperience(user.experience)
-          setProfileLoaded(true)
-        }
-        // Also fetch plan info
-        const dashRes = await fetch('/api/stats/dashboard', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (dashRes.ok) {
-          const dashData = await dashRes.json()
-          const plan = dashData.stats?.plan || 'free'
-          setIsProPlan(plan === 'pro')
-          setMonthlyPracticeCount(dashData.stats?.monthlyPracticeCount || 0)
-          if (plan !== 'pro' && (dashData.stats?.monthlyPracticeCount || 0) >= FREE_PRACTICE_LIMIT) {
-            setPracticeLocked(true)
-          }
-        }
-      } catch { /* backend offline */ }
-      setLoading(false)
+    // Use AuthContext user data (no extra /api/auth/me call!)
+    if (user) {
+      if (user.field) setField(user.field)
+      if (user.skills?.length > 0) {
+        setSkills(user.skills)
+        setSkillsInput(user.skills.join(', '))
+      }
+      if (user.experience) setUserExperience(user.experience)
+      setProfileLoaded(true)
     }
-    loadProfile()
+    // Fetch plan info in 1 call
+    fetch('/api/stats/dashboard', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.ok && r.json()).then(dashData => {
+      if (!dashData) return
+      const plan = dashData.stats?.plan || 'free'
+      setIsProPlan(plan === 'pro')
+      setMonthlyPracticeCount(dashData.stats?.monthlyPracticeCount || 0)
+      if (plan !== 'pro' && (dashData.stats?.monthlyPracticeCount || 0) >= FREE_PRACTICE_LIMIT) {
+        setPracticeLocked(true)
+      }
+    }).catch(() => {})
+    .finally(() => setLoading(false))
   }, [token])
 
   // ─── Fetch AI questions ─────────────────────────────────

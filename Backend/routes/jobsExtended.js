@@ -40,14 +40,24 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ─── GET /api/jobs — list all active jobs (for students) ───
+// ─── GET /api/jobs — list all active jobs (for students, paginated) ───
 router.get('/', async (req, res) => {
   try {
-    const jobs = await Job.find({ isClosed: { $ne: true } })
-      .sort({ createdAt: -1 })
-      .select('-__v')
-      .lean();
-    res.json({ jobs });
+    const { page = '1', limit = '50' } = req.query;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [jobs, total] = await Promise.all([
+      Job.find({ isClosed: { $ne: true } })
+        .sort({ createdAt: -1 })
+        .select('-__v')
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Job.countDocuments({ isClosed: { $ne: true } }),
+    ]);
+    res.json({ jobs, total, page: pageNum, totalPages: Math.ceil(total / limitNum) });
   } catch (err) {
     console.error('GET /api/jobs error:', err);
     res.status(500).json({ error: 'Failed to fetch jobs' });

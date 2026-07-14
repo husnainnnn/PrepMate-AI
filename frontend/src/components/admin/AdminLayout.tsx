@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +15,8 @@ import { DashboardSidebar, type SidebarItem } from '@/components/shared/Dashboar
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import SmartSearch from '@/components/shared/SmartSearch'
 import { useAuth } from '@/context/AuthContext'
+import { useCachedFetch } from '@/hooks/useCachedFetch'
+import { TTL } from '@/lib/apiCache'
 
 const NAV_ITEMS: SidebarItem[] = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -30,8 +32,7 @@ const NAV_ITEMS: SidebarItem[] = [
 const searchNavItems = [...NAV_ITEMS]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, token, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user, token } = useAuth()
   const [unreadNotifs, setUnreadNotifs] = useState(0)
   const socketRef = useRef<any>(null)
 
@@ -39,24 +40,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     ? user.email.charAt(0).toUpperCase()
     : 'A'
 
-  // Fetch unread notification count
+  // Fetch unread notification count (cached — socket keeps it updated)
+  const { data: notifData } = useCachedFetch<{ unreadCount: number }>(
+    token ? '/api/notifications/unread-count' : null,
+    { headers: { Authorization: `Bearer ${token}` } },
+    TTL.SHORT,
+  )
   useEffect(() => {
-    if (!token) return
-    const fetchUnread = async () => {
-      try {
-        const res = await fetch('/api/notifications/unread-count', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setUnreadNotifs(data.unreadCount || 0)
-        }
-      } catch { /* offline */ }
-    }
-    fetchUnread()
-    const interval = setInterval(fetchUnread, 30000)
-    return () => clearInterval(interval)
-  }, [token])
+    if (notifData) setUnreadNotifs(notifData.unreadCount || 0)
+  }, [notifData])
 
   // Listen for real-time notifications via socket
   useEffect(() => {
@@ -70,7 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
         const { io } = await import('socket.io-client')
         if (disposed) return
-        const s = io('http://localhost:3001')
+        const s = io('http://localhost:3001', { transports: ['websocket', 'polling'] })
         socketRef.current = s
         s.on('connect', () => {
           s.emit('join', user.id.toString())
@@ -99,8 +91,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [token, user?.id])
 
   const handleLogout = () => {
-    logout()
-    navigate('/admin/login', { replace: true })
+    localStorage.removeItem('prepmate_token')
+    // Go to landing page (homepage with background video)
+    setTimeout(() => {
+      window.location.href = '/'
+    }, 50)
   }
 
   return (
@@ -149,8 +144,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </header>
 
-          {/* Page content */}
-          <main className="flex-1">{children}</main>
+          {/* Page content with entrance animation */}
+          <main className="flex-1 animate-fade-in-fast">{children}</main>
         </div>
       </div>
     </div>

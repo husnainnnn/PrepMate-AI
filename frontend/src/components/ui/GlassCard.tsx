@@ -9,7 +9,7 @@ interface GlassCardProps {
 
 export function GlassCard({ children, className, as: Tag = 'div' }: GlassCardProps) {
   return (
-    <Tag className={cn('liquid-glass rounded-2xl p-8', className)}>
+    <Tag className={cn('liquid-glass rounded-2xl p-8 animate-fade-in', className)}>
       {children}
     </Tag>
   )

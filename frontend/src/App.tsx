@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { DarkModeProvider } from '@/context/DarkModeContext'
+import { CacheProvider } from '@/context/CacheContext'
 import { Landing } from '@/pages/Landing'
 import { Login } from '@/pages/Login'
 import NotFound from '@/pages/NotFound'
@@ -82,6 +83,7 @@ function App() {
   return (
     <AuthProvider>
     <DarkModeProvider>
+    <CacheProvider>
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<Landing />} />
@@ -135,6 +137,7 @@ function App() {
       {/* Fallback */}
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </CacheProvider>
     </DarkModeProvider>
     </AuthProvider>
   )

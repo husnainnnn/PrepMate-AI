@@ -163,7 +163,11 @@ router.get('/students', async (req, res) => {
     const tokenData = getUserFromToken(req);
     if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
 
-    const { search, field } = req.query;
+    const { search, field, page = '1', limit = '50' } = req.query;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
     const filter = {};
     if (field) filter.field = field;
     if (search) {
@@ -173,8 +177,11 @@ router.get('/students', async (req, res) => {
       ];
     }
 
-    const students = await Student.find(filter).select('-password').sort({ createdAt: -1 }).lean();
-    res.json({ students });
+    const [students, total] = await Promise.all([
+      Student.find(filter).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      Student.countDocuments(filter),
+    ]);
+    res.json({ students, total, page: pageNum, totalPages: Math.ceil(total / limitNum) });
   } catch (err) {
     console.error('GET /api/admin/students error:', err);
     res.status(500).json({ error: 'Failed to fetch students.' });
@@ -201,7 +208,11 @@ router.get('/companies', async (req, res) => {
     const tokenData = getUserFromToken(req);
     if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
 
-    const { search } = req.query;
+    const { search, page = '1', limit = '50' } = req.query;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
     const filter = {};
     if (search) {
       filter.$or = [
@@ -210,8 +221,11 @@ router.get('/companies', async (req, res) => {
       ];
     }
 
-    const companies = await Company.find(filter).select('-password').sort({ createdAt: -1 }).lean();
-    res.json({ companies });
+    const [companies, total] = await Promise.all([
+      Company.find(filter).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      Company.countDocuments(filter),
+    ]);
+    res.json({ companies, total, page: pageNum, totalPages: Math.ceil(total / limitNum) });
   } catch (err) {
     console.error('GET /api/admin/companies error:', err);
     res.status(500).json({ error: 'Failed to fetch companies.' });
@@ -224,12 +238,19 @@ router.get('/support-tickets', async (req, res) => {
     const tokenData = getUserFromToken(req);
     if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
 
-    const { role } = req.query; // 'student' or 'company'
+    const { role, page = '1', limit = '50' } = req.query;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
     const filter = { status: { $ne: 'resolved' } };
     if (role) filter.userRole = role;
 
-    const tickets = await SupportTicket.find(filter).sort({ createdAt: -1 }).lean();
-    res.json({ tickets });
+    const [tickets, total] = await Promise.all([
+      SupportTicket.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      SupportTicket.countDocuments(filter),
+    ]);
+    res.json({ tickets, total, page: pageNum, totalPages: Math.ceil(total / limitNum) });
   } catch (err) {
     console.error('GET /api/admin/support-tickets error:', err);
     res.status(500).json({ error: 'Failed to fetch tickets.' });
@@ -344,10 +365,19 @@ router.get('/pro-plan', async (req, res) => {
     const tokenData = getUserFromToken(req);
     if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
 
-    const students = await Student.find({ 'stats.plan': 'pro' }).select('fullName email field stats.plan createdAt').sort({ createdAt: -1 }).lean();
-    const companies = await Company.find({ plan: 'pro' }).select('companyName email plan createdAt').sort({ createdAt: -1 }).lean();
+    const { page = '1', limit = '50' } = req.query;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
+    const skip = (pageNum - 1) * limitNum;
 
-    res.json({ students, companies });
+    const [students, totalStudents, companies, totalCompanies] = await Promise.all([
+      Student.find({ 'stats.plan': 'pro' }).select('fullName email field stats.plan createdAt').sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      Student.countDocuments({ 'stats.plan': 'pro' }),
+      Company.find({ plan: 'pro' }).select('companyName email plan createdAt').sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      Company.countDocuments({ plan: 'pro' }),
+    ]);
+
+    res.json({ students, companies, totalStudents, totalCompanies, page: pageNum });
   } catch (err) {
     console.error('GET /api/admin/pro-plan error:', err);
     res.status(500).json({ error: 'Failed to fetch pro plan data.' });

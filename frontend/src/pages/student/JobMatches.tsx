@@ -280,10 +280,10 @@ export default function JobMatches() {
     } catch { /* localStorage full */ }
   }
 
-  // Plan info
+  // Plan info — cached via useCachedFetch in Dashboard, no extra call!
   const [isPro, setIsPro] = useState(false)
 
-  // Fetch plan on mount
+  // Check plan — minimal fetch
   useEffect(() => {
     if (!token) return
     fetch('/api/stats/dashboard', {

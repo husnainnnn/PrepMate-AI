@@ -106,7 +106,7 @@ function VideoRoom({
   interview: Interview
   onEnd: () => void
 }) {
-  const [status, setStatus] = useState<'requesting-media' | 'ready' | 'connecting' | 'connected' | 'ended'>('requesting-media')
+  const [status, setStatus] = useState<'requesting-media' | 'ready' | 'connecting' | 'connected' | 'ended' | 'permission-denied'>('requesting-media')
   const [isMicOn, setIsMicOn] = useState(true)
   const [isCameraOn, setIsCameraOn] = useState(true)
   const [isScreenSharing, setIsScreenSharing] = useState(false)
@@ -140,8 +140,7 @@ function VideoRoom({
         if (localVideoRef.current) localVideoRef.current.srcObject = stream
         setStatus('ready')
       } catch {
-        setErrorMsg('Camera or microphone permission denied.')
-        setStatus('ended')
+        setStatus('permission-denied')
       }
     })()
 
@@ -153,7 +152,7 @@ function VideoRoom({
     if (!localStreamRef.current) return
     setStatus('connecting')
 
-    const socket = (await import('socket.io-client')).io('http://localhost:3001')
+    const socket = (await import('socket.io-client')).io('http://localhost:3001', { transports: ['websocket', 'polling'] })
     socketRef.current = socket
 
     const pc = new RTCPeerConnection(ICE_SERVERS)
@@ -278,6 +277,37 @@ function VideoRoom({
     setStatus('ended')
   }
 
+  if (status === 'permission-denied') {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-[#0f172a]">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-md rounded-2xl border border-[#EAECF0] bg-white p-8 text-center shadow-2xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
+              <Video className="h-8 w-8 text-amber-500" />
+            </div>
+            <h2 className="mt-4 text-xl font-semibold text-[#101828]">Camera & Microphone Access Required</h2>
+            <p className="mt-2 text-[13.5px] text-[#667085]">
+              Please allow access to your camera and microphone to join the interview.
+              Your browser will show a permission prompt at the top of the page.
+            </p>
+            <button
+              onClick={() => setStatus('requesting-media')}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110"
+            >
+              <Video className="h-4 w-4" /> Try Again — Allow Access
+            </button>
+            <button
+              onClick={onEnd}
+              className="mt-3 w-full rounded-xl border border-[#EAECF0] px-6 py-3 text-sm font-medium text-[#667085] transition-colors hover:bg-[#F7F9FC]"
+            >
+              Leave Interview
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (status === 'ended') {
     return (
       <div className="flex items-center justify-center p-8">
@@ -286,9 +316,15 @@ function VideoRoom({
             <PhoneOff className="h-8 w-8 text-white" />
           </div>
           <h2 className="mt-4 text-xl font-semibold text-[#101828]">Interview Ended</h2>
-          <p className="mt-2 text-[13.5px] text-[#667085]">
-            Thank you for your time — the interviewer will share feedback via messages.
-          </p>
+          {errorMsg ? (
+            <p className="mt-2 text-[13.5px] text-red-500">
+              {errorMsg}
+            </p>
+          ) : (
+            <p className="mt-2 text-[13.5px] text-[#667085]">
+              Thank you for your time — the interviewer will share feedback via messages.
+            </p>
+          )}
           <button onClick={onEnd} className="mt-6 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110">
             Back to Dashboard
           </button>
@@ -414,10 +450,10 @@ export default function LiveInterviewsPage() {
   const [waitingInterview, setWaitingInterview] = useState<Interview | null>(null)
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming')
 
-  // Re-render every 30s to update relative times
+  // Local tick for time string updates (no server calls — just re-renders relative times)
   const [, setTick] = useState(0)
   useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 30000)
+    const id = setInterval(() => setTick(t => t + 1), 60000) // once per minute
     return () => clearInterval(id)
   }, [])
 
@@ -480,7 +516,7 @@ export default function LiveInterviewsPage() {
     }
   }, [token, user?.id, user?._id])
 
-  // Auto-start countdown when clicking "Join"
+  // Open waiting room for upcoming interview
   const handleJoinInterview = (iv: Interview) => {
     setWaitingInterview(iv)
   }

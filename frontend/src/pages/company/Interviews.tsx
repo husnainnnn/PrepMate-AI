@@ -385,7 +385,7 @@ function VideoRoom({
   interview: Interview;
   onEnd: () => void;
 }) {
-  const [status, setStatus] = useState<"requesting-media" | "ready" | "connecting" | "connected" | "ended">("requesting-media");
+  const [status, setStatus] = useState<"requesting-media" | "ready" | "connecting" | "connected" | "ended" | "permission-denied">("requesting-media");
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -422,8 +422,7 @@ function VideoRoom({
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
         setStatus("ready");
       } catch {
-        setErrorMsg("Camera or microphone access denied.");
-        setStatus("ended");
+        setStatus("permission-denied");
       }
     })();
 
@@ -435,7 +434,7 @@ function VideoRoom({
     if (!localStreamRef.current) return;
     setStatus("connecting");
 
-    const socket = (await import("socket.io-client")).io("http://localhost:3001");
+    const socket = (await import("socket.io-client")).io("http://localhost:3001", { transports: ['websocket', 'polling'] });
     socketRef.current = socket;
 
     const pc = new RTCPeerConnection(ICE_SERVERS);
@@ -570,6 +569,37 @@ function VideoRoom({
     setStatus("ended");
   };
 
+  if (status === "permission-denied") {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-[#0f172a]">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="w-full max-w-md rounded-2xl border border-[#EAECF0] bg-white p-8 text-center shadow-2xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-50">
+              <Video className="h-8 w-8 text-amber-500" />
+            </div>
+            <h2 className="mt-4 text-xl font-semibold text-[#101828]">Camera & Microphone Access Required</h2>
+            <p className="mt-2 text-[13.5px] text-[#667085]">
+              Please allow access to your camera and microphone to start the interview.
+              Your browser will show a permission prompt at the top of the page.
+            </p>
+            <button
+              onClick={() => setStatus("requesting-media")}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110"
+            >
+              <Video className="h-4 w-4" /> Try Again — Allow Access
+            </button>
+            <button
+              onClick={onEnd}
+              className="mt-3 w-full rounded-xl border border-[#EAECF0] px-6 py-3 text-sm font-medium text-[#667085] transition-colors hover:bg-[#F7F9FC]"
+            >
+              Leave Interview
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (status === "ended") {
     return (
       <div className="flex items-center justify-center p-8">
@@ -599,7 +629,7 @@ function VideoRoom({
                 onChange={e => setFeedback(e.target.value)}
                 placeholder="Any notes on this candidate..."
                 rows={2}
-                className="mt-1 w-full resize-none rounded-lg border border-[#D0D5DD] px-3 py-2 text-[12.5px] outline-none focus:border-[#1a6fa8] focus:ring-1 focus:ring-[#1a6fa8]/20 placeholder:text-[#98A2B3]"
+                className="mt-1 w-full resize-none rounded-lg border border-[#D0D5DD] px-3 py-2 text-[12.5px] text-[#101828] outline-none focus:border-[#1a6fa8] focus:ring-1 focus:ring-[#1a6fa8]/20 placeholder:text-[#98A2B3]"
               />
             </div>
           </div>

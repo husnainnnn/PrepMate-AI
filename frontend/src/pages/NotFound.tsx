@@ -1,23 +1,10 @@
 
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Home, ArrowLeft } from 'lucide-react'
-import { useAuth } from '@/context/AuthContext'
 
 export default function NotFound() {
-  const { user } = useAuth()
+  const navigate = useNavigate()
 
-  // Determine correct dashboard path based on user role
-  const dashboardPath = user
-    ? user.role === 'company'
-      ? '/company/dashboard'
-      : '/student/dashboard'
-    : '/'
-
-  const dashboardLabel = user
-    ? user.role === 'company'
-      ? 'Company Dashboard'
-      : 'Dashboard'
-    : 'Home'
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-[#F5F7FB] to-[#EEF2FF] px-6">
       <div className="text-center max-w-md">
@@ -48,12 +35,13 @@ export default function NotFound() {
               <ArrowLeft className="h-4 w-4" />
               Home
             </Link>
-            <Link
-              to={dashboardPath}
+            <button
+              onClick={() => navigate(-1)}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-105 hover:shadow-xl hover:shadow-[#0b3b5c]/40"
             >
-              Go to {dashboardLabel}
-            </Link>
+              <ArrowLeft className="h-4 w-4" />
+              Go Back
+            </button>
           </div>
         </div>
       </div>

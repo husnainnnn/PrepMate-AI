@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Brain,
   Briefcase,
@@ -18,6 +18,8 @@ import { CompanyDashboardLayout } from "@/components/company/CompanyDashboardLay
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
+import { useCachedFetch } from '@/hooks/useCachedFetch'
+import { useCache } from '@/context/CacheContext';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -227,29 +229,20 @@ function Skeleton({ className }: { className?: string }) {
 
 export default function AIScreeningPage() {
   const { token } = useAuth();
-  const [applicants, setApplicants] = useState<Applicant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { invalidate } = useCache();
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchData = async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const res = await fetch('/api/company/screening', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setApplicants(data.applicants || []);
-      }
-    } catch { /* ignore */ }
-    setLoading(false);
-  };
+  // ── Cached fetch with 5-min TTL (matches backend cache) ─
+  const { data, loading, refetch } = useCachedFetch<{ applicants: Applicant[] }>(
+    token ? '/api/company/screening' : null,
+    { headers: { Authorization: `Bearer ${token}` } },
+    5 * 60 * 1000, // 5 min — same as backend cache TTL
+  );
 
-  useEffect(() => { fetchData(); }, [token]);
+  const applicants = data?.applicants || [];
 
   const handleView = async (app: Applicant) => {
     setSelectedApplicant(app);
@@ -259,7 +252,8 @@ export default function AIScreeningPage() {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
-        fetchData();
+        invalidate('/api/company/screening');
+        refetch();
       } catch { /* ignore */ }
     }
   };
@@ -278,7 +272,8 @@ export default function AIScreeningPage() {
       });
       setDeleteConfirm(null);
       setSelectedApplicant(null);
-      fetchData();
+      invalidate('/api/company/screening');
+      refetch();
     } catch { /* ignore */ }
     setActionLoading(null);
   };

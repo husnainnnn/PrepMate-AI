@@ -129,7 +129,7 @@ export default function MockInterviewsPage() {
   // Analysis
   const [result, setResult] = useState<AnalysisResult | null>(null)
 
-  const { token } = useAuth()
+  const { token, user } = useAuth()
 
   // Refs
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -147,24 +147,14 @@ export default function MockInterviewsPage() {
   const lastSpeechTimeRef = useRef<number>(Date.now())
   const stageRef = useRef<Stage>('setup')
 
-  // Profile autofill
+  // Profile autofill — data already in AuthContext!
   useEffect(() => {
-    if (!token) return
-    const loadProfile = async () => {
-      try {
-        const res = await fetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const user = await res.json()
-          if (user.field) setField(user.field)
-          if (user.skills?.length > 0) setSkillsInput(user.skills.join(', '))
-          if (user.experience) setExperience(user.experience)
-        }
-      } catch { /* no backend */ }
+    if (user) {
+      if (user.field) setField(user.field)
+      if (user.skills?.length > 0) setSkillsInput(user.skills.join(', '))
+      if (user.experience) setExperience(user.experience)
     }
-    loadProfile()
-  }, [token])
+  }, [user])
 
   // ─── TTS ─────────────────────────────────────────────────
   // Pre-load voices so they're available on first speak call
@@ -521,30 +511,24 @@ export default function MockInterviewsPage() {
     }
   }, [stage])
 
-  // Fetch usage count + plan
+  // Fetch usage count + plan — merged into 1 call (not 2!)
   const [isProPlan, setIsProPlan] = useState(false)
   const [monthlyInterviewCount, setMonthlyInterviewCount] = useState(0)
 
   useEffect(() => {
     if (!token) return
-    const fetchUsage = async () => {
-      try {
-        const res = await fetch('/api/stats/dashboard', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          const count = data.stats.interviewCount || 0
-          const plan = data.stats.plan || 'free'
-          const monthlyCount = data.stats.monthlyInterviewCount || 0
-          setIsProPlan(plan === 'pro')
-          setUsageCount(count)
-          setMonthlyInterviewCount(monthlyCount)
-          if (plan !== 'pro' && monthlyCount >= FREE_PLAN_LIMIT) setStage('locked')
-        }
-      } catch { /* backend might be offline */ }
-    }
-    fetchUsage()
+    fetch('/api/stats/dashboard', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.ok && r.json()).then(data => {
+      if (!data) return
+      const plan = data.stats?.plan || 'free'
+      const count = data.stats?.interviewCount || 0
+      const monthlyCount = data.stats?.monthlyInterviewCount || 0
+      setIsProPlan(plan === 'pro')
+      setUsageCount(count)
+      setMonthlyInterviewCount(monthlyCount)
+      if (plan !== 'pro' && monthlyCount >= FREE_PLAN_LIMIT) setStage('locked')
+    }).catch(() => {})
   }, [token])
 
   // ─── Setup Submit ────────────────────────────────────────

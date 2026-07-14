@@ -115,14 +115,13 @@ router.get('/conversations', async (req, res) => {
       }
     }
 
-    // If company, also check for shortlisted/hired applicants without messages yet
+    // If company, also include shortlisted/hired applicants without messages yet
+    // so the company can choose to message them
     if (tokenData.role === 'company') {
       const company = await Company.findById(tokenData.id);
       if (company) {
         const jobs = await Job.find({ companyId: company._id }).select('_id jobTitle').lean();
         const jobIds = jobs.map(j => j._id);
-        const jobTitles = {};
-        jobs.forEach(j => { jobTitles[j._id.toString()] = j.jobTitle; });
 
         const apps = await Application.find({
           jobId: { $in: jobIds },

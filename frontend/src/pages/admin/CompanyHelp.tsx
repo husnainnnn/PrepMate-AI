@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Loader2, CheckCircle, Ticket, Bug, Lightbulb, AlertTriangle, HelpCircle, UserX } from 'lucide-react'
+import Pagination from '@/components/shared/Pagination'
 
 const TYPE_MAP: Record<string, { label: string, icon: any, color: string }> = {
   bug: { label: 'Bug Report', icon: Bug, color: 'text-red-500 bg-red-50' },
@@ -13,18 +14,21 @@ export default function AdminCompanyHelp() {
   const [tickets, setTickets] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [resolving, setResolving] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const token = localStorage.getItem('prepmate_token')
 
   const fetchTickets = async () => {
     if (!token) return
     try {
-      const res = await fetch('/api/admin/support-tickets?role=company', { headers: { Authorization: `Bearer ${token}` } })
-      if (res.ok) { const d = await res.json(); setTickets(d.tickets) }
+      const res = await fetch(`/api/admin/support-tickets?role=company&page=${page}&limit=50`, { headers: { Authorization: `Bearer ${token}` } })
+      if (res.ok) { const d = await res.json(); setTickets(d.tickets); setTotalPages(d.totalPages || 1); setTotal(d.total || 0) }
     } catch { /* ignore */ }
     setLoading(false)
   }
 
-  useEffect(() => { fetchTickets() }, [])
+  useEffect(() => { fetchTickets() }, [page])
 
   const handleResolve = async (id: string) => {
     if (!token) return
@@ -84,6 +88,7 @@ export default function AdminCompanyHelp() {
                 </div>
               )
             })}
+            {tickets.length > 0 && <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} label="help requests" />}
           </div>
         )}
       </div>

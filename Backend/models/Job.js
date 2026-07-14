@@ -63,4 +63,11 @@ const jobSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+// ─── Indexes for performance ─────────────────────────────
+jobSchema.index({ companyId: 1, createdAt: -1 });
+jobSchema.index({ isClosed: 1, createdAt: -1 });
+jobSchema.index({ companyId: 1, isClosed: 1 });
+jobSchema.index({ requiredSkills: 1 });
+jobSchema.index({ jobTitle: 1 });
+
 module.exports = mongoose.model('Job', jobSchema);

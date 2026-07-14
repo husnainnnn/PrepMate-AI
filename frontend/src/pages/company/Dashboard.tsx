@@ -26,6 +26,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CompanyDashboardLayout } from "@/components/company/CompanyDashboardLayout";
 import { useAuth } from "@/context/AuthContext";
+import { useCachedFetch } from '@/hooks/useCachedFetch'
+import { TTL } from '@/lib/apiCache'
+import { useCache } from '@/context/CacheContext'
 
 // ------------------------------------------------------------------
 // Types
@@ -383,6 +386,10 @@ function PipelineSection({ stages }: { stages: StageDistribution }) {
 // ------------------------------------------------------------------
 
 function RecentApplicants({ applicants }: { applicants: RecentApplicant[] }) {
+  const DISPLAY_COUNT = 4;
+  const visibleApplicants = applicants.slice(0, DISPLAY_COUNT);
+  const hiddenCount = applicants.length - DISPLAY_COUNT;
+
   if (applicants.length === 0) {
     return (
       <Card className="rounded-xl border-[#EAECF0] shadow-sm">
@@ -413,7 +420,7 @@ function RecentApplicants({ applicants }: { applicants: RecentApplicant[] }) {
           </Link>
         </div>
         <div className="divide-y divide-[#EAECF0]">
-          {applicants.map((app) => (
+          {visibleApplicants.map((app) => (
             <div key={app.id} className="flex items-center justify-between py-3 transition-colors hover:bg-gray-50/50 -mx-1 px-1 rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-[12px] font-semibold text-[#1a6fa8]">
@@ -435,6 +442,20 @@ function RecentApplicants({ applicants }: { applicants: RecentApplicant[] }) {
             </div>
           ))}
         </div>
+
+        {/* Show remaining count link */}
+        {hiddenCount > 0 && (
+          <div className="mt-3 border-t border-[#EAECF0] pt-3 text-center">
+            <Link
+              to="/company/applicants"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#F7F9FC] px-4 py-2 text-[13px] font-medium text-[#1a6fa8] transition-all duration-200 hover:bg-blue-50 hover:translate-y-[-1px]"
+            >
+              <Users className="h-3.5 w-3.5" />
+              +{hiddenCount} more applicant{hiddenCount > 1 ? 's' : ''}
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -533,44 +554,17 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 
 export default function CompanyDashboard() {
   const { token } = useAuth();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { invalidate } = useCache()
+  const [confirmDone, setConfirmDone] = useState(false)
 
-  const fetchDashboard = async () => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/companies/dashboard', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => null);
-        throw new Error(errData?.error || `Server error (${res.status})`);
-      }
-      const json = await res.json();
-      setData(json);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ── Check if redirected from Stripe payment success ──
   useEffect(() => {
-    if (!token) return;
-    
-    // ── Check if redirected from Stripe payment success ──
+    if (!token) return
     const params = new URLSearchParams(window.location.search)
     const sessionId = params.get('session_id')
     const paymentSuccess = params.get('payment')
-    
+
     if (sessionId && paymentSuccess === 'success') {
-      // Confirm payment and upgrade plan
       fetch('/api/payments/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -579,25 +573,29 @@ export default function CompanyDashboard() {
         .then(r => r.json())
         .then(d => {
           if (d.success) {
-            // Clean URL - remove query params without reload
             window.history.replaceState({}, '', '/company/dashboard')
           }
         })
         .catch(() => {})
-        .finally(() => {
-          fetchDashboard()
-        })
+        .finally(() => setConfirmDone(true))
     } else {
-      fetchDashboard()
+      setConfirmDone(true)
     }
-  }, [token]);
+  }, [token])
 
-  // Auto-refresh every 60 seconds (only when token exists)
-  useEffect(() => {
-    if (!token) return;
-    const interval = setInterval(fetchDashboard, 60_000);
-    return () => clearInterval(interval);
-  }, [token]);
+  // ── Fetch dashboard with caching ─────────────────────
+  const {
+    data,
+    loading,
+    error: fetchError,
+    refetch: fetchDashboard,
+  } = useCachedFetch<DashboardData>(
+    token && confirmDone ? '/api/companies/dashboard' : null,
+    { headers: { Authorization: `Bearer ${token}` } },
+    TTL.DYNAMIC,
+  )
+
+  const error = fetchError?.message || null
 
   return (
     <CompanyDashboardLayout>

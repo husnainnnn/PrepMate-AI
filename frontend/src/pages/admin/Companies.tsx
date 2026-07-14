@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Search, Loader2, Building2 } from 'lucide-react'
+import Pagination from '@/components/shared/Pagination'
 
 export default function AdminCompanies() {
   const [companies, setCompanies] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const token = localStorage.getItem('prepmate_token')
 
   useEffect(() => {
@@ -13,9 +17,11 @@ export default function AdminCompanies() {
     setLoading(true)
     const params = new URLSearchParams()
     if (search) params.set('search', search)
+    params.set('page', String(page))
+    params.set('limit', '50')
     fetch(`/api/admin/companies?${params}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok && r.json()).then(d => { if (d) setCompanies(d.companies); setLoading(false) }).catch(() => setLoading(false))
-  }, [search])
+      .then(r => r.ok && r.json()).then(d => { if (d) { setCompanies(d.companies); setTotalPages(d.totalPages || 1); setTotal(d.total || 0) }; setLoading(false) }).catch(() => setLoading(false))
+  }, [search, page])
 
   return (
     <AdminLayout>
@@ -75,7 +81,7 @@ export default function AdminCompanies() {
                 ))}
               </tbody>
             </table>
-            <p className="border-t border-[#EAECF0] px-4 py-2.5 text-[11px] text-[#98A2B3]">{companies.length} compan{companies.length !== 1 ? 'ies' : 'y'}</p>
+            <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} label="companies" />
           </div>
         )}
       </div>

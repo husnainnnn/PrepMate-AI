@@ -36,4 +36,12 @@ const applicationSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+// ─── Additional indexes for performance ─────────────────
+applicationSchema.index({ studentId: 1, jobId: 1 });
+applicationSchema.index({ jobId: 1, createdAt: -1 });
+applicationSchema.index({ companyName: 1, createdAt: -1 });
+applicationSchema.index({ studentId: 1, createdAt: -1 });
+applicationSchema.index({ currentStage: 1 });
+applicationSchema.index({ jobId: 1, hiddenFromCompany: 1 });
+
 module.exports = mongoose.model('Application', applicationSchema);

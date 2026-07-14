@@ -32,6 +32,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StudentDashboardLayout } from "@/components/student/StudentDashboardLayout";
 import { useAuth } from "@/context/AuthContext";
+import { useCachedFetch } from '@/hooks/useCachedFetch'
+import { TTL } from '@/lib/apiCache'
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -485,19 +487,16 @@ function DashboardSkeleton() {
 
 export default function StudentDashboard() {
   const { user, token } = useAuth()
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [confirmDone, setConfirmDone] = useState(false)
 
+  // ── Check if redirected from Stripe payment success ──
   useEffect(() => {
     if (!token || !user) return
-    
-    // ── Check if redirected from Stripe payment success ──
     const params = new URLSearchParams(window.location.search)
     const sessionId = params.get('session_id')
     const paymentSuccess = params.get('payment')
-    
+
     if (sessionId && paymentSuccess === 'success') {
-      // Confirm payment and upgrade plan
       fetch('/api/payments/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -506,39 +505,31 @@ export default function StudentDashboard() {
         .then(r => r.json())
         .then(d => {
           if (d.success) {
-            // Clean URL - remove query params without reload
             window.history.replaceState({}, '', '/student/dashboard')
           }
         })
         .catch(() => {})
-        .finally(() => {
-          // Fetch dashboard after confirming payment
-          fetchDashboard()
-        })
+        .finally(() => setConfirmDone(true))
     } else {
-      fetchDashboard()
+      setConfirmDone(true)
     }
-    
-    async function fetchDashboard() {
-      try {
-        // Check in for streak
-        fetch('/api/stats/checkin', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch(() => {}) // fire-and-forget
+  }, [token, user?.id])
 
-        // Fetch dashboard stats
-        const res = await fetch('/api/stats/dashboard', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const dashboardData = await res.json()
-          setData(dashboardData)
-        }
-      } catch { /* backend offline */ }
-      setLoading(false)
-    }
-  }, [token, user?.id]) // re-fetch when token OR user changes
+  // ── Fire-and-forget: daily checkin ───────────────────
+  useEffect(() => {
+    if (!token || !confirmDone) return
+    fetch('/api/stats/checkin', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {})
+  }, [confirmDone])
+
+  // ── Fetch dashboard with caching ─────────────────────
+  const { data, loading } = useCachedFetch<DashboardData>(
+    token && confirmDone ? '/api/stats/dashboard' : null,
+    { headers: { Authorization: `Bearer ${token}` } },
+    TTL.DYNAMIC,
+  )
 
   if (loading) {
     return (

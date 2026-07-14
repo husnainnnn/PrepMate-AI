@@ -22,6 +22,8 @@ import {
 import { CompanyDashboardLayout } from "@/components/company/CompanyDashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
+import { useCachedFetch } from '@/hooks/useCachedFetch'
+import { TTL } from '@/lib/apiCache'
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -540,9 +542,17 @@ export default function PostJob() {
     setTimeout(() => el.focus(), 400);
   };
 
-  const [companyData, setCompanyData] = useState<{ plan: string; companyName: string } | null>(null);
+  // ── Load company plan via cache (reuses dashboard cache) ──
+  const { data: dashData } = useCachedFetch<{ company: { plan: string; name: string } }>(
+    token ? '/api/companies/dashboard' : null,
+    { headers: { Authorization: `Bearer ${token}` } } as any,
+    TTL.DYNAMIC
+  );
+  const companyData = dashData?.company
+    ? { plan: dashData.company.plan, companyName: dashData.company.name }
+    : null;
 
-  // Load existing jobs + company info
+  // Load existing jobs
   const loadJobs = async () => {
     if (!token) return;
     try {
@@ -558,14 +568,6 @@ export default function PostJob() {
 
   useEffect(() => {
     loadJobs();
-    // Fetch company info for plan
-    if (token) {
-      fetch('/api/companies/dashboard', {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.ok && r.json()).then(d => {
-        if (d?.company) setCompanyData({ plan: d.company.plan, companyName: d.company.name });
-      }).catch(() => {});
-    }
   }, [token]);
 
   // Count jobs posted this month

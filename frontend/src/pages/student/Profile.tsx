@@ -47,7 +47,7 @@ const defaultProfile: ProfileData = {
 }
 
 export default function StudentProfilePage() {
-  const { token, refreshUser } = useAuth()
+  const { token, user, refreshUser } = useAuth()
   const [profile, setProfile] = useState<ProfileData>(defaultProfile)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -64,73 +64,51 @@ export default function StudentProfilePage() {
   const [uploadingResume, setUploadingResume] = useState(false)
   const [savedResumeName, setSavedResumeName] = useState<string>('')
 
-  // Load profile from backend
+  // Load profile from AuthContext (no extra API call!)
   useEffect(() => {
-    if (!token) return
-    const loadProfile = async () => {
-      try {
-        const res = await fetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const user = await res.json()
-          setProfile({
-            fullName: user.fullName || '',
-            email: user.email || '',
-            phone: user.phone || '',
-            linkedin: user.linkedin || '',
-            github: user.github || '',
-            portfolio: user.portfolio || '',
-            bio: user.bio || '',
-            field: user.field || '',
-            skills: user.skills || [],
-            experience: user.experience || 'fresher',
-            education: (user.education || []).map((e: any) => ({
-              id: e.id || makeId(),
-              institute: e.institute || '',
-              degree: e.degree || '',
-              startYear: e.startYear || '',
-              endYear: e.endYear || '',
-            })),
-            introduction: user.introduction || '',
-            profilePicture: user.profilePicture || '',
-          })
-        }
-      } catch { /* no backend yet */ }
+    if (user) {
+      setProfile({
+        fullName: user.fullName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        linkedin: user.linkedin || '',
+        github: user.github || '',
+        portfolio: user.portfolio || '',
+        bio: user.bio || '',
+        field: user.field || '',
+        skills: user.skills || [],
+        experience: user.experience || 'fresher',
+        education: (user.education || []).map((e: any) => ({
+          id: e.id || makeId(),
+          institute: e.institute || '',
+          degree: e.degree || '',
+          startYear: e.startYear || '',
+          endYear: e.endYear || '',
+        })),
+        introduction: user.introduction || '',
+        profilePicture: user.profilePicture || '',
+      })
       setLoading(false)
     }
-    loadProfile()
+  }, [user])
 
-    // Also load saved resume info
-    const loadResume = async () => {
-      if (!token) return
-      try {
-        const res = await fetch('/api/resume/latest', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          if (data.resumeFileUrl) {
-            setResumeFileUrl(data.resumeFileUrl)
-            setResumeFileName('Saved resume')
-            setSavedResumeName('Saved resume file')
-          } else if (data.skills?.length > 0 || data.education?.length > 0 || data.personalInfo?.fullName) {
-            // Structured resume exists (saved from ResumeBuilder but no PDF yet)
-            // Suggest user to re-save from Resume Builder to generate PDF
-            setSavedResumeName('Resume data saved — open Resume Builder to generate PDF')
-          }
-        }
-      } catch { /* no saved resume */ }
-    }
-    loadResume()
-  }, [token])
-
-  // Cleanup toast timer on unmount
+  // Resume info — fetch only if needed (deduped for StrictMode)
+  const resumeFetched = useRef(false)
   useEffect(() => {
-    return () => {
-      if (toastTimerRef.current !== null) clearTimeout(toastTimerRef.current)
-    }
-  }, [])
+    if (!token || resumeFetched.current) return
+    resumeFetched.current = true
+    fetch('/api/resume/latest', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.ok && r.json()).then(data => {
+      if (!data) return
+      if (data.resumeFileUrl) {
+        setResumeFileUrl(data.resumeFileUrl)
+        setSavedResumeName('Saved resume file')
+      } else if (data.skills?.length > 0 || data.education?.length > 0 || data.personalInfo?.fullName) {
+        setSavedResumeName('Resume data saved — open Resume Builder to generate PDF')
+      }
+    }).catch(() => {})
+  }, [token])
 
   // Save profile to backend
   const handleSave = async () => {

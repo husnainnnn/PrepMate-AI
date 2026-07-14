@@ -24,6 +24,8 @@ import { useAuth } from '@/context/AuthContext'
 import { DashboardSidebar, type SidebarItem } from '@/components/shared/DashboardSidebar'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import SmartSearch from '@/components/shared/SmartSearch'
+import { useCachedFetch } from '@/hooks/useCachedFetch'
+import { TTL } from '@/lib/apiCache'
 
 interface StudentDashboardLayoutProps {
   children: ReactNode
@@ -64,25 +66,15 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
     }
   }, [])
 
-  // Fetch unread notification count
+  // Fetch unread notification count (cached — socket keeps it updated)
+  const { data: notifData } = useCachedFetch<{ unreadCount: number }>(
+    token ? '/api/notifications/unread-count' : null,
+    { headers: { Authorization: `Bearer ${token}` } },
+    TTL.SHORT,
+  )
   useEffect(() => {
-    if (!token) return
-    const fetchUnread = async () => {
-      try {
-        const res = await fetch('/api/notifications/unread-count', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setUnreadNotifs(data.unreadCount || 0)
-        }
-      } catch { /* offline */ }
-    }
-    fetchUnread()
-    // Poll every 30 seconds
-    const interval = setInterval(fetchUnread, 30000)
-    return () => clearInterval(interval)
-  }, [token])
+    if (notifData) setUnreadNotifs(notifData.unreadCount || 0)
+  }, [notifData])
 
   // Listen for real-time notifications via socket
   useEffect(() => {
@@ -101,7 +93,7 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
         const { io } = await import('socket.io-client')
         if (disposed) return // effect cleaned up while we were loading
 
-        const s = io('http://localhost:3001')
+        const s = io('http://localhost:3001', { transports: ['websocket', 'polling'] })
         socketRef.current = s
 
         s.on('connect', () => {
@@ -208,8 +200,8 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
             </div>
           </header>
 
-          {/* Page content */}
-          <main className="flex-1">{children}</main>
+          {/* Page content with entrance animation */}
+          <main className="flex-1 animate-fade-in-fast">{children}</main>
         </div>
       </div>
     </div>

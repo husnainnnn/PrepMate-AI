@@ -67,4 +67,11 @@ const studentSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+// ─── Indexes for performance ─────────────────────────────
+studentSchema.index({ email: 1 });
+studentSchema.index({ createdAt: -1 });
+studentSchema.index({ field: 1 });
+studentSchema.index({ fullName: 1 });
+studentSchema.index({ 'stats.plan': 1 });
+
 module.exports = mongoose.model('Student', studentSchema);

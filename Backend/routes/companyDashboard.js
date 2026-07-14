@@ -52,37 +52,42 @@ router.get('/dashboard', async (req, res) => {
     const hiringRate = totalApplicants > 0 ? Math.round((hiredCount / totalApplicants) * 100) : 0;
 
     // ── 3. Recent Applicants (with student name & score) ────
-    const recentApplicants = [];
-    for (const app of allApplications.slice(0, 10)) {
-      let studentName = 'Unknown';
-      let studentScore = 0;
+    const recentTen = allApplications.slice(0, 10);
+    const studentIds = [...new Set(recentTen.filter(a => a.studentId).map(a => a.studentId.toString()))];
 
-      // Get student name
-      if (app.studentId) {
-        const student = await Student.findById(app.studentId).select('fullName').lean();
-        if (student) studentName = student.fullName;
+    // Batch fetch all student names in ONE query
+    const studentsMap = {};
+    if (studentIds.length > 0) {
+      const foundStudents = await Student.find({ _id: { $in: studentIds } }).select('fullName').lean();
+      for (const s of foundStudents) {
+        studentsMap[s._id.toString()] = s.fullName;
       }
-
-      // Get latest mock interview score for this student (only for shortlisted/hired/rejected stages)
-      if (app.studentId && ['shortlisted', 'hired', 'rejected'].includes(app.currentStage)) {
-        const latestInterview = await Interview.findOne({ studentId: app.studentId })
-          .sort({ completedAt: -1 })
-          .select('overallScore')
-          .lean();
-        if (latestInterview) studentScore = latestInterview.overallScore || 0;
-      }
-
-      recentApplicants.push({
-        id: app._id,
-        studentId: app.studentId,
-        studentName,
-        jobTitle: app.jobTitle,
-        score: studentScore,
-        status: app.currentStage,
-        appliedDate: app.appliedDate,
-        location: app.location,
-      });
     }
+
+    // Batch fetch interview scores for shortlisted/hired/rejected students
+    const scoreRelevantIds = recentTen.filter(a => a.studentId && ['shortlisted', 'hired', 'rejected'].includes(a.currentStage)).map(a => a.studentId);
+    const scoresMap = {};
+    if (scoreRelevantIds.length > 0) {
+      const latestScores = await Interview.aggregate([
+        { $match: { studentId: { $in: scoreRelevantIds } } },
+        { $sort: { completedAt: -1 } },
+        { $group: { _id: '$studentId', score: { $first: '$overallScore' } } },
+      ]);
+      for (const s of latestScores) {
+        scoresMap[s._id.toString()] = s.score || 0;
+      }
+    }
+
+    const recentApplicants = recentTen.map(app => ({
+      id: app._id,
+      studentId: app.studentId,
+      studentName: app.studentId ? (studentsMap[app.studentId.toString()] || 'Unknown') : 'Unknown',
+      jobTitle: app.jobTitle,
+      score: app.studentId ? (scoresMap[app.studentId.toString()] || 0) : 0,
+      status: app.currentStage,
+      appliedDate: app.appliedDate,
+      location: app.location,
+    }));
 
     // ── 4. Applicant Trend (monthly) ────────────────────────
     const monthlyMap = {};

@@ -41,51 +41,40 @@ export default function ResumeBuilder() {
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [experience, setExperience] = useState<ExperienceItem[]>([])
   const [education, setEducation] = useState<EducationItem[]>([])
-  const { token } = useAuth()
+  const { token, user } = useAuth()
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [isPro, setIsPro] = useState(false)
 
-  // ─── Load profile data & plan into resume ─────────────────
+  // ─── Load profile from AuthContext + plan in 1 call ──────
   useEffect(() => {
     if (!token) return
-    const loadProfile = async () => {
-      // Fetch plan
-      try {
-        const dashRes = await fetch('/api/stats/dashboard', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (dashRes.ok) {
-          const dashData = await dashRes.json()
-          setIsPro(dashData.stats?.plan === 'pro')
-        }
-      } catch { /* ignore */ }
-      try {
-        const res = await fetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (!res.ok) return
-        const user = await res.json()
-        setPersonalInfo((p) => ({
-          ...p,
-          fullName: user.fullName ?? p.fullName,
-          email: user.email ?? p.email,
-          phone: user.phone ?? p.phone,
-          linkedin: user.linkedin ?? p.linkedin,
-          github: user.github ?? p.github,
-          portfolio: user.portfolio ?? p.portfolio,
-          photoUrl: user.profilePicture ?? p.photoUrl,
-        }))
-        if (user.skills?.length > 0) setSkills(user.skills)
-        if (user.education?.length > 0) {
-          setEducation(user.education.map((e: any) => ({
-            id: makeId(), institute: e.institute || e.school || '',
-            degree: e.degree || '', startYear: e.startYear || '', endYear: e.endYear || '',
-          })))
-        }
-      } catch { /* no backend yet */ }
+    // Use AuthContext data — no /api/auth/me call needed!
+    if (user) {
+      setPersonalInfo((p) => ({
+        ...p,
+        fullName: user.fullName ?? p.fullName,
+        email: user.email ?? p.email,
+        phone: user.phone ?? p.phone,
+        linkedin: user.linkedin ?? p.linkedin,
+        github: user.github ?? p.github,
+        portfolio: user.portfolio ?? p.portfolio,
+        photoUrl: user.profilePicture ?? p.photoUrl,
+      }))
+      if (user.skills?.length > 0) setSkills(user.skills)
+      if (user.education?.length > 0) {
+        setEducation(user.education.map((e: any) => ({
+          id: makeId(), institute: e.institute || e.school || '',
+          degree: e.degree || '', startYear: e.startYear || '', endYear: e.endYear || '',
+        })))
+      }
     }
-    loadProfile()
+    // Only 1 fetch — plan info
+    fetch('/api/stats/dashboard', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.ok && r.json()).then(d => {
+      if (d?.stats?.plan) setIsPro(d.stats.plan === 'pro')
+    }).catch(() => {})
   }, [token])
 
   const goNext = () => setStep((s) => Math.min(TOTAL_STEPS, s + 1))

@@ -404,6 +404,9 @@ router.patch('/applicants/:id/shortlist', async (req, res) => {
     app.isRejected = false;
     await app.save();
 
+    // ── Invalidate screening cache ───────────────────────
+    screeningCache.delete(tokenData.id);
+
     // ── Notify student ──────────────────────────────────
     try {
       const io = req.app.get('io');
@@ -451,6 +454,9 @@ router.patch('/applicants/:id/reject', async (req, res) => {
     app.currentStage = 'rejected';
     app.isRejected = true;
     await app.save();
+
+    // ── Invalidate screening cache ───────────────────────
+    screeningCache.delete(tokenData.id);
 
     // ── Notify student ──────────────────────────────────
     try {
@@ -513,11 +519,18 @@ function parseGeminiScreeningJson(raw) {
 
 // ─── GET /api/company/screening ────────────────────────────
 // Get all applicants with AI match scores, filtered (≥50), sorted by score desc
+// Uses in-memory cache per company to avoid repeated slow Gemini API calls
 router.get('/screening', async (req, res) => {
   try {
     const tokenData = getUserFromToken(req);
     if (!tokenData || tokenData.role !== 'company') {
       return res.status(401).json({ error: 'Not authenticated as company.' });
+    }
+
+    // ── Check cache first ─────────────────────────────────
+    const cached = getScreeningCache(tokenData.id);
+    if (cached) {
+      return res.json({ applicants: cached.applicants, aiPowered: cached.aiPowered, cached: true });
     }
 
     const company = await Company.findById(tokenData.id);
@@ -534,6 +547,11 @@ router.get('/screening', async (req, res) => {
       jobId: { $in: jobIds },
       hiddenFromCompany: { $ne: true },
     }).sort({ createdAt: -1 }).lean();
+
+    // If no applications, return empty immediately
+    if (applications.length === 0) {
+      return res.json({ applicants: [], aiPowered: false });
+    }
 
     // ── Smart skill matching (handles spelling variants) ────
     function skillMatches(requiredSkill, applicantSkills) {
@@ -677,7 +695,12 @@ Return ONLY valid JSON: { "scores": [ { "index": 0, "score": 75, "reason": "BSCS
     // Filter by score >= 50 and sort descending
     const filtered = scored.filter(a => a.matchScore >= 50).sort((a, b) => b.matchScore - a.matchScore);
 
-    res.json({ applicants: filtered, aiPowered: useAi });
+    const result = { applicants: filtered, aiPowered: useAi };
+
+    // ── Cache the result ──────────────────────────────────
+    setScreeningCache(tokenData.id, result);
+
+    res.json(result);
   } catch (err) {
     console.error('GET /api/company/screening error:', err);
     res.status(500).json({ error: 'Failed to fetch screening results.' });
@@ -742,6 +765,9 @@ router.patch('/applicants/:id/hire', async (req, res) => {
     app.isRejected = false;
     await app.save();
 
+    // ── Invalidate screening cache ───────────────────────
+    screeningCache.delete(tokenData.id);
+
     // ── Notify student ──────────────────────────────────
     try {
       await createNotification(req, {
@@ -782,6 +808,9 @@ router.delete('/applicants/:id', async (req, res) => {
     app.hiddenFromCompany = true;
     await app.save();
 
+    // ── Invalidate screening cache ───────────────────────
+    screeningCache.delete(tokenData.id);
+
     res.json({ success: true, message: 'Application hidden from company view.' });
   } catch (err) {
     console.error('DELETE /api/company/applicants/:id error:', err);
@@ -812,5 +841,42 @@ router.delete('/application/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete application.' });
   }
 });
+
+// ════════════════════════════════════════════════════════════
+// ─── AI Screening Cache (in-memory, per company, 5 min TTL) ─
+// ════════════════════════════════════════════════════════════
+
+const screeningCache = new Map();
+const SCREENING_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getScreeningCache(companyId) {
+  const entry = screeningCache.get(companyId);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > SCREENING_CACHE_TTL) {
+    screeningCache.delete(companyId);
+    return null;
+  }
+  return entry.data;
+}
+
+function setScreeningCache(companyId, data) {
+  screeningCache.set(companyId, { data, timestamp: Date.now() });
+  // Limit cache size — delete oldest entries if > 100
+  if (screeningCache.size > 100) {
+    const oldest = [...screeningCache.entries()]
+      .sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+    if (oldest) screeningCache.delete(oldest[0]);
+  }
+}
+
+// Clean up stale entries every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of screeningCache) {
+    if (now - entry.timestamp > SCREENING_CACHE_TTL) {
+      screeningCache.delete(key);
+    }
+  }
+}, 10 * 60 * 1000);
 
 module.exports = router;

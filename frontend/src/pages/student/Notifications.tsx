@@ -150,7 +150,6 @@ export default function StudentNotifications() {
         s.on('notification', (notifData: any) => {
           // Play notification sound
           playNotificationSound()
-
           // Show desktop notification with actual content
           if (notifData) {
             showDesktopNotification(
@@ -159,11 +158,7 @@ export default function StudentNotifications() {
               notifData.link || '/student/notifications'
             )
           }
-          // Auto-mark any new notification as read & refresh
-          fetch('/api/notifications/read-all', {
-            method: 'PATCH',
-            headers: { Authorization: `Bearer ${token}` },
-          }).catch(() => {})
+          // Single refresh call (don't need read-all + fetch separately)
           fetchNotifications()
         })
       } catch { /* socket unavailable */ }

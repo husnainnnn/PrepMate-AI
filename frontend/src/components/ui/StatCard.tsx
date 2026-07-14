@@ -20,7 +20,7 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <div className={cn(
-      'rounded-xl border border-[#E4E7EC] bg-white p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)] transition-shadow hover:shadow-[0_4px_12px_rgba(16,24,40,0.08)]',
+      'animate-fade-in rounded-xl border border-[#E4E7EC] bg-white p-5 shadow-[0_1px_3px_rgba(16,24,40,0.06)] hover-lift',
       className
     )}>
       <div className="flex items-start justify-between">

@@ -59,32 +59,19 @@ export default function AdminNotifications() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchNotifs() }, [])
-
-  // ── Auto-mark all as read on mount ───────────────────
+  // ── Auto-mark all as read on mount + fetch ───────────
   useEffect(() => {
     if (!token || autoMarked.current) return
     autoMarked.current = true
 
-    const init = async () => {
-      try {
-        await fetch('/api/notifications/read-all', {
-          method: 'PATCH',
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      } catch { /* ignore */ }
-      await fetchNotifs()
-    }
+    // Single fetch instead of read-all + fetchNotifs — we want fresh data
+    fetchNotifs()
 
-    init()
-
-    // Mark as read when leaving too
-    return () => {
-      fetch('/api/notifications/read-all', {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {})
-    }
+    // Mark all as read in background without blocking
+    fetch('/api/notifications/read-all', {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {})
   }, [token])
 
   // ── Request desktop notification permission ─────────

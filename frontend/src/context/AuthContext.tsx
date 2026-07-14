@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react'
 
 interface User {
   id: string
@@ -55,12 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
   const [loading, setLoading] = useState(true)
+  const fetchedRef = useRef(false)
 
-  // On mount, if token exists, fetch user
+  // On mount, if token exists, fetch user (deduped to prevent double-call in StrictMode)
   useEffect(() => {
-    if (token) {
+    if (token && !fetchedRef.current) {
+      fetchedRef.current = true
       fetchUser(token)
-    } else {
+    } else if (!token) {
       setLoading(false)
     }
   }, [token])

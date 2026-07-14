@@ -92,14 +92,11 @@ export default function CompanyNotifications() {
     init()
 
     return () => {
-      fetch('/api/notifications/read-all', {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {})
+      // No read-all on unmount — user can still see read notifications
     }
   }, [token, fetchNotifications])
 
-  // ── Request desktop notification permission ─────────
+  // ── Request desktop notification permission on mount ─
   useEffect(() => {
     requestDesktopNotifPermission()
   }, [])
@@ -140,11 +137,7 @@ export default function CompanyNotifications() {
               notifData.link || '/company/notifications'
             )
           }
-          // Auto-mark as read & refresh
-          fetch('/api/notifications/read-all', {
-            method: 'PATCH',
-            headers: { Authorization: `Bearer ${token}` },
-          }).catch(() => {})
+          // Just refresh — no need for separate read-all call (single fetch is enough)
           fetchNotifications()
         })
       } catch { /* socket unavailable */ }

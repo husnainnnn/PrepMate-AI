@@ -1,23 +1,27 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Loader2, Users, Building2, Crown } from 'lucide-react'
+import Pagination from '@/components/shared/Pagination'
 
 export default function AdminProPlan() {
   const [students, setStudents] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState<'students' | 'companies'>('students')
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [totalStudents, setTotalStudents] = useState(0)
+  const [totalCompanies, setTotalCompanies] = useState(0)
   const token = localStorage.getItem('prepmate_token')
 
   useEffect(() => {
     if (!token) return
     setLoading(true)
-    fetch('/api/admin/pro-plan', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`/api/admin/pro-plan?page=${page}&limit=50`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok && r.json()).then(d => {
-        if (d) { setStudents(d.students); setCompanies(d.companies) }
+        if (d) { setStudents(d.students); setCompanies(d.companies); setTotalStudents(d.totalStudents || 0); setTotalCompanies(d.totalCompanies || 0) }
         setLoading(false)
       }).catch(() => setLoading(false))
-  }, [])
+  }, [page])
 
   return (
     <AdminLayout>
@@ -31,14 +35,14 @@ export default function AdminProPlan() {
       <div className="p-8">
         {/* Tabs */}
         <div className="mb-6 flex items-center gap-1 rounded-lg bg-[#F7F9FC] p-1 w-fit">
-          <button onClick={() => setActiveTab('students')}
+          <button onClick={() => { setActiveTab('students'); setPage(1) }}
             className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-[12px] font-medium transition-colors ${
               activeTab === 'students' ? 'bg-white text-[#1a6fa8] shadow-sm' : 'text-[#667085] hover:text-[#101828]'
             }`}>
             <Users className="h-3.5 w-3.5" />
             Students ({students.length})
           </button>
-          <button onClick={() => setActiveTab('companies')}
+          <button onClick={() => { setActiveTab('companies'); setPage(1) }}
             className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-[12px] font-medium transition-colors ${
               activeTab === 'companies' ? 'bg-white text-[#1a6fa8] shadow-sm' : 'text-[#667085] hover:text-[#101828]'
             }`}>
@@ -82,7 +86,7 @@ export default function AdminProPlan() {
                   ))}
                 </tbody>
               </table>
-              <p className="border-t border-[#EAECF0] px-4 py-2.5 text-[11px] text-[#98A2B3]">{students.length} pro student{students.length !== 1 ? 's' : ''}</p>
+              <Pagination page={page} totalPages={Math.ceil(totalStudents / 50)} total={totalStudents} onPageChange={setPage} label="pro students" />
             </div>
           )
         ) : (
@@ -116,7 +120,7 @@ export default function AdminProPlan() {
                   ))}
                 </tbody>
               </table>
-              <p className="border-t border-[#EAECF0] px-4 py-2.5 text-[11px] text-[#98A2B3]">{companies.length} pro compan{companies.length !== 1 ? 'ies' : 'y'}</p>
+              <Pagination page={page} totalPages={Math.ceil(totalCompanies / 50)} total={totalCompanies} onPageChange={setPage} label="pro companies" />
             </div>
           )
         )}

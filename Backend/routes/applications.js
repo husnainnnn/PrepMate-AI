@@ -16,14 +16,23 @@ function getUserFromToken(req) {
   }
 }
 
-// GET /api/applications — list of the student's applications
+// GET /api/applications — list of the student's applications (paginated)
 router.get('/', async (req, res) => {
   try {
     const tokenData = getUserFromToken(req);
     if (!tokenData || tokenData.role !== 'student') {
       return res.status(401).json({ error: 'Not authenticated as student.' });
     }
-    const applications = await Application.find({ studentId: tokenData.id }).sort({ createdAt: -1 }).lean();
+
+    const { page = '1', limit = '50' } = req.query;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [applications, total] = await Promise.all([
+      Application.find({ studentId: tokenData.id }).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      Application.countDocuments({ studentId: tokenData.id }),
+    ]);
 
     // Check which jobs still exist (single query instead of N queries)
     const jobIds = applications.map(a => a.jobId).filter(Boolean);
@@ -35,7 +44,7 @@ router.get('/', async (req, res) => {
       }
     }
 
-    res.json({ applications });
+    res.json({ applications, total, page: pageNum, totalPages: Math.ceil(total / limitNum) });
   } catch (err) {
     console.error('GET /api/applications error:', err);
     res.status(500).json({ error: 'Failed to fetch applications' });

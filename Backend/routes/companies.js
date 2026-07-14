@@ -17,11 +17,27 @@ function getUserFromToken(req) {
   }
 }
 
-// GET /api/companies — list all registered companies
+// GET /api/companies — list all registered companies (paginated)
 router.get('/', async (req, res) => {
   try {
-    const companies = await Company.find({}).select('-password').lean();
-    res.json({ companies });
+    const { page = '1', limit = '50', search } = req.query;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const filter = {};
+    if (search) {
+      filter.$or = [
+        { companyName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const [companies, total] = await Promise.all([
+      Company.find(filter).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      Company.countDocuments(filter),
+    ]);
+    res.json({ companies, total, page: pageNum, totalPages: Math.ceil(total / limitNum) });
   } catch (err) {
     console.error('GET /api/companies error:', err);
     res.status(500).json({ error: 'Failed to fetch companies' });

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { TrendingUp, UserPlus } from 'lucide-react'
+import { useCachedFetch } from '@/hooks/useCachedFetch'
+import { TTL } from '@/lib/apiCache'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line,
 } from 'recharts'
@@ -12,30 +13,16 @@ interface MonthlyData {
 }
 
 export default function AdminDashboard() {
-  const [totalStudents, setTotalStudents] = useState<number | null>(null)
-  const [totalCompanies, setTotalCompanies] = useState<number | null>(null)
-  const [monthlyData, setMonthlyData] = useState<MonthlyData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const token = localStorage.getItem('prepmate_token')
+  const { data: stats, loading } = useCachedFetch<any>(
+    token ? '/api/admin/stats' : null,
+    { headers: { Authorization: `Bearer ${token}` } },
+    TTL.DYNAMIC,
+  )
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      const token = localStorage.getItem('prepmate_token')
-      if (!token) return
-      try {
-        const res = await fetch('/api/admin/stats', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setTotalStudents(data.totalStudents)
-          setTotalCompanies(data.totalCompanies)
-          setMonthlyData(data.monthlyData)
-        }
-      } catch { /* ignore */ }
-      setLoading(false)
-    }
-    fetchStats()
-  }, [])
+  const totalStudents = stats?.totalStudents ?? null
+  const totalCompanies = stats?.totalCompanies ?? null
+  const monthlyData = stats?.monthlyData ?? null
 
   const studentChartData = monthlyData?.labels.map((label, i) => ({
     month: label,

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Search, Loader2, User } from 'lucide-react'
+import Pagination from '@/components/shared/Pagination'
 
 export default function AdminStudents() {
   const [students, setStudents] = useState<any[]>([])
@@ -8,7 +9,12 @@ export default function AdminStudents() {
   const [search, setSearch] = useState('')
   const [selectedField, setSelectedField] = useState('')
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const token = localStorage.getItem('prepmate_token')
+
+  const fieldsFetched = useRef(false)
 
   const fetchStudents = async () => {
     if (!token) return
@@ -17,19 +23,24 @@ export default function AdminStudents() {
       const params = new URLSearchParams()
       if (search) params.set('search', search)
       if (selectedField) params.set('field', selectedField)
+      params.set('page', String(page))
+      params.set('limit', '50')
       const res = await fetch(`/api/admin/students?${params}`, { headers: { Authorization: `Bearer ${token}` } })
-      if (res.ok) { const d = await res.json(); setStudents(d.students) }
+      if (res.ok) { const d = await res.json(); setStudents(d.students); setTotalPages(d.totalPages || 1); setTotal(d.total || 0) }
     } catch { /* ignore */ }
     setLoading(false)
   }
 
+  // ── Fetch fields only once (cached), not on every re-mount ──
   useEffect(() => {
-    if (!token) return
+    if (!token || fieldsFetched.current) return
+    fieldsFetched.current = true
     fetch('/api/admin/student-fields', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok && r.json()).then(d => d && setFields(d.fields)).catch(() => {})
   }, [token])
 
-  useEffect(() => { fetchStudents() }, [search, selectedField])
+  useEffect(() => { setPage(1) }, [search, selectedField])
+  useEffect(() => { fetchStudents() }, [search, selectedField, page])
 
   return (
     <AdminLayout>
@@ -91,7 +102,7 @@ export default function AdminStudents() {
                 ))}
               </tbody>
             </table>
-            <p className="border-t border-[#EAECF0] px-4 py-2.5 text-[11px] text-[#98A2B3]">{students.length} student{students.length !== 1 ? 's' : ''}</p>
+            <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} label="students" />
           </div>
         )}
       </div>
