@@ -24,7 +24,16 @@ router.get('/:id', async (req, res) => {
     const job = await Job.findById(req.params.id).lean();
     if (!job) return res.status(404).json({ error: 'Job not found' });
     if (job.isClosed) return res.status(404).json({ error: 'Job is no longer available' });
-    res.json({ job });
+
+    // Get company verification status
+    let isCompanyVerified = false;
+    if (job.companyId) {
+      const Company = require('../models/Company');
+      const company = await Company.findById(job.companyId).select('isVerified').lean();
+      if (company) isCompanyVerified = company.isVerified;
+    }
+
+    res.json({ job: { ...job, isCompanyVerified } });
   } catch (err) {
     console.error('GET /api/jobs/:id error:', err);
     res.status(500).json({ error: 'Failed to fetch job details' });

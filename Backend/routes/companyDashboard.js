@@ -164,6 +164,7 @@ router.get('/dashboard', async (req, res) => {
         website: company.website,
         description: company.description,
         logo: company.logo,
+        isVerified: company.isVerified,
       },
       stats: {
         activeJobs: activeJobsWithCount.length,

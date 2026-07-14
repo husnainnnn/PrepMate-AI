@@ -14,11 +14,11 @@ interface DashboardSidebarProps {
   navItems: SidebarItem[]
   footerItems: SidebarItem[]
   badge?: string
-  upgradeCard: {
+  upgradeCard?: {
     title: string
     description: string
     buttonText: string
-  }
+  } | null
   onLogout?: () => void
 }
 
@@ -143,23 +143,25 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
         </div>
       )}
 
-      {/* Upgrade card */}
-      <div className="p-4">
-        <div className="rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] p-4 text-white shadow-sm">
-          <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/15">
-            <Crown className="h-4 w-4" />
+      {/* Upgrade card — only shown if provided */}
+      {upgradeCard && (
+        <div className="p-4">
+          <div className="rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] p-4 text-white shadow-sm">
+            <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/15">
+              <Crown className="h-4 w-4" />
+            </div>
+            <p className="text-[13px] font-semibold">{upgradeCard.title}</p>
+            <p className="mt-1 text-[12px] leading-snug text-white/80">{upgradeCard.description}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 h-8 w-full rounded-lg border-[#1a6fa8]/30 text-[13px] font-medium text-[#1a6fa8] hover:bg-white/90"
+            >
+              {upgradeCard.buttonText}
+            </Button>
           </div>
-          <p className="text-[13px] font-semibold">{upgradeCard.title}</p>
-          <p className="mt-1 text-[12px] leading-snug text-white/80">{upgradeCard.description}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3 h-8 w-full rounded-lg border-[#1a6fa8]/30 text-[13px] font-medium text-[#1a6fa8] hover:bg-white/90"
-          >
-            {upgradeCard.buttonText}
-          </Button>
         </div>
-      </div>
+      )}
     </aside>
     </>
   )

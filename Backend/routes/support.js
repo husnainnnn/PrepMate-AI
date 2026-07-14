@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const SupportTicket = require('../models/SupportTicket');
+const { createNotification } = require('../helpers/notifications');
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 
@@ -90,6 +91,25 @@ router.post('/', async (req, res) => {
     });
 
     await ticket.save();
+
+    // ── Notify admin about the new support ticket ────────
+    try {
+      const Admin = require('../models/Admin');
+      const admins = await Admin.find({ role: 'admin' }).select('_id').lean();
+      const detailText = bugName || featureName || companyName || studentName || studentEmail || 'New request';
+      const typeLabel = { bug: 'Bug Report', feature: 'Feature Suggestion', 'report-company': 'Company Report', 'report-student': 'Student Report', 'need-help': 'Help Request' };
+      for (const admin of admins) {
+        await createNotification(req, {
+          userId: admin._id.toString(),
+          userRole: 'admin',
+          type: 'support_resolved',
+          title: `New ${typeLabel[type] || 'Support'} Received`,
+          message: `${detailText.slice(0, 80)}${detailText.length > 80 ? '...' : ''} — from ${tokenData.role || 'user'}`,
+          link: '/admin/student-help',
+          relatedId: ticket._id.toString(),
+        });
+      }
+    } catch { /* non-critical */ }
 
     const messages = {
       bug: 'Bug report submitted successfully. Our team will review it shortly.',

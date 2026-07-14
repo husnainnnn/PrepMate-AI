@@ -3,6 +3,10 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
+const Student = require('../models/Student');
+const Company = require('../models/Company');
+const SupportTicket = require('../models/SupportTicket');
+const { createNotification } = require('../helpers/notifications');
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 const SALT_ROUNDS = 10;
@@ -90,9 +94,6 @@ router.get('/stats', async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated as admin.' });
     }
 
-    const Student = require('../models/Student');
-    const Company = require('../models/Company');
-
     const totalStudents = await Student.countDocuments();
     const totalCompanies = await Company.countDocuments();
 
@@ -153,6 +154,203 @@ router.get('/stats', async (req, res) => {
   } catch (err) {
     console.error('GET /api/admin/stats error:', err);
     res.status(500).json({ error: 'Failed to fetch stats.' });
+  }
+});
+
+// ─── GET /api/admin/students ─────────────────────────────
+router.get('/students', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const { search, field } = req.query;
+    const filter = {};
+    if (field) filter.field = field;
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const students = await Student.find(filter).select('-password').sort({ createdAt: -1 }).lean();
+    res.json({ students });
+  } catch (err) {
+    console.error('GET /api/admin/students error:', err);
+    res.status(500).json({ error: 'Failed to fetch students.' });
+  }
+});
+
+// ─── GET /api/admin/student-fields — distinct field values ─
+router.get('/student-fields', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const fields = await Student.distinct('field');
+    res.json({ fields: fields.filter(Boolean).sort() });
+  } catch (err) {
+    console.error('GET /api/admin/student-fields error:', err);
+    res.status(500).json({ error: 'Failed to fetch fields.' });
+  }
+});
+
+// ─── GET /api/admin/companies ─────────────────────────────
+router.get('/companies', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const { search } = req.query;
+    const filter = {};
+    if (search) {
+      filter.$or = [
+        { companyName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const companies = await Company.find(filter).select('-password').sort({ createdAt: -1 }).lean();
+    res.json({ companies });
+  } catch (err) {
+    console.error('GET /api/admin/companies error:', err);
+    res.status(500).json({ error: 'Failed to fetch companies.' });
+  }
+});
+
+// ─── GET /api/admin/support-tickets ───────────────────────
+router.get('/support-tickets', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const { role } = req.query; // 'student' or 'company'
+    const filter = { status: { $ne: 'resolved' } };
+    if (role) filter.userRole = role;
+
+    const tickets = await SupportTicket.find(filter).sort({ createdAt: -1 }).lean();
+    res.json({ tickets });
+  } catch (err) {
+    console.error('GET /api/admin/support-tickets error:', err);
+    res.status(500).json({ error: 'Failed to fetch tickets.' });
+  }
+});
+
+// ─── PATCH /api/admin/support-tickets/:id/resolve ─────────
+router.patch('/support-tickets/:id/resolve', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const ticket = await SupportTicket.findByIdAndUpdate(
+      req.params.id,
+      { status: 'resolved' },
+      { new: true }
+    );
+
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
+
+    // Notify the user who submitted the ticket
+    try {
+      await createNotification(req, {
+        userId: ticket.userId,
+        userRole: ticket.userRole,
+        type: 'support_resolved',
+        title: 'Issue Resolved ✅',
+        message: 'Your support request has been resolved by the admin team.',
+        link: ticket.userRole === 'student' ? '/student/support' : '/company/support',
+        relatedId: ticket._id.toString(),
+      });
+    } catch { /* non-critical */ }
+
+    res.json({ success: true, ticket });
+  } catch (err) {
+    console.error('PATCH /api/admin/support-tickets/:id/resolve error:', err);
+    res.status(500).json({ error: 'Failed to resolve ticket.' });
+  }
+});
+
+// ─── PATCH /api/admin/companies/:id/verify ────────────────
+router.patch('/companies/:id/verify', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const company = await Company.findByIdAndUpdate(
+      req.params.id,
+      { isVerified: true },
+      { new: true }
+    ).select('-password');
+
+    if (!company) return res.status(404).json({ error: 'Company not found.' });
+
+    // Notify the company
+    try {
+      await createNotification(req, {
+        userId: company._id.toString(),
+        userRole: 'company',
+        type: 'company_verified',
+        title: 'Company Verified ✅',
+        message: `Your company ${company.companyName} has been verified successfully!`,
+        link: '/company/profile',
+        relatedId: company._id.toString(),
+      });
+    } catch { /* non-critical */ }
+
+    res.json({ success: true, company });
+  } catch (err) {
+    console.error('PATCH /api/admin/companies/:id/verify error:', err);
+    res.status(500).json({ error: 'Failed to verify company.' });
+  }
+});
+
+// ─── PATCH /api/admin/companies/:id/unverify ──────────────
+router.patch('/companies/:id/unverify', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const company = await Company.findByIdAndUpdate(
+      req.params.id,
+      { isVerified: false },
+      { new: true }
+    ).select('-password');
+
+    if (!company) return res.status(404).json({ error: 'Company not found.' });
+
+    // Notify the company
+    try {
+      await createNotification(req, {
+        userId: company._id.toString(),
+        userRole: 'company',
+        type: 'support_resolved',
+        title: 'Verification Removed ⚠️',
+        message: `Your company ${company.companyName} has been unverified. Please contact support if you believe this is a mistake.`,
+        link: '/company/profile',
+        relatedId: company._id.toString(),
+      });
+    } catch { /* non-critical */ }
+
+    res.json({ success: true, company });
+  } catch (err) {
+    console.error('PATCH /api/admin/companies/:id/unverify error:', err);
+    res.status(500).json({ error: 'Failed to unverify company.' });
+  }
+});
+
+// ─── GET /api/admin/pro-plan ──────────────────────────────
+router.get('/pro-plan', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const students = await Student.find({ 'stats.plan': 'pro' }).select('fullName email field stats.plan createdAt').sort({ createdAt: -1 }).lean();
+    const companies = await Company.find({ plan: 'pro' }).select('companyName email plan createdAt').sort({ createdAt: -1 }).lean();
+
+    res.json({ students, companies });
+  } catch (err) {
+    console.error('GET /api/admin/pro-plan error:', err);
+    res.status(500).json({ error: 'Failed to fetch pro plan data.' });
   }
 });
 

@@ -8,10 +8,9 @@ const notificationSchema = new mongoose.Schema({
   },
   userRole: {
     type: String,
-    enum: ['student', 'company'],
+    enum: ['student', 'company', 'admin'],
     default: 'student',
-  },
-  type: {
+  },    type: {
     type: String,
     enum: [
       'new_job',           // New job posted matching student's field
@@ -24,6 +23,8 @@ const notificationSchema = new mongoose.Schema({
       'interview_cancelled',     // Live interview cancelled
       'interview_reminder',      // 1-min reminder before interview start
       'new_applicant',          // New applicant applied to company's job
+      'support_resolved',       // Admin resolved a support ticket
+      'company_verified',       // Admin verified a company
     ],
     required: true,
   },

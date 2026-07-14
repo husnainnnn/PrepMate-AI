@@ -67,7 +67,7 @@ interface StageDistribution {
 }
 
 interface DashboardData {
-  company: { id: string; name: string; website: string; description: string; logo: string };
+  company: { id: string; name: string; website: string; description: string; logo: string; isVerified?: boolean };
   stats: {
     activeJobs: number;
     totalApplicants: number;
@@ -578,9 +578,16 @@ export default function CompanyDashboard() {
         {/* Welcome Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">
-              {data ? `${data.company.name} Dashboard 🏢` : 'Company Dashboard 🏢'}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">
+                {data ? `${data.company.name} Dashboard 🏢` : 'Company Dashboard 🏢'}
+              </h1>
+              {data?.company.isVerified && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200 shadow-sm">
+                  ✅ Verified
+                </span>
+              )}
+            </div>
             <p className="mt-1 text-[13.5px] text-[#667085]">
               {data
                 ? `Manage job postings, screen candidates, and track hiring progress. ${data.stats.activeJobs} active job${data.stats.activeJobs !== 1 ? 's' : ''}, ${data.stats.totalApplicants} total applicants`

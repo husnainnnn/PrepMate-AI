@@ -13,6 +13,7 @@ import JobDetailModal from '@/components/student/JobDetailModal'
 interface JobMatch {
   id: string
   companyName: string
+  isCompanyVerified?: boolean
   jobTitle: string
   location: string
   employmentType: string
@@ -110,7 +111,14 @@ function JobCard({ job, onView }: { job: JobMatch; onView: () => void }) {
               </span>
             )}
           </div>
-          <p className="mt-0.5 text-[13px] text-[#667085]">{job.companyName}</p>
+          <p className="mt-0.5 text-[13px] text-[#667085]">
+            {job.companyName}
+            {job.isCompanyVerified && (
+              <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200">
+                ✅ Verified
+              </span>
+            )}
+          </p>
         </div>
         {job.isRecommended && (
           <span className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-bold border ${

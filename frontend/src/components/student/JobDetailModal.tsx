@@ -42,6 +42,7 @@ interface JobFull {
   openPositions: number;
   hiringProcess: string[];
   createdAt: string;
+  isCompanyVerified?: boolean;
 }
 
 interface ApplyForm {
@@ -358,7 +359,14 @@ export default function JobDetailModal({ jobId, onClose, onApplied }: JobDetailM
               {/* Header */}
               <div>
                 <h2 className="text-xl font-semibold text-[#101828]">{job.jobTitle}</h2>
-                <p className="mt-1 text-[14px] text-[#667085]">{job.companyName}</p>
+                <p className="mt-1 text-[14px] text-[#667085]">
+                  {job.companyName}
+                  {job.isCompanyVerified && (
+                    <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 border border-emerald-200">
+                      ✅ Verified
+                    </span>
+                  )}
+                </p>
               </div>
 
               {/* Quick Info */}

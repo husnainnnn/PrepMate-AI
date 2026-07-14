@@ -185,6 +185,17 @@ router.post('/match', async (req, res) => {
 
     let jobs = await Job.find(query).sort({ createdAt: -1 }).lean();
 
+    // Get isVerified for each job's company
+    const Company = require('../models/Company');
+    const companyIds = [...new Set(jobs.filter(j => j.companyId).map(j => j.companyId.toString()))];
+    const companiesMap = {};
+    if (companyIds.length > 0) {
+      const companies = await Company.find({ _id: { $in: companyIds } }).select('_id isVerified').lean();
+      for (const c of companies) {
+        companiesMap[c._id.toString()] = c.isVerified;
+      }
+    }
+
     // Client-side search filter
     if (search && search.trim()) {
       const s = search.toLowerCase().trim();
@@ -292,9 +303,12 @@ Return ONLY valid JSON: { "scores": [ { "index": 0, "score": 85, "reason": "Web 
 
         const location = [job.city, job.country].filter(Boolean).join(', ');
 
+        const isCompanyVerified = companiesMap[job.companyId?.toString()] || false;
+
         return {
           id: job._id,
           companyName: job.companyName,
+          isCompanyVerified,
           jobTitle: job.jobTitle,
           location,
           employmentType: job.employmentType,

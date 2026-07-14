@@ -65,6 +65,14 @@ import CompanySupport from '@/pages/company/Support'
 // Admin pages
 import AdminDashboard from '@/pages/admin/Dashboard'
 import AdminLogin from '@/pages/admin/AdminLogin'
+import AdminStudents from '@/pages/admin/Students'
+import AdminStudentHelp from '@/pages/admin/StudentHelp'
+import AdminCompanies from '@/pages/admin/Companies'
+import AdminCompanyHelp from '@/pages/admin/CompanyHelp'
+import AdminCompanyVerification from '@/pages/admin/CompanyVerification'
+import AdminProPlan from '@/pages/admin/ProPlan'
+import AdminAbout from '@/pages/admin/About'
+import AdminNotifications from '@/pages/admin/Notifications'
 
 function App() {
   return (
@@ -94,6 +102,14 @@ function App() {
       {/* Admin routes */}
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/students" element={<ProtectedRoute><AdminStudents /></ProtectedRoute>} />
+      <Route path="/admin/student-help" element={<ProtectedRoute><AdminStudentHelp /></ProtectedRoute>} />
+      <Route path="/admin/companies" element={<ProtectedRoute><AdminCompanies /></ProtectedRoute>} />
+      <Route path="/admin/company-help" element={<ProtectedRoute><AdminCompanyHelp /></ProtectedRoute>} />
+      <Route path="/admin/verification" element={<ProtectedRoute><AdminCompanyVerification /></ProtectedRoute>} />
+      <Route path="/admin/pro-plan" element={<ProtectedRoute><AdminProPlan /></ProtectedRoute>} />
+      <Route path="/admin/about" element={<ProtectedRoute><AdminAbout /></ProtectedRoute>} />
+      <Route path="/admin/notifications" element={<ProtectedRoute><AdminNotifications /></ProtectedRoute>} />
 
       {/* Company routes — file names match sidebar labels */}
       <Route path="/company/dashboard" element={<ProtectedRoute><CompanyDashboard /></ProtectedRoute>} />
