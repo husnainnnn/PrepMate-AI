@@ -1,12 +1,30 @@
 # 🚀 PrepMate AI
 
-An AI-powered Interview Preparation and Recruitment Platform that connects **Students**, **Companies**, and **Administrators** on a single platform.
+<div align="center">
 
-PrepMate AI helps students prepare for interviews using AI-powered tools while enabling companies to efficiently screen, evaluate, and hire top talent.
+### AI-Powered Interview Preparation & Recruitment Platform
+
+Connecting **Students**, **Companies**, and **Administrators** on a single intelligent platform.
+
+Built with **React • Node.js • Express • MongoDB • AI • WebRTC • Socket.IO • Stripe**
+
+</div>
 
 ---
 
-# ✨ Key Features
+# 📖 Overview
+
+PrepMate AI is an AI-powered interview preparation and recruitment platform designed to bridge the gap between students and recruiters.
+
+Students can build professional profiles, receive AI-powered career guidance, prepare for interviews, participate in live interviews, and communicate directly with companies.
+
+Companies can post jobs, screen applicants using AI, conduct live interviews, manage candidates, and hire efficiently through one platform.
+
+An Admin Panel enables complete platform management, company verification, and user support.
+
+---
+
+# ✨ Features
 
 ## 👨‍🎓 Student Portal
 
@@ -14,18 +32,19 @@ PrepMate AI helps students prepare for interviews using AI-powered tools while e
 - Student Dashboard
 - Profile Management
 - Resume Builder
+- AI Resume Feedback
 - AI Job Matching
-- AI Feedback & Career Suggestions
 - AI-Powered Learning Resources
 - Practice Questions
 - Mock Interviews
 - Live Interviews
-- Job Applications Tracking
+- Job Applications
 - Company Messaging
 - Real-Time Notifications
 - Analytics Dashboard
 - Settings
 - Help & Support
+- Upgrade to Pro
 
 ---
 
@@ -37,13 +56,13 @@ PrepMate AI helps students prepare for interviews using AI-powered tools while e
 - Job Posting
 - Applicant Management
 - AI Resume Screening
-- AI Match Scoring
+- AI Match Score
 - Candidate Shortlisting
 - Interview Scheduling
 - Live Interviews
 - Student Messaging
+- Analytics Dashboard
 - Real-Time Notifications
-- Analytics
 - Settings
 - Help & Support
 
@@ -55,9 +74,9 @@ PrepMate AI helps students prepare for interviews using AI-powered tools while e
 - Manage Students
 - Manage Companies
 - Verify Company Accounts
-- Monitor Platform Activities
 - Resolve Reported Issues
-- Review Support Requests
+- Monitor Platform Activities
+- Platform Administration
 
 ---
 
@@ -65,104 +84,160 @@ PrepMate AI helps students prepare for interviews using AI-powered tools while e
 
 ## AI Resume Screening
 
-Analyzes candidate profiles and recommends the best applicants using intelligent skill matching.
+Analyzes student resumes and profiles to recommend the most suitable candidates.
+
+---
 
 ## AI Job Matching
 
-Recommends jobs to students based on:
+Matches students with jobs based on:
 
 - Skills
 - Education
 - Experience
 - Career Interests
+- Profile Analysis
+
+---
 
 ## AI Feedback
 
-Provides personalized career improvement suggestions by analyzing:
+Provides personalized improvement suggestions by analyzing:
 
 - Student Profile
 - Resume
-- Practice Performance
+- Practice Sessions
 - Mock Interviews
+- Application History
+
+---
 
 ## AI Learning Resources
 
-Recommends learning materials based on the student's field and profile.
+Recommends personalized learning materials based on:
+
+- Student Field
+- Skills
+- Career Goals
 
 ---
 
-# 💬 Communication
+# 🎥 Live Interview System
 
-- Student ↔ Company Messaging
-- Message Management
-- Real-Time Communication
-
----
-
-# 🎥 Live Interview
-
+- Real-Time Video Calling
 - WebRTC Integration
 - Socket.IO
-- Video Calling
 - Screen Sharing
-- Interview Management
+- Student ↔ Company Communication
+
+---
+
+# 💬 Messaging System
+
+- Real-Time Chat
+- Student ↔ Company Messaging
+- Delete Messages
+- Conversation History
 
 ---
 
 # 🔔 Notification System
 
-- Real-Time Notifications
+- Instant Real-Time Notifications
 - Desktop Notifications
+- Notification Preferences
 - Multiple Notification Tones
-- Enable / Disable Notifications
 
 ---
 
-# ⚙ Settings
+# ⚙️ Settings
 
 - Dark Mode
-- Notification Preferences
-- 12+ Notification Tones
 - Change Password
 - Delete Profile
+- Notification Settings
+- Notification Tone Selection
 - Account Preferences
+
+---
+
+# 📚 Learning Resources
+
+Students receive AI-powered learning resources related to their:
+
+- Academic Field
+- Skills
+- Career Path
+- Interview Preparation
+
+---
+
+# 💳 Pro Membership
+
+Premium subscription powered by **Stripe**.
+
+### Upgrade to Pro
+
+Premium users can unlock advanced platform features through secure Stripe payment integration.
+
+---
+
+# 👥 About Us
+
+A dedicated About Us page introduces:
+
+- PrepMate AI
+- Platform Vision
+- Development Team
+- Project Mission
 
 ---
 
 # 🛠 Help & Support
 
-- Frequently Asked Questions (FAQs)
-- Report a Bug
-- Suggest a Feature
+Users can:
+
+- Browse FAQs
+- Report Bugs
+- Suggest Features
 - Contact Support
 
 ---
 
 # 📊 Dashboards
 
-### Student Dashboard
+## Student Dashboard
 
+- AI Job Matches
 - Applications
-- Job Matches
+- Resume Builder
 - AI Feedback
+- Resources
 - Live Interviews
 - Notifications
-- Resources
-
-### Company Dashboard
-
-- Posted Jobs
-- Applicants
-- AI Screening
-- Shortlisted Candidates
-- Interview Management
 - Analytics
 
-### Admin Dashboard
+---
 
-- User Management
+## Company Dashboard
+
+- Posted Jobs
+- AI Screening
+- Applicants
+- Shortlisted Candidates
+- Live Interviews
+- Messages
+- Analytics
+
+---
+
+## Admin Dashboard
+
+- Student Management
+- Company Management
 - Company Verification
 - Reports Management
+- Issue Resolution
 - Platform Monitoring
 
 ---
@@ -171,36 +246,55 @@ Recommends learning materials based on the student's field and profile.
 
 ## Frontend
 
-- React.js
+- React
 - TypeScript
 - Tailwind CSS
 - Vite
+
+---
 
 ## Backend
 
 - Node.js
 - Express.js
 
+---
+
 ## Database
 
 - MongoDB
 - Mongoose
 
+---
+
 ## Authentication
 
-- JWT
+- JWT Authentication
 
-## AI
+---
+
+## Artificial Intelligence
 
 - Groq API
 - Llama 3.3 70B
+
+---
 
 ## Real-Time Technologies
 
 - Socket.IO
 - WebRTC
+
 ---
+
+## Payment Gateway
+
+- Stripe
 
 # 👨‍💻 Developer
 
 **Husnain Sattar**
+
+---
+
+## ⭐ If you like this project, consider giving it a Star!
