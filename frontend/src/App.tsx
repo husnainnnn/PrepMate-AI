@@ -47,6 +47,8 @@ import StudentNotifications from '@/pages/student/Notifications'
 import SettingsPage from '@/pages/student/Settings'
 import SupportPage from '@/pages/student/Support'
 import StudentMessages from '@/pages/student/Messages'
+import StudentAboutUs from '@/pages/student/AboutUs'
+import StudentProPlan from '@/pages/student/ProPlan'
 
 // Company pages
 // Company pages (all from pages/company/, names match sidebar labels)
@@ -61,6 +63,8 @@ import CompanyProfilePage from '@/pages/company/CompanyProfile'
 import CompanyNotifications from '@/pages/company/Notifications'
 import CompanySettings from '@/pages/company/Settings'
 import CompanySupport from '@/pages/company/Support'
+import CompanyAboutUs from '@/pages/company/AboutUs'
+import CompanyProPlan from '@/pages/company/ProPlan'
 
 // Admin pages
 import AdminDashboard from '@/pages/admin/Dashboard'
@@ -98,6 +102,8 @@ function App() {
       <Route path="/student/notifications" element={<ProtectedRoute><StudentNotifications /></ProtectedRoute>} />
       <Route path="/student/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/student/support" element={<ProtectedRoute><SupportPage /></ProtectedRoute>} />
+      <Route path="/student/about" element={<ProtectedRoute><StudentAboutUs /></ProtectedRoute>} />
+      <Route path="/student/pro-plan" element={<ProtectedRoute><StudentProPlan /></ProtectedRoute>} />
 
       {/* Admin routes */}
       <Route path="/admin/login" element={<AdminLogin />} />
@@ -123,6 +129,8 @@ function App() {
       <Route path="/company/notifications" element={<ProtectedRoute><CompanyNotifications /></ProtectedRoute>} />
       <Route path="/company/settings" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
       <Route path="/company/support" element={<ProtectedRoute><CompanySupport /></ProtectedRoute>} />
+      <Route path="/company/about" element={<ProtectedRoute><CompanyAboutUs /></ProtectedRoute>} />
+      <Route path="/company/pro-plan" element={<ProtectedRoute><CompanyProPlan /></ProtectedRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<NotFound />} />

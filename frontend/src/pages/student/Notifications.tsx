@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
 import { useAuth } from '@/context/AuthContext'
-import { showDesktopNotification } from '@/lib/notificationSounds'
+import { showDesktopNotification, playNotificationSound, requestDesktopNotifPermission } from '@/lib/notificationSounds'
 import {
   Bell,
   Briefcase,
@@ -116,6 +116,11 @@ export default function StudentNotifications() {
     }
   }, [token, fetchNotifications])
 
+  // ── Request desktop notification permission ─────────
+  useEffect(() => {
+    requestDesktopNotifPermission()
+  }, [])
+
   // ── Socket.io for real-time notifications ─────────────
   useEffect(() => {
     if (!token) return
@@ -143,6 +148,9 @@ export default function StudentNotifications() {
         })
 
         s.on('notification', (notifData: any) => {
+          // Play notification sound
+          playNotificationSound()
+
           // Show desktop notification with actual content
           if (notifData) {
             showDesktopNotification(

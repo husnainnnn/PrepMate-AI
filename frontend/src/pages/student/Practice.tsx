@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
 import { useAuth } from '@/context/AuthContext'
 import {
@@ -13,6 +14,7 @@ import {
   Clock,
   BookOpen,
   BrainCircuit,
+  Crown,
 } from 'lucide-react'
 import { fetchQuestions, evaluateSingleAnswer, type InterviewQuestion } from '@/services/mockInterviewData'
 
@@ -64,6 +66,12 @@ export default function PracticePage() {
   const [userExperience, setUserExperience] = useState<string>('mid')
 
   const totalQuestions = 5
+  const FREE_PRACTICE_LIMIT = 5
+
+  // ─── Plan info & practice limit ────────────────────────────
+  const [isProPlan, setIsProPlan] = useState(false)
+  const [monthlyPracticeCount, setMonthlyPracticeCount] = useState(0)
+  const [practiceLocked, setPracticeLocked] = useState(false)
 
   // ─── Load profile for autofill ──────────────────────────
   useEffect(() => {
@@ -85,6 +93,19 @@ export default function PracticePage() {
           }
           if (user.experience) setUserExperience(user.experience)
           setProfileLoaded(true)
+        }
+        // Also fetch plan info
+        const dashRes = await fetch('/api/stats/dashboard', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (dashRes.ok) {
+          const dashData = await dashRes.json()
+          const plan = dashData.stats?.plan || 'free'
+          setIsProPlan(plan === 'pro')
+          setMonthlyPracticeCount(dashData.stats?.monthlyPracticeCount || 0)
+          if (plan !== 'pro' && (dashData.stats?.monthlyPracticeCount || 0) >= FREE_PRACTICE_LIMIT) {
+            setPracticeLocked(true)
+          }
         }
       } catch { /* backend offline */ }
       setLoading(false)
@@ -214,6 +235,28 @@ export default function PracticePage() {
     )
   }
 
+  // ─── Locked page for practice limit ────────────────────
+  if (practiceLocked) {
+    return (
+      <StudentDashboardLayout>
+        <div className="p-8">
+          <div className="w-full rounded-2xl border border-[#EAECF0] bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-amber-50">
+              <BrainCircuit className="h-8 w-8 text-amber-500" />
+            </div>
+            <h2 className="mt-4 text-xl font-semibold text-[#101828]">Free plan limit reached</h2>
+            <p className="mt-2 text-[13.5px] text-[#667085]">
+              You've used all {FREE_PRACTICE_LIMIT} practice sessions this month. Upgrade to keep practicing.
+            </p>
+            <Link to="/student/pro-plan" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:brightness-110">
+              <Crown className="h-4 w-4" /> Upgrade to Pro
+            </Link>
+          </div>
+        </div>
+      </StudentDashboardLayout>
+    )
+  }
+
   // ═══════════════ SETUP PHASE ═══════════════
   if (phase === 'setup') {
     return (
@@ -228,6 +271,11 @@ export default function PracticePage() {
                 <h1 className="text-xl font-semibold tracking-tight text-[#101828]">Practice Questions</h1>
                 <p className="text-[13px] text-[#667085]">
                   AI-generated questions to test and improve your knowledge.
+                  {isProPlan ? (
+                    <span className="ml-2 text-emerald-600 font-medium">⭐ Pro: Unlimited practice</span>
+                  ) : (
+                    <span className="ml-2">Free: {Math.max(0, FREE_PRACTICE_LIMIT - monthlyPracticeCount)}/{FREE_PRACTICE_LIMIT} this month</span>
+                  )}
                 </p>
               </div>
             </div>

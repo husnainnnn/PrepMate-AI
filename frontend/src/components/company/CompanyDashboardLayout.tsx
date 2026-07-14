@@ -14,11 +14,12 @@ import {
   Settings,
   HelpCircle,
   Search,
+  Info,
 } from 'lucide-react'
 import { DashboardSidebar, type SidebarItem } from '@/components/shared/DashboardSidebar'
 import { playNotificationSound, showDesktopNotification, requestDesktopNotifPermission, getDesktopNotifEnabled } from '@/lib/notificationSounds'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Input } from '@/components/ui/input'
+import SmartSearch from '@/components/shared/SmartSearch'
 import { useAuth } from '@/context/AuthContext'
 
 interface CompanyDashboardLayoutProps {
@@ -34,12 +35,15 @@ const sidebarItems: SidebarItem[] = [
   { label: 'Interviews', href: '/company/interviews', icon: Mic },
   { label: 'Messages', href: '/company/messages', icon: MessageSquare },
   { label: 'Company Profile', href: '/company/profile', icon: Building2 },
+  { label: 'Help & Support', href: '/company/support', icon: HelpCircle },
 ]
 
 const footerItems: SidebarItem[] = [
   { label: 'Settings', href: '/company/settings', icon: Settings },
-  { label: 'Help & Support', href: '/company/support', icon: HelpCircle },
+  { label: 'About Us', href: '/company/about', icon: Info },
 ]
+
+const searchNavItems = [...sidebarItems, ...footerItems]
 
 export function CompanyDashboardLayout({ children }: CompanyDashboardLayoutProps) {
   const { user, token, logout } = useAuth();
@@ -152,6 +156,7 @@ export function CompanyDashboardLayout({ children }: CompanyDashboardLayoutProps
           title: 'Enterprise Plan',
           description: 'Unlock advanced AI screening and unlimited job postings.',
           buttonText: 'Upgrade Now',
+          buttonHref: '/company/pro-plan',
         }}
       />
 
@@ -161,11 +166,7 @@ export function CompanyDashboardLayout({ children }: CompanyDashboardLayoutProps
           {/* Top Header */}
           <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[#EAECF0] dark:border-[#334155] bg-white/80 dark:bg-[#1E293B]/80 px-6 py-4 backdrop-blur-sm lg:px-8">
             <div className="relative hidden max-w-sm flex-1 md:block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
-              <Input
-                placeholder="Search applicants, jobs, messages..."
-                className="h-10 rounded-lg border-[#EAECF0] dark:border-[#334155] bg-[#F7F9FC] dark:bg-[#334155] pl-9 text-[13.5px] text-[#101828] dark:text-[#F1F5F9] placeholder:text-[#98A2B3] dark:placeholder:text-[#64748B] focus-visible:ring-[#1a6fa8]/30"
-              />
+              <SmartSearch items={searchNavItems} placeholder="Search applicants, jobs, messages..." />
             </div>
 
             <div className="flex items-center gap-3">

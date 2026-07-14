@@ -3,8 +3,9 @@ import { StudentDashboardLayout } from '@/components/student/StudentDashboardLay
 import {
   Briefcase, Search, X, MapPin, Clock, DollarSign,
   ChevronDown, Eye, RefreshCw, GraduationCap, Building2,
-  Sparkles, UserCircle,
+  Sparkles, UserCircle, Crown,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import JobDetailModal from '@/components/student/JobDetailModal'
 
@@ -279,6 +280,19 @@ export default function JobMatches() {
     } catch { /* localStorage full */ }
   }
 
+  // Plan info
+  const [isPro, setIsPro] = useState(false)
+
+  // Fetch plan on mount
+  useEffect(() => {
+    if (!token) return
+    fetch('/api/stats/dashboard', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.ok && r.json()).then(d => {
+      if (d?.stats?.plan) setIsPro(d.stats.plan === 'pro')
+    }).catch(() => {})
+  }, [token])
+
   // ─── Fetch jobs on mount & when user/profile changes ───
   const fetchMatches = useCallback(async (search: string, filterState: FiltersState, isManualSearch = false) => {
     if (!token) return      // If not a manual search/filter change, try cache first
@@ -349,6 +363,16 @@ export default function JobMatches() {
     }
   }, [token, user])
 
+  // ── Limit companies for non-pro users ──────────────────
+  const MAX_NONPRO_REC = 2  // max recommended companies for free plan
+  const MAX_NONPRO_NORMAL = 3  // max normal companies for free plan
+  const recommendedMatches = allMatches.filter(j => j.isRecommended)
+  const normalMatches = allMatches.filter(j => !j.isRecommended)
+  const visibleRecommended = isPro ? recommendedMatches : recommendedMatches.slice(0, MAX_NONPRO_REC)
+  const visibleNormal = isPro ? normalMatches : normalMatches.slice(0, MAX_NONPRO_NORMAL)
+  const totalHidden = isPro ? 0 : Math.max(0, allMatches.length - (visibleRecommended.length + visibleNormal.length))
+  const displayRecommendedCount = visibleRecommended.length
+
   // ── Filter handlers ──────────────────────────────────
   const toggleFilter = (category: keyof FiltersState, value: string) => {
     const updated = { ...filters }
@@ -391,7 +415,7 @@ export default function JobMatches() {
     filters.postedDays && '1', searchQuery.trim() && '1',
   ].filter(Boolean).length
 
-  const recommendedCount = allMatches.filter(j => j.isRecommended).length
+  const recommendedCount = displayRecommendedCount
 
   return (
     <StudentDashboardLayout>
@@ -674,13 +698,13 @@ export default function JobMatches() {
             </div>
 
             {/* Recommended section */}
-            {recommendedCount > 0 && (
+            {visibleRecommended.length > 0 && (
               <div>
                 <div className="mb-2 flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-amber-500" />
                   <h3 className="text-[13px] font-semibold text-[#101828]">Recommended for You</h3>
                 </div>
-                {allMatches.filter(j => j.isRecommended).map(job => (
+                {visibleRecommended.map(job => (
                   <div key={job.id} className="mb-3">
                     <JobCard job={job} onView={() => setSelectedJobId(job.id)} />
                   </div>
@@ -690,22 +714,59 @@ export default function JobMatches() {
 
             {/* All jobs section */}
             <div>
-              {recommendedCount > 0 && (
+              {visibleRecommended.length > 0 && (
                 <div className="mb-2 flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-[#98A2B3]" />
                   <h3 className="text-[13px] font-semibold text-[#667085]">All Jobs</h3>
                 </div>
               )}
-              {allMatches.filter(j => !j.isRecommended).length === 0 && recommendedCount > 0 ? (
+              {visibleNormal.length === 0 && visibleRecommended.length > 0 ? (
                 <p className="text-[12px] text-[#98A2B3] py-4 text-center">All jobs shown above as recommendations.</p>
               ) : (
-                allMatches.filter(j => !j.isRecommended).map(job => (
+                visibleNormal.map(job => (
                   <div key={job.id} className="mb-3">
                     <JobCard job={job} onView={() => setSelectedJobId(job.id)} />
                   </div>
                 ))
               )}
             </div>
+
+            {/* Blur overlay for non-pro users with hidden jobs */}
+            {!isPro && totalHidden > 0 && (
+              <div className="relative mt-4 overflow-hidden rounded-xl">
+                <div className="space-y-3 opacity-30 blur-sm select-none pointer-events-none">
+                  {Array.from({ length: Math.min(totalHidden, 3) }).map((_, i) => (
+                    <div key={i} className="rounded-xl border border-[#EAECF0] bg-white p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-2 flex-1">
+                          <div className="h-5 w-48 rounded bg-gray-200" />
+                          <div className="h-3.5 w-28 rounded bg-gray-100" />
+                        </div>
+                        <div className="h-8 w-14 rounded-full bg-gray-200" />
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <div className="h-5 w-20 rounded-md bg-gray-100" />
+                        <div className="h-5 w-24 rounded-md bg-gray-100" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/40 backdrop-blur-[1px]">
+                  <Crown className="h-7 w-7 text-amber-400" />
+                  <p className="mt-2 text-[14px] font-semibold text-[#101828]">
+                    +{totalHidden} more job{totalHidden > 1 ? 's' : ''} hidden
+                  </p>
+                  <p className="text-[12px] text-[#667085]">Upgrade to Pro to view all companies</p>
+                  <Link
+                    to="/student/pro-plan"
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 px-4 py-2 text-[12px] font-semibold text-white shadow-sm hover:brightness-110 transition-all"
+                  >
+                    <Crown className="h-4 w-4" />
+                    Upgrade to Pro
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

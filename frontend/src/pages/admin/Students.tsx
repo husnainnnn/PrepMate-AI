@@ -77,7 +77,15 @@ export default function AdminStudents() {
                     <td className="px-4 py-3 text-[13px] font-medium text-[#101828]">{s.fullName || '—'}</td>
                     <td className="px-4 py-3 text-[13px] text-[#667085]">{s.email}</td>
                     <td className="px-4 py-3"><span className="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-[#1a6fa8]">{s.field || '—'}</span></td>
-                    <td className="px-4 py-3"><span className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${s.stats?.plan === 'pro' ? 'bg-amber-50 text-amber-600' : 'bg-gray-50 text-gray-500'}`}>{s.stats?.plan || 'free'}</span></td>
+                    <td className="px-4 py-3">
+                      {s.stats?.plan === 'pro' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
+                          ⭐ PRO
+                        </span>
+                      ) : (
+                        <span className="rounded-md bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-500">Free</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-[13px] text-[#667085]">{new Date(s.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}

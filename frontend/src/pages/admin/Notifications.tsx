@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Bell, Loader2, CheckCircle, Trash2, Bug, Lightbulb, AlertTriangle, HelpCircle, UserX, Building2 } from 'lucide-react'
+import { playNotificationSound, showDesktopNotification, requestDesktopNotifPermission } from '@/lib/notificationSounds'
 
 const TYPE_ICONS: Record<string, any> = {
   bug: Bug,
@@ -38,7 +39,10 @@ export default function AdminNotifications() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [markingAll, setMarkingAll] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [notifEnabled, setNotifEnabled] = useState(false)
   const token = localStorage.getItem('prepmate_token')
+  const autoMarked = useRef(false)
+  const socketRef = useRef<any>(null)
 
   const fetchNotifs = async () => {
     if (!token) return
@@ -56,6 +60,101 @@ export default function AdminNotifications() {
   }
 
   useEffect(() => { fetchNotifs() }, [])
+
+  // ── Auto-mark all as read on mount ───────────────────
+  useEffect(() => {
+    if (!token || autoMarked.current) return
+    autoMarked.current = true
+
+    const init = async () => {
+      try {
+        await fetch('/api/notifications/read-all', {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      } catch { /* ignore */ }
+      await fetchNotifs()
+    }
+
+    init()
+
+    // Mark as read when leaving too
+    return () => {
+      fetch('/api/notifications/read-all', {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {})
+    }
+  }, [token])
+
+  // ── Request desktop notification permission ─────────
+  useEffect(() => {
+    requestDesktopNotifPermission().then(granted => {
+      setNotifEnabled(granted)
+    })
+  }, [])
+
+  // ── Socket.io for real-time notifications ───────────
+  useEffect(() => {
+    if (!token) return
+
+    let disposed = false
+
+    const connect = async () => {
+      try {
+        if (socketRef.current) {
+          socketRef.current.disconnect()
+          socketRef.current = null
+        }
+
+        const { io } = await import('socket.io-client')
+        if (disposed) return
+
+        const s = io('http://localhost:3001')
+        socketRef.current = s
+
+        // Extract admin id from token payload
+        let adminId = ''
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]))
+          adminId = payload.id || payload._id || ''
+        } catch { /* ignore */ }
+
+        s.on('connect', () => {
+          if (adminId) {
+            s.emit('join', adminId.toString())
+          }
+        })
+
+        s.on('notification', (notifData: any) => {
+          // Play sound
+          playNotificationSound()
+
+          // Show desktop notification
+          if (notifData) {
+            showDesktopNotification(
+              notifData.title || 'New Notification',
+              notifData.message || '',
+              notifData.link || '/admin/notifications'
+            )
+          }
+
+          // Refresh notifications
+          fetchNotifs()
+        })
+      } catch { /* socket unavailable */ }
+    }
+
+    connect()
+
+    return () => {
+      disposed = true
+      if (socketRef.current) {
+        socketRef.current.disconnect()
+        socketRef.current = null
+      }
+    }
+  }, [token])
 
   const markAsRead = async (id: string) => {
     if (!token) return
@@ -122,27 +221,36 @@ export default function AdminNotifications() {
           <div>
             <h1 className="text-lg font-semibold text-[#101828]">Notifications</h1>
             <p className="text-[13px] text-[#667085]">
-              {unreadCount > 0
+              {loading ? 'Loading...' : unreadCount > 0
                 ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`
                 : 'No unread notifications'}
             </p>
           </div>
-          {notifications.length > 0 && (
-            <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
-                <button onClick={markAllRead} disabled={markingAll}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#1a6fa8]/10 px-3 py-1.5 text-[12px] font-medium text-[#1a6fa8] transition-colors hover:bg-[#1a6fa8]/20 disabled:opacity-50">
-                  {markingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
-                  Mark All Read
-                </button>
-              )}
-              <button onClick={clearAll}
-                className="flex items-center gap-1.5 rounded-lg border border-[#EAECF0] px-3 py-1.5 text-[12px] font-medium text-[#667085] transition-colors hover:bg-red-50 hover:text-red-500">
-                <Trash2 className="h-3.5 w-3.5" />
-                Clear All
+          <div className="flex items-center gap-2">
+            {!notifEnabled && 'Notification' in window && (
+              <button onClick={() => requestDesktopNotifPermission().then(setNotifEnabled)}
+                className="flex items-center gap-1.5 rounded-lg border border-[#D0D5DD] px-3 py-1.5 text-[12px] font-medium text-[#667085] transition-colors hover:bg-[#F7F9FC]">
+                <Bell className="h-3.5 w-3.5" />
+                Enable Notifications
               </button>
-            </div>
-          )}
+            )}
+            {notifications.length > 0 && (
+              <>
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead} disabled={markingAll}
+                    className="flex items-center gap-1.5 rounded-lg bg-[#1a6fa8]/10 px-3 py-1.5 text-[12px] font-medium text-[#1a6fa8] transition-colors hover:bg-[#1a6fa8]/20 disabled:opacity-50">
+                    {markingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                    Mark All Read
+                  </button>
+                )}
+                <button onClick={clearAll}
+                  className="flex items-center gap-1.5 rounded-lg border border-[#EAECF0] px-3 py-1.5 text-[12px] font-medium text-[#667085] transition-colors hover:bg-red-50 hover:text-red-500">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Clear All
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

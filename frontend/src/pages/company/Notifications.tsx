@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { CompanyDashboardLayout } from '@/components/company/CompanyDashboardLayout'
 import { useAuth } from '@/context/AuthContext'
-import { showDesktopNotification } from '@/lib/notificationSounds'
+import { showDesktopNotification, playNotificationSound, requestDesktopNotifPermission } from '@/lib/notificationSounds'
 import {
   Bell,
   UserPlus,
@@ -99,6 +99,11 @@ export default function CompanyNotifications() {
     }
   }, [token, fetchNotifications])
 
+  // ── Request desktop notification permission ─────────
+  useEffect(() => {
+    requestDesktopNotifPermission()
+  }, [])
+
   // Socket for real-time notifications
   useEffect(() => {
     if (!token) return
@@ -125,6 +130,9 @@ export default function CompanyNotifications() {
         })
 
         s.on('notification', (notifData: any) => {
+          // Play notification sound
+          playNotificationSound()
+
           if (notifData) {
             showDesktopNotification(
               notifData.title || 'New Notification',

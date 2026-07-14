@@ -59,6 +59,11 @@ const studentSchema = new mongoose.Schema({
     plan: { type: String, default: 'free', enum: ['free', 'pro'] },
     applicationsCount: { type: Number, default: 0 },
     lastInterviewDate: { type: String, default: '' },
+    // ── Monthly limits tracking ──
+    interviewMonth: { type: String, default: '' },       // "2026-07"
+    monthlyInterviewCount: { type: Number, default: 0 },  // started this month
+    practiceMonth: { type: String, default: '' },         // "2026-07"
+    practiceMonthlyCount: { type: Number, default: 0 },   // started this month
   },
 }, { timestamps: true });
 

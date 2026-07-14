@@ -140,6 +140,14 @@ export default function AdminCompanyVerification() {
         {/* Company Detail Panel */}
         {selectedCompany && (
           <div className="mt-6 rounded-xl border border-[#EAECF0] bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-[15px] font-semibold text-[#101828]">Company Details</h3>
+              <button onClick={() => setSelectedCompany(null)}
+                className="flex items-center gap-1 rounded-lg border border-[#D0D5DD] px-3 py-1.5 text-[12px] font-medium text-[#667085] transition-colors hover:bg-[#F7F9FC] hover:text-[#101828]">
+                <XCircle className="h-3.5 w-3.5" />
+                Close
+              </button>
+            </div>
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">

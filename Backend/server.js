@@ -50,6 +50,7 @@ const resourcesRoutes = require('./routes/resources');
 const notificationRoutes = require('./routes/notifications');
 const supportRoutes = require('./routes/support');
 const adminRoutes = require('./routes/admin');
+const aboutRoutes = require('./routes/about');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -98,6 +99,14 @@ io.on('connection', (socket) => {
   });
 });
 
+// ─── Webhook route MUST come before express.json() ───────
+// Stripe needs the raw body to verify webhook signatures
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  // Forward raw body to the payments router
+  const paymentRoutes = require('./routes/payments');
+  paymentRoutes.handleWebhook(req, res);
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -125,6 +134,8 @@ app.use('/api/resources', resourcesRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/about', aboutRoutes);
+app.use('/api/payments', require('./routes/payments'));
 
 // Health check — includes DB status
 app.get('/api/health', async (_req, res) => {

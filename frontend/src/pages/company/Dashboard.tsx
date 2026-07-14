@@ -67,7 +67,7 @@ interface StageDistribution {
 }
 
 interface DashboardData {
-  company: { id: string; name: string; website: string; description: string; logo: string; isVerified?: boolean };
+  company: { id: string; name: string; website: string; description: string; logo: string; isVerified?: boolean; plan?: string };
   stats: {
     activeJobs: number;
     totalApplicants: number;
@@ -562,7 +562,34 @@ export default function CompanyDashboard() {
   };
 
   useEffect(() => {
-    fetchDashboard();
+    if (!token) return;
+    
+    // ── Check if redirected from Stripe payment success ──
+    const params = new URLSearchParams(window.location.search)
+    const sessionId = params.get('session_id')
+    const paymentSuccess = params.get('payment')
+    
+    if (sessionId && paymentSuccess === 'success') {
+      // Confirm payment and upgrade plan
+      fetch('/api/payments/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ session_id: sessionId }),
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) {
+            // Clean URL - remove query params without reload
+            window.history.replaceState({}, '', '/company/dashboard')
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          fetchDashboard()
+        })
+    } else {
+      fetchDashboard()
+    }
   }, [token]);
 
   // Auto-refresh every 60 seconds (only when token exists)
@@ -582,6 +609,11 @@ export default function CompanyDashboard() {
               <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">
                 {data ? `${data.company.name} Dashboard 🏢` : 'Company Dashboard 🏢'}
               </h1>
+              {data?.company.plan === 'pro' && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">
+                  ⭐ PRO
+                </span>
+              )}
               {data?.company.isVerified && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200 shadow-sm">
                   ✅ Verified

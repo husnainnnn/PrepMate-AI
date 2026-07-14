@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Users,
   Briefcase,
@@ -16,6 +17,7 @@ import {
   Mail,
   Phone,
   Link as LinkIcon,
+  Crown,
 } from "lucide-react";
 import { CompanyDashboardLayout } from "@/components/company/CompanyDashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -60,6 +62,8 @@ interface JobWithApplicants {
   };
   applicantCount: number;
   applicants: Applicant[];
+  hiddenCount: number;
+  isPro: boolean;
 }
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -548,6 +552,38 @@ export default function Applicants() {
                               setDeleteConfirm={setDeleteConfirm}
                             />
                           ))}
+                        </div>
+                      )}
+                      {/* Blur overlay for non-pro companies with hidden applicants */}
+                      {!jd.isPro && jd.hiddenCount > 0 && (
+                        <div className="relative mt-3 overflow-hidden rounded-lg">
+                          {/* Blurred preview of hidden applicants */}
+                          <div className="space-y-2 opacity-30 blur-sm select-none pointer-events-none">
+                            {Array.from({ length: Math.min(jd.hiddenCount, 3) }).map((_, i) => (
+                              <div key={i} className="flex items-center gap-3 py-2 px-1">
+                                <div className="h-9 w-9 rounded-lg bg-gray-200" />
+                                <div className="flex-1 space-y-1">
+                                  <div className="h-3.5 w-32 rounded bg-gray-200" />
+                                  <div className="h-3 w-24 rounded bg-gray-100" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {/* CTA overlay */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/40 backdrop-blur-[1px]">
+                            <Crown className="h-6 w-6 text-amber-400" />
+                            <p className="mt-1.5 text-[13px] font-semibold text-[#101828]">
+                              +{jd.hiddenCount} more applicant{jd.hiddenCount > 1 ? 's' : ''} hidden
+                            </p>
+                            <p className="text-[11px] text-[#667085]">Upgrade to Pro to view all applicants</p>
+                            <Link
+                              to="/company/pro-plan"
+                              className="mt-2 inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm hover:brightness-110 transition-all"
+                            >
+                              <Crown className="h-3.5 w-3.5" />
+                              Get Pro
+                            </Link>
+                          </div>
                         </div>
                       )}
                     </div>

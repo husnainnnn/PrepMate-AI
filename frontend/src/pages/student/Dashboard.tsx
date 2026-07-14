@@ -16,6 +16,7 @@ import {
   ArrowUpRight,
   ChevronRight,
   Gavel,
+  ExternalLink,
 } from "lucide-react";
 import {
   AreaChart,
@@ -208,17 +209,21 @@ function RecentInterviews({ data }: { data: DashboardData }) {
         ) : (
           <div className="divide-y divide-[#EAECF0] dark:divide-[#334155]">
             {recentInterviews.map((iv) => (
-              <div key={iv._id} className="flex items-center justify-between gap-3 py-3.5">
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${iv.cheated ? 'bg-red-50' : 'bg-blue-50'}`}>
+              <Link
+                key={iv._id}
+                to={`/student/feedback?interviewId=${iv._id}`}
+                className="flex items-center justify-between gap-3 py-3.5 transition-colors hover:bg-[#F7F9FC] dark:hover:bg-[#1E293B] -mx-3 px-3 rounded-lg group"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iv.cheated ? 'bg-red-50' : 'bg-blue-50'}`}>
                     {iv.cheated ? (
                       <Gavel className="h-4 w-4 text-red-500" />
                     ) : (
                       <BarChart3 className="h-4 w-4 text-[#1a6fa8]" />
                     )}
                   </div>
-                  <div>
-                    <p className="text-[13.5px] font-medium text-[#101828] dark:text-[#F1F5F9]">
+                  <div className="min-w-0">
+                    <p className="text-[13.5px] font-medium text-[#101828] dark:text-[#F1F5F9] truncate">
                       {iv.cheated ? '⚠️ Cheating Detected' : (iv.field || 'Mock Interview')}
                     </p>
                     <div className="mt-0.5 flex items-center gap-3 text-[12px] text-[#667085] dark:text-[#94A3B8]">
@@ -230,13 +235,18 @@ function RecentInterviews({ data }: { data: DashboardData }) {
                     </div>
                   </div>
                 </div>
-                <Badge
-                  variant="outline"
-                  className={`rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${iv.cheated ? 'bg-red-50 text-red-600 border-red-200' : scoreBadgeVariant(iv.overallScore * 10)}`}
-                >
-                  {iv.cheated ? 'Cheated' : (iv.overallScore * 10).toFixed(0) + '%'}
-                </Badge>
-              </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge
+                    variant="outline"
+                    className={`rounded-full border px-2.5 py-0.5 text-[12px] font-semibold ${iv.cheated ? 'bg-red-50 text-red-600 border-red-200' : scoreBadgeVariant(iv.overallScore * 10)}`}
+                  >
+                    {iv.cheated ? 'Cheated' : (iv.overallScore * 10).toFixed(0) + '%'}
+                  </Badge>
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#EAECF0] dark:border-[#334155] bg-white dark:bg-[#1E293B] opacity-0 group-hover:opacity-100 transition-all text-[#667085] dark:text-[#94A3B8] hover:text-[#1a6fa8] hover:border-[#1a6fa8]/30">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </span>
+                </div>
+              </Link>
             ))}
             {stats.interviewCount > recentInterviews.length && (
               <div className="block py-3 pt-4 text-center text-[12.5px] font-medium text-[#667085] dark:text-[#94A3B8]">
@@ -480,8 +490,36 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     if (!token || !user) return
-    setLoading(true)
-    const fetchDashboard = async () => {
+    
+    // ── Check if redirected from Stripe payment success ──
+    const params = new URLSearchParams(window.location.search)
+    const sessionId = params.get('session_id')
+    const paymentSuccess = params.get('payment')
+    
+    if (sessionId && paymentSuccess === 'success') {
+      // Confirm payment and upgrade plan
+      fetch('/api/payments/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ session_id: sessionId }),
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) {
+            // Clean URL - remove query params without reload
+            window.history.replaceState({}, '', '/student/dashboard')
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          // Fetch dashboard after confirming payment
+          fetchDashboard()
+        })
+    } else {
+      fetchDashboard()
+    }
+    
+    async function fetchDashboard() {
       try {
         // Check in for streak
         fetch('/api/stats/checkin', {
@@ -500,7 +538,6 @@ export default function StudentDashboard() {
       } catch { /* backend offline */ }
       setLoading(false)
     }
-    fetchDashboard()
   }, [token, user?.id]) // re-fetch when token OR user changes
 
   if (loading) {
@@ -525,10 +562,19 @@ export default function StudentDashboard() {
     <StudentDashboardLayout>
       <div className="space-y-6 px-6 py-6 lg:px-8">
         {/* Welcome */}
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-[#101828] dark:text-[#F1F5F9]">
+              Welcome back, {user?.fullName?.split(' ')[0] || 'Student'} 👋
+            </h1>
+          </div>
+          {stats.plan === 'pro' && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">
+              ⭐ PRO
+            </span>
+          )}
+        </div>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#101828] dark:text-[#F1F5F9]">
-            Welcome back, {user?.fullName?.split(' ')[0] || 'Student'} 👋
-          </h1>
           <p className="mt-1 text-[13.5px] text-[#667085] dark:text-[#94A3B8]">
             {stats.interviewCount === 0
               ? "Ready to ace your first interview?"

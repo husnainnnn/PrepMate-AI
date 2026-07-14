@@ -521,7 +521,10 @@ export default function MockInterviewsPage() {
     }
   }, [stage])
 
-  // Fetch usage count
+  // Fetch usage count + plan
+  const [isProPlan, setIsProPlan] = useState(false)
+  const [monthlyInterviewCount, setMonthlyInterviewCount] = useState(0)
+
   useEffect(() => {
     if (!token) return
     const fetchUsage = async () => {
@@ -532,9 +535,12 @@ export default function MockInterviewsPage() {
         if (res.ok) {
           const data = await res.json()
           const count = data.stats.interviewCount || 0
-          const remaining = data.stats.interviewsRemaining ?? FREE_PLAN_LIMIT - count
+          const plan = data.stats.plan || 'free'
+          const monthlyCount = data.stats.monthlyInterviewCount || 0
+          setIsProPlan(plan === 'pro')
           setUsageCount(count)
-          if (remaining <= 0) setStage('locked')
+          setMonthlyInterviewCount(monthlyCount)
+          if (plan !== 'pro' && monthlyCount >= FREE_PLAN_LIMIT) setStage('locked')
         }
       } catch { /* backend might be offline */ }
     }
@@ -829,11 +835,11 @@ export default function MockInterviewsPage() {
             </div>
             <h2 className="mt-4 text-xl font-semibold text-[#101828]">Free plan limit reached</h2>
             <p className="mt-2 text-[13.5px] text-[#667085]">
-              You've used all {FREE_PLAN_LIMIT} free interviews. Upgrade to keep practicing.
+              You've used all {FREE_PLAN_LIMIT} free interviews this month. Upgrade to keep practicing.
             </p>
-            <button className="mt-6 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110">
+            <Link to="/student/pro-plan" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110">
               Upgrade plan
-            </button>
+            </Link>
           </div>
         </div>
       </StudentDashboardLayout>
@@ -853,7 +859,11 @@ export default function MockInterviewsPage() {
               Practice with an AI interviewer. {totalQuestions.current} questions per interview.
             </p>
             <p className="mt-1 text-[12px] text-[#667085]">
-              Free plan: {Math.max(0, FREE_PLAN_LIMIT - usageCount)} of {FREE_PLAN_LIMIT} interviews remaining
+              {isProPlan ? (
+                <span className="text-emerald-600 font-medium">⭐ Pro: Unlimited interviews</span>
+              ) : (
+                <>Free plan: {Math.max(0, FREE_PLAN_LIMIT - monthlyInterviewCount)} of {FREE_PLAN_LIMIT} interviews this month</>
+              )}
             </p>
 
             {error && (

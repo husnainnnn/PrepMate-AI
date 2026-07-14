@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Briefcase,
   MapPin,
@@ -16,6 +16,7 @@ import {
   EyeOff,
   ChevronDown,
   PencilLine,
+  Crown,
 } from "lucide-react";
 
 import { CompanyDashboardLayout } from "@/components/company/CompanyDashboardLayout";
@@ -539,7 +540,9 @@ export default function PostJob() {
     setTimeout(() => el.focus(), 400);
   };
 
-  // Load existing jobs
+  const [companyData, setCompanyData] = useState<{ plan: string; companyName: string } | null>(null);
+
+  // Load existing jobs + company info
   const loadJobs = async () => {
     if (!token) return;
     try {
@@ -555,7 +558,24 @@ export default function PostJob() {
 
   useEffect(() => {
     loadJobs();
+    // Fetch company info for plan
+    if (token) {
+      fetch('/api/companies/dashboard', {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.ok && r.json()).then(d => {
+        if (d?.company) setCompanyData({ plan: d.company.plan, companyName: d.company.name });
+      }).catch(() => {});
+    }
   }, [token]);
+
+  // Count jobs posted this month
+  const thisMonthJobs = existingJobs.filter(job => {
+    const created = new Date(job.createdAt);
+    const now = new Date();
+    return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+  }).length;
+  const isPro = companyData?.plan === 'pro';
+  const jobsRemaining = isPro ? Infinity : Math.max(0, 2 - thisMonthJobs);
 
   // Update a single field
   const update = (field: keyof JobForm, value: any) => {
@@ -651,7 +671,13 @@ export default function PostJob() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => null);
-        throw new Error(errData?.error || 'Failed to save job');
+        if (errData?.code === 'LIMIT_REACHED') {
+          setError('Free plan allows only 2 job postings per month. ');
+        } else {
+          throw new Error(errData?.error || 'Failed to save job');
+        }
+        setSubmitting(false);
+        return;
       }
 
       setSuccess(true);
@@ -676,12 +702,29 @@ export default function PostJob() {
       <div className="space-y-6 px-6 py-6 lg:px-8">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">Post a Job</h1>
-            <p className="mt-1 text-[13.5px] text-[#667085]">
-              Create a detailed job listing to attract top talent. Fields marked with * are required.
-            </p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">Post a Job</h1>
+              <p className="mt-1 text-[13.5px] text-[#667085]">
+                Create a detailed job listing to attract top talent. Fields marked with * are required.
+              </p>
+            </div>
           </div>
+          {/* Plan indicator */}
+          {companyData && (
+            <div className="flex items-center gap-2">
+              {isPro ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
+                  ⭐ PRO — Unlimited Jobs
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-[11px] font-medium text-[#1a6fa8]">
+                  <Crown className="h-3.5 w-3.5" />
+                  {jobsRemaining} / 2 jobs remaining this month
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Success Banner */}
@@ -702,8 +745,15 @@ export default function PostJob() {
         {/* Error Banner */}
         {error && (
           <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4">
-            <AlertCircle className="h-5 w-5 text-red-500" />
-            <p className="text-[13.5px] font-medium text-red-700">{error}</p>
+            <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+            <p className="text-[13.5px] font-medium text-red-700">
+              {error}
+              {error.includes('2 job postings') && (
+                <Link to="/company/pro-plan" className="ml-1 underline hover:text-red-800">
+                  Upgrade to Pro →
+                </Link>
+              )}
+            </p>
           </div>
         )}
 

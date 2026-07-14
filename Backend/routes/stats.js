@@ -55,8 +55,12 @@ router.get('/dashboard', async (req, res) => {
       });
     } catch { /* ignore */ }
 
-    // Build response
+    // ── Compute monthly counts ────────────────
+    const thisMonth = new Date().toISOString().slice(0, 7);
     const stats = student.stats || {};
+    const monthlyInterviewCount = (stats.interviewMonth || '') === thisMonth ? (stats.monthlyInterviewCount || 0) : 0;
+    const monthlyPracticeCount = (stats.practiceMonth || '') === thisMonth ? (stats.practiceMonthlyCount || 0) : 0;
+
     const today = new Date().toISOString().split('T')[0];
 
     res.json({
@@ -69,8 +73,9 @@ router.get('/dashboard', async (req, res) => {
         practiceSessionsCount: stats.practiceSessionsCount || 0,
         loginStreak: stats.loginStreak || 0,
         lastLoginDate: stats.lastLoginDate || '',
-        interviewsRemaining: stats.interviewsRemaining || 4,
         plan: stats.plan || 'free',
+        monthlyInterviewCount,
+        monthlyPracticeCount,
         applicationsCount: stats.applicationsCount || 0,
         lastInterviewDate: stats.lastInterviewDate || '',
       },
@@ -110,7 +115,8 @@ router.get('/dashboard', async (req, res) => {
 });
 
 // ─── POST /api/stats/interview-started ──────────────────
-// Called when a student STARTS a mock interview — count increments HERE
+// Called when a student STARTS a mock interview
+// Free plan: max 4 per month | Pro plan: unlimited
 router.post('/interview-started', async (req, res) => {
   try {
     const tokenData = getUserFromToken(req);
@@ -123,24 +129,44 @@ router.post('/interview-started', async (req, res) => {
       return res.status(404).json({ error: 'Student not found.' });
     }
 
+    const isPro = (student.stats?.plan || 'free') === 'pro';
+    const FREE_MONTHLY_LIMIT = 4;
+    const thisMonth = new Date().toISOString().slice(0, 7); // "2026-07"
+
+    if (!isPro) {
+      const interviewMonth = student.stats?.interviewMonth || '';
+      const monthlyCount = interviewMonth === thisMonth ? (student.stats?.monthlyInterviewCount || 0) : 0;
+
+      if (monthlyCount >= FREE_MONTHLY_LIMIT) {
+        return res.status(403).json({
+          error: `Free plan allows ${FREE_MONTHLY_LIMIT} interviews per month. Upgrade to Pro for unlimited.`,
+          code: 'MONTHLY_LIMIT_REACHED',
+          interviewsRemaining: 0,
+          planLocked: true,
+        });
+      }
+    }
+
     const stats = student.stats || {};
     const newCount = (stats.interviewCount || 0) + 1;
-    const newRemaining = Math.max(0, (stats.interviewsRemaining || 4) - 1);
     const today = new Date().toISOString().split('T')[0];
+    const interviewMonth = student.stats?.interviewMonth || '';
+    const newMonthlyCount = interviewMonth === thisMonth ? (student.stats?.monthlyInterviewCount || 0) + 1 : 1;
 
     await Student.findByIdAndUpdate(tokenData.id, {
       $set: {
         'stats.interviewCount': newCount,
-        'stats.interviewsRemaining': newRemaining,
         'stats.lastInterviewDate': today,
+        'stats.interviewMonth': thisMonth,
+        'stats.monthlyInterviewCount': newMonthlyCount,
       },
     });
 
     res.json({
       success: true,
       interviewCount: newCount,
-      interviewsRemaining: newRemaining,
-      planLocked: newRemaining <= 0 && (stats.plan || 'free') === 'free',
+      interviewsRemaining: isPro ? 999 : Math.max(0, FREE_MONTHLY_LIMIT - newMonthlyCount),
+      planLocked: false,
     });
   } catch (err) {
     console.error('POST /api/stats/interview-started error:', err);
@@ -201,7 +227,8 @@ router.post('/interview-completed', async (req, res) => {
 });
 
 // ─── POST /api/stats/practice-started ───────────────────
-// Called when a student STARTS a practice session (tracks every session)
+// Called when a student STARTS a practice session
+// Free plan: max 5 per month | Pro plan: unlimited
 router.post('/practice-started', async (req, res) => {
   try {
     const tokenData = getUserFromToken(req);
@@ -214,11 +241,34 @@ router.post('/practice-started', async (req, res) => {
       return res.status(404).json({ error: 'Student not found.' });
     }
 
+    const isPro = (student.stats?.plan || 'free') === 'pro';
+    const FREE_MONTHLY_LIMIT = 5;
+    const thisMonth = new Date().toISOString().slice(0, 7); // "2026-07"
+
+    if (!isPro) {
+      const practiceMonth = student.stats?.practiceMonth || '';
+      const practiceMonthlyCount = practiceMonth === thisMonth ? (student.stats?.practiceMonthlyCount || 0) : 0;
+
+      if (practiceMonthlyCount >= FREE_MONTHLY_LIMIT) {
+        return res.status(403).json({
+          error: `Free plan allows ${FREE_MONTHLY_LIMIT} practice sessions per month. Upgrade to Pro for unlimited.`,
+          code: 'MONTHLY_LIMIT_REACHED',
+          planLocked: true,
+        });
+      }
+    }
+
     const current = student.stats?.practiceSessionsCount || 0;
     const newCount = current + 1;
+    const practiceMonth = student.stats?.practiceMonth || '';
+    const newMonthlyCount = practiceMonth === thisMonth ? (student.stats?.practiceMonthlyCount || 0) + 1 : 1;
 
     await Student.findByIdAndUpdate(tokenData.id, {
-      $set: { 'stats.practiceSessionsCount': newCount },
+      $set: {
+        'stats.practiceSessionsCount': newCount,
+        'stats.practiceMonth': thisMonth,
+        'stats.practiceMonthlyCount': newMonthlyCount,
+      },
     });
 
     res.json({

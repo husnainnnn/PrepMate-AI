@@ -32,32 +32,6 @@ function makeId(): string { return Math.random().toString(36).slice(2, 10) }
 
 const emptyPersonalInfo: PersonalInfo = { fullName: '', email: '', phone: '', address: '', linkedin: '', github: '', portfolio: '', photoUrl: '' }
 
-// ─── Example resume data for demo / template preview ──────────────────
-function getExampleData(): { personalInfo: PersonalInfo; skills: string[]; projects: ProjectItem[]; experience: ExperienceItem[]; education: EducationItem[] } {
-  return {
-    personalInfo: {
-      fullName: 'Husnain Sattar', email: 'husnain@example.com', phone: '+92 300 1234567',
-      address: 'Lahore, Pakistan', linkedin: 'linkedin.com/in/husnain', github: 'github.com/husnain',
-      portfolio: 'husnain.dev', photoUrl: '',
-    },
-    skills: ['React', 'TypeScript', 'Node.js', 'Python', 'MongoDB', 'AWS', 'Docker', 'GraphQL', 'Tailwind CSS', 'Git'],
-    projects: [
-      { id: 'ex1', name: 'AI Interview Platform', description: 'Built a full-stack platform with AI-powered mock interviews, real-time feedback, and resume analysis serving 500+ users.', techStack: 'React, Node.js, MongoDB, Gemini AI', link: 'github.com/husnain/interview-platform' },
-      { id: 'ex2', name: 'E-Commerce Dashboard', description: 'Developed a real-time analytics dashboard with 15+ chart types, user segmentation, and automated reporting for 50+ merchants.', techStack: 'React, TypeScript, Recharts, WebSocket', link: 'github.com/husnain/ecom-dashboard' },
-      { id: 'ex3', name: 'DevOps Pipeline Tool', description: 'Designed a CI/CD pipeline visualizer that reduced deployment time by 40% across 3 team projects.', techStack: 'Python, Docker, GitHub Actions, AWS', link: 'github.com/husnain/devops-pipe' },
-    ],
-    experience: [
-      { id: 'exe1', company: 'TechFlow Solutions', role: 'Senior Frontend Engineer', startDate: 'Jan 2024', endDate: 'Present', description: 'Leading a team of 4 developers building customer-facing React applications. Improved Core Web Vitals by 35% and reduced bundle size by 45% through code splitting and lazy loading.' },
-      { id: 'exe2', company: 'DataForge Inc.', role: 'Full Stack Developer', startDate: 'Jun 2022', endDate: 'Dec 2023', description: 'Built RESTful APIs with Node.js and Express, integrated MongoDB for data persistence, and developed responsive UIs with React and Tailwind CSS.' },
-      { id: 'exe3', company: 'PixelCraft Studio', role: 'Junior Developer', startDate: 'Sep 2020', endDate: 'May 2022', description: 'Maintained 5+ client websites, implemented new features in React/Next.js, and collaborated on design system components.' },
-    ],
-    education: [
-      { id: 'exed1', institute: 'FAST National University', degree: 'BS Computer Science', startYear: '2016', endYear: '2020' },
-      { id: 'exed2', institute: 'Coursera / DeepLearning.AI', degree: 'Specialization: Full Stack Development', startYear: '2021', endYear: '2022' },
-    ],
-  }
-}
-
 export default function ResumeBuilder() {
   const [step, setStep] = useState(0)
   const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplate>(TEMPLATES[0])
@@ -70,11 +44,22 @@ export default function ResumeBuilder() {
   const { token } = useAuth()
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [isPro, setIsPro] = useState(false)
 
-  // ─── Load profile data into resume ────────────────────────
+  // ─── Load profile data & plan into resume ─────────────────
   useEffect(() => {
     if (!token) return
     const loadProfile = async () => {
+      // Fetch plan
+      try {
+        const dashRes = await fetch('/api/stats/dashboard', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (dashRes.ok) {
+          const dashData = await dashRes.json()
+          setIsPro(dashData.stats?.plan === 'pro')
+        }
+      } catch { /* ignore */ }
       try {
         const res = await fetch('/api/auth/me', {
           headers: { Authorization: `Bearer ${token}` },
@@ -102,16 +87,6 @@ export default function ResumeBuilder() {
     }
     loadProfile()
   }, [token])
-
-  // ─── Load example data for demo ───────────────────────────
-  const loadExampleData = () => {
-    const ex = getExampleData()
-    setPersonalInfo(ex.personalInfo)
-    setSkills(ex.skills)
-    setProjects(ex.projects)
-    setExperience(ex.experience)
-    setEducation(ex.education)
-  }
 
   const goNext = () => setStep((s) => Math.min(TOTAL_STEPS, s + 1))
   const goBack = () => setStep((s) => Math.max(0, s - 1))
@@ -251,14 +226,16 @@ export default function ResumeBuilder() {
                   <h2 className="text-lg font-semibold text-[#101828]">Choose a template</h2>
                   <p className="mt-0.5 text-[13px] text-[#667085]">Select a design for your resume</p>
                 </div>
-                <button onClick={loadExampleData}
-                  className="flex items-center gap-1.5 rounded-xl border border-[#EAECF0] bg-white px-4 py-2 text-[13px] font-medium text-[#667085] transition-colors hover:bg-[#F7F9FC] hover:text-[#101828]">
-                  <FileText className="h-4 w-4" /> Load example data
-                </button>
+                {isPro && (
+                  <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-purple-600 to-amber-500 px-3 py-1.5 text-[12px] font-bold text-white shadow-lg">
+                    <Crown className="h-3.5 w-3.5" />
+                    PRO
+                  </span>
+                )}
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {TEMPLATES.map((t) => {
-                  const isLocked = t.isPro
+                  const isLocked = t.isPro && !isPro
                   return (
                     <div key={t.id} className="relative">
                       <button

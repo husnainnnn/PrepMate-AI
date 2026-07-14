@@ -18,6 +18,7 @@ interface DashboardSidebarProps {
     title: string
     description: string
     buttonText: string
+    buttonHref?: string
   } | null
   onLogout?: () => void
 }
@@ -152,13 +153,22 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
             </div>
             <p className="text-[13px] font-semibold">{upgradeCard.title}</p>
             <p className="mt-1 text-[12px] leading-snug text-white/80">{upgradeCard.description}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3 h-8 w-full rounded-lg border-[#1a6fa8]/30 text-[13px] font-medium text-[#1a6fa8] hover:bg-white/90"
-            >
-              {upgradeCard.buttonText}
-            </Button>
+            {upgradeCard.buttonHref ? (
+              <Link
+                to={upgradeCard.buttonHref}
+                className="mt-3 flex h-8 w-full items-center justify-center rounded-lg border border-[#1a6fa8]/30 bg-white text-[13px] font-medium text-[#1a6fa8] hover:bg-white/90 transition-colors"
+              >
+                {upgradeCard.buttonText}
+              </Link>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 h-8 w-full rounded-lg border-[#1a6fa8]/30 text-[13px] font-medium text-[#1a6fa8] hover:bg-white/90"
+              >
+                {upgradeCard.buttonText}
+              </Button>
+            )}
           </div>
         </div>
       )}

@@ -52,6 +52,24 @@ router.post('/jobs', async (req, res) => {
     const company = await Company.findById(tokenData.id);
     if (!company) return res.status(404).json({ error: 'Company not found.' });
 
+    // ── Job posting limit: 2/month for free, unlimited for pro ──
+    const isPro = company.plan === 'pro';
+    if (!isPro) {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const monthlyJobsCount = await Job.countDocuments({
+        companyId: company._id,
+        createdAt: { $gte: startOfMonth },
+      });
+      if (monthlyJobsCount >= 2) {
+        return res.status(403).json({
+          error: 'Free plan allows only 2 job postings per month. Upgrade to Pro for unlimited postings.',
+          code: 'LIMIT_REACHED',
+        });
+      }
+    }
+
     const {
       jobTitle, jobCategory, employmentType, workplace,
       country, city, officeAddress,
@@ -276,16 +294,23 @@ router.get('/applicants/overview', async (req, res) => {
     const company = await Company.findById(tokenData.id);
     if (!company) return res.status(404).json({ error: 'Company not found.' });
 
+    const isPro = company.plan === 'pro';
+    const MAX_VISIBLE = isPro ? Infinity : 5;
+
     // Get all company jobs
     const jobs = await Job.find({ companyId: company._id }).sort({ createdAt: -1 }).lean();
 
     // For each job, count applicants (excluding hiddenFromCompany ones)
     const jobData = [];
     for (const job of jobs) {
-      const applicants = await Application.find({
+      const allApplicants = await Application.find({
         jobId: job._id,
         hiddenFromCompany: { $ne: true }
       }).sort({ createdAt: -1 }).lean();
+
+      const totalCount = allApplicants.length;
+      const visibleApplicants = isPro ? allApplicants : allApplicants.slice(0, MAX_VISIBLE);
+      const hiddenCount = isPro ? 0 : Math.max(0, totalCount - MAX_VISIBLE);
 
       jobData.push({
         job: {
@@ -298,8 +323,10 @@ router.get('/applicants/overview', async (req, res) => {
           isClosed: job.isClosed,
           createdAt: job.createdAt,
         },
-        applicantCount: applicants.length,
-        applicants: applicants,
+        applicantCount: totalCount,
+        applicants: visibleApplicants,
+        hiddenCount,
+        isPro,
       });
     }
 

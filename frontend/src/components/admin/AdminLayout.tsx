@@ -10,11 +10,10 @@ import {
   Crown,
   Info,
   Bell,
-  Search,
 } from 'lucide-react'
 import { DashboardSidebar, type SidebarItem } from '@/components/shared/DashboardSidebar'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Input } from '@/components/ui/input'
+import SmartSearch from '@/components/shared/SmartSearch'
 import { useAuth } from '@/context/AuthContext'
 
 const NAV_ITEMS: SidebarItem[] = [
@@ -27,6 +26,8 @@ const NAV_ITEMS: SidebarItem[] = [
   { label: 'Pro Plan', href: '/admin/pro-plan', icon: Crown },
   { label: 'About', href: '/admin/about', icon: Info },
 ]
+
+const searchNavItems = [...NAV_ITEMS]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, token, logout } = useAuth()
@@ -120,11 +121,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Sticky Top Header — same pattern as student/company */}
           <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[#EAECF0] dark:border-[#334155] bg-white/80 dark:bg-[#1E293B]/80 px-6 py-4 backdrop-blur-sm lg:px-8">
             <div className="relative hidden max-w-sm flex-1 md:block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
-              <Input
-                placeholder="Search students, companies, tickets..."
-                className="h-10 rounded-lg border-[#EAECF0] dark:border-[#334155] bg-[#F7F9FC] dark:bg-[#334155] pl-9 text-[13.5px] text-[#101828] dark:text-[#F1F5F9] placeholder:text-[#98A2B3] dark:placeholder:text-[#64748B] focus-visible:ring-[#1a6fa8]/30"
-              />
+              <SmartSearch items={searchNavItems} placeholder="Search students, companies, tickets..." />
             </div>
 
             <div className="flex items-center gap-3">
