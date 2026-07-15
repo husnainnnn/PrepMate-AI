@@ -158,6 +158,7 @@ app.use('/api/auth/company-login', authLimiter);
 app.use('/api/admin/login', authLimiter);
 app.use('/api/auth/signup', authLimiter);
 app.use('/api/auth/company-signup', authLimiter);
+app.use('/api/auth/google', authLimiter);
 
 // CORS — restrict to frontend origin in production
 const allowedOrigins = isDev

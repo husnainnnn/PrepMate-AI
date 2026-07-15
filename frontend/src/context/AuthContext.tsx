@@ -43,6 +43,7 @@ interface AuthContextType {
   loading: boolean
   login: (email: string, password: string, role: 'student' | 'company') => Promise<void>
   signup: (name: string, email: string, password: string, role: 'student' | 'company') => Promise<void>
+  googleLogin: (token: string, user: User) => void
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -129,6 +130,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user)
   }
 
+  const googleLogin = (token: string, user: User) => {
+    localStorage.setItem(TOKEN_KEY, token)
+    setToken(token)
+    setUser(user)
+  }
+
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY)
     setToken(null)
@@ -141,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, signup, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, signup, googleLogin, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

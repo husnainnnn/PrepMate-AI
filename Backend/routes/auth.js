@@ -614,4 +614,103 @@ router.put('/change-password', async (req, res) => {
   }
 });
 
+// ─── Google Sign-In ─────────────────────────────────────────
+const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+let googleClient = null;
+if (GOOGLE_CLIENT_ID) {
+  googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+}
+
+router.post('/google', async (req, res) => {
+  try {
+    const { credential, role } = req.body;
+    if (!credential) {
+      return res.status(400).json({ error: 'Google credential is required.' });
+    }
+
+    if (!googleClient) {
+      return res.status(500).json({ error: 'Google Sign-In is not configured. Set GOOGLE_CLIENT_ID in .env' });
+    }
+
+    // Verify the Google ID token
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (verifyErr) {
+      console.error('Google token verification failed:', verifyErr.message);
+      return res.status(401).json({ error: 'Invalid Google credential.' });
+    }
+
+    if (!payload.email) {
+      return res.status(400).json({ error: 'Google account must have an email address.' });
+    }
+
+    const { email, name } = payload;
+    const normalizedEmail = email.toLowerCase().trim();
+    const userRole = role === 'company' ? 'company' : 'student';
+
+    // ── Check if email is blocked ──────────────────────────
+    const blockedEmail = await BlockedEmail.findOne({ email: normalizedEmail });
+    if (blockedEmail) {
+      return res.status(403).json({ error: 'This account has been blocked. You cannot sign in with this email.' });
+    }
+
+    // ── Check existing accounts ────────────────────────────
+    const [existingStudent, existingCompany] = await Promise.all([
+      Student.findOne({ email: normalizedEmail }),
+      Company.findOne({ email: normalizedEmail }),
+    ]);
+
+    // If user exists in one role but trying to sign in with another,
+    // create an account in the new role too
+    let user;
+    if (userRole === 'company') {
+      if (existingCompany) {
+        user = existingCompany;
+      } else {
+        // Create new company from Google profile
+        user = new Company({
+          companyName: name || email.split('@')[0],
+          email: normalizedEmail,
+          password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), SALT_ROUNDS),
+        });
+        await user.save();
+      }
+    } else {
+      if (existingStudent) {
+        user = existingStudent;
+      } else {
+        // Create new student from Google profile
+        user = new Student({
+          fullName: name || email.split('@')[0],
+          email: normalizedEmail,
+          password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), SALT_ROUNDS),
+        });
+        await user.save();
+      }
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user._id.toString(), email: user.email, role: userRole },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    const userData = user.toObject();
+    delete userData.password;
+
+    res.json({ token, user: { ...userData, id: userData._id.toString() } });
+  } catch (err) {
+    console.error('POST /api/auth/google error:', err);
+    res.status(500).json({ error: 'Google sign-in failed. Please try again.' });
+  }
+});
+
 module.exports = router;

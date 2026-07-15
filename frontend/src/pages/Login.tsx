@@ -26,7 +26,7 @@ function unitOffset(dx: number, dy: number, range: number) {
 
 export function Login() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, googleLogin } = useAuth()
   const [searchParams] = useSearchParams()
   const role = searchParams.get('role') || 'student'
   const [mode, setMode] = useState<'login' | 'signup'>('login')
@@ -40,6 +40,68 @@ export function Login() {
   const [verifyCode, setVerifyCode] = useState(['', '', '', '', '', ''])
   const [verificationId, setVerificationId] = useState('')
   const verifyRefs = useRef<(HTMLInputElement | null)[]>([])
+
+  // Google Sign-In
+  const [googleLoaded, setGoogleLoaded] = useState(false)
+
+  // Load Google Identity Services script
+  useEffect(() => {
+    if (typeof window.google !== 'undefined' && window.google?.accounts) {
+      setGoogleLoaded(true)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.onload = () => setGoogleLoaded(true)
+    document.body.appendChild(script)
+    return () => {
+      const el = document.querySelector('script[src="https://accounts.google.com/gsi/client"]')
+      if (el) el.remove()
+    }
+  }, [])
+
+  const handleGoogleCredentialResponse = async (response: any) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential, role }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Google sign-in failed')
+
+      googleLogin(data.token, data.user)
+      const dashboardPath = role === 'company' ? '/company/dashboard' : '/student/dashboard'
+      navigate(dashboardPath, { replace: true })
+    } catch (err: any) {
+      setError(err.message || 'Google sign-in failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = () => {
+    if (!googleLoaded || !window.google?.accounts) {
+      setError('Google Sign-In is loading. Please try again in a moment.')
+      return
+    }
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    if (!clientId) {
+      setError('Google Sign-In is not configured. Contact support or add VITE_GOOGLE_CLIENT_ID to .env')
+      return
+    }
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleCredentialResponse,
+    })
+    window.google.accounts.id.prompt()
+  }
 
   // Form fields
   const [fullName, setFullName] = useState('')
@@ -463,11 +525,12 @@ export function Login() {
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#E4E7EC] bg-white px-5 py-3.5 text-sm font-medium text-[#101828] transition-colors hover:bg-[#F5F7FB]"
-              onClick={() => setError('Google sign-in coming soon!')}
+              disabled={loading || !googleLoaded}
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#E4E7EC] bg-white px-5 py-3.5 text-sm font-medium text-[#101828] transition-all hover:bg-[#F5F7FB] disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={handleGoogleSignIn}
             >
-              <GoogleIcon />
-              Continue with Google
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
+              {loading ? 'Signing in...' : 'Continue with Google'}
             </button>
               <p className="mt-8 text-center text-sm text-[#667085]">
                 {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
