@@ -278,6 +278,7 @@ function SelectInput({
   options,
   placeholder = "Select...",
   selectRef,
+  disabled,
 }: {
   label: string;
   value: string;
@@ -285,6 +286,7 @@ function SelectInput({
   options: { value: string; label: string }[];
   placeholder?: string;
   selectRef?: React.RefObject<HTMLSelectElement | null>;
+  disabled?: boolean;
 }) {
   // Render label with red asterisk if present
   const renderLabel = () => {
@@ -302,7 +304,10 @@ function SelectInput({
           ref={selectRef as React.RefObject<HTMLSelectElement>}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full appearance-none rounded-lg border border-[#D0D5DD] bg-white px-3 py-2.5 pr-8 text-[13px] text-[#101828] outline-none transition-all focus:border-[#1a6fa8] focus:ring-1 focus:ring-[#1a6fa8]/20"
+          disabled={disabled}
+          className={`w-full appearance-none rounded-lg border px-3 py-2.5 pr-8 text-[13px] text-[#101828] outline-none transition-all focus:border-[#1a6fa8] focus:ring-1 focus:ring-[#1a6fa8]/20 ${
+            disabled ? 'cursor-not-allowed bg-gray-50 text-[#667085]' : 'border-[#D0D5DD] bg-white'
+          }`}
         >
           <option value="" disabled>{placeholder}</option>
           {options.map((opt) => (
@@ -765,6 +770,11 @@ export default function PostJob() {
           {/* ── 1. Basic Information ─────────────────────── */}
           <Section icon={Briefcase} title="Basic Information">
             <div className="space-y-4">
+              {editingJobId && (
+                <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 text-[12.5px] font-medium text-amber-700">
+                  ⓘ Basic information cannot be edited after posting.
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-[13px] font-medium text-[#344054]">
@@ -775,7 +785,12 @@ export default function PostJob() {
                     value={form.jobTitle}
                     onChange={(e) => update('jobTitle', e.target.value)}
                     placeholder="e.g. Senior Frontend Engineer"
-                    className="w-full rounded-lg border border-[#D0D5DD] px-3 py-2.5 text-[13px] text-[#101828] outline-none transition-all focus:border-[#1a6fa8] focus:ring-1 focus:ring-[#1a6fa8]/20 placeholder:text-[#98A2B3]"
+                    disabled={editingJobId !== null}
+                    className={`w-full rounded-lg border px-3 py-2.5 text-[13px] outline-none transition-all placeholder:text-[#98A2B3] ${
+                      editingJobId
+                        ? 'cursor-not-allowed border-[#D0D5DD] bg-gray-50 text-[#667085]'
+                        : 'border-[#D0D5DD] bg-white text-[#101828] focus:border-[#1a6fa8] focus:ring-1 focus:ring-[#1a6fa8]/20'
+                    }`}
                     required
                   />
                 </div>
@@ -798,6 +813,7 @@ export default function PostJob() {
                   onChange={(v) => update('jobCategory', v)}
                   options={JOB_CATEGORIES.map((c) => ({ value: c, label: c }))}
                   placeholder="Select category"
+                  disabled={editingJobId !== null}
                 />
                 <SelectInput
                   label="Employment Type *"
@@ -805,6 +821,7 @@ export default function PostJob() {
                   onChange={(v) => update('employmentType', v)}
                   options={EMPLOYMENT_TYPES}
                   selectRef={employmentTypeRef}
+                  disabled={editingJobId !== null}
                 />
                 <SelectInput
                   label="Workplace *"
@@ -812,6 +829,7 @@ export default function PostJob() {
                   onChange={(v) => update('workplace', v)}
                   options={WORKPLACE_TYPES}
                   selectRef={workplaceRef}
+                  disabled={editingJobId !== null}
                 />
               </div>
             </div>

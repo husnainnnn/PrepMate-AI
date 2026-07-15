@@ -3,6 +3,7 @@ import { StudentDashboardLayout } from '@/components/student/StudentDashboardLay
 import { User, Save, Plus, X, FileText, Upload, CheckCircle, ExternalLink, Camera, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { getImageUrl } from '@/lib/imageUrl'
 
 interface EducationItem {
   id: string
@@ -194,9 +195,9 @@ export default function StudentProfilePage() {
             </div>
           </div>
 
-          {/* Toast notification */}
+          {/* Toast notification — fixed above navbar */}
           <div
-            className={`fixed left-1/2 top-4 z-50 -translate-x-1/2 transition-all duration-300 ${
+            className={`fixed left-1/2 top-20 z-[100] -translate-x-1/2 transition-all duration-300 ${
               toastVisible
                 ? 'translate-y-0 opacity-100'
                 : '-translate-y-4 opacity-0 pointer-events-none'
@@ -222,7 +223,7 @@ export default function StudentProfilePage() {
                 <div className="group relative shrink-0">
                   <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-[#D0D5DD] dark:border-[#475569] bg-[#F7F9FC] dark:bg-[#1E293B] transition-all group-hover:border-[#1a6fa8]">
                     {profile.profilePicture ? (
-                      <img src={profile.profilePicture} alt="Profile" className="h-full w-full object-cover" />
+                      <img src={getImageUrl(profile.profilePicture)} alt="Profile" className="h-full w-full object-cover" />
                     ) : (
                       <User className="h-10 w-10 text-[#98A2B3]" />
                     )}

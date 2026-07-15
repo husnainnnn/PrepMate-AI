@@ -139,10 +139,22 @@ router.post('/match', async (req, res) => {
         const totalJobs = await Job.countDocuments({ isClosed: { $ne: true } });
         const profileHash = generateJobMatchHash(student.field, student.skills, student.experience);
         
-        // If job count same + profile hash matches → return cached
+        // If job count same + profile hash matches → return cached (with fresh isVerified)
         if (cached.jobCount === totalJobs && cached.profileHash === profileHash && cached.matches && cached.matches.length > 0) {
+          // Fetch fresh verification statuses for cached matches
+          const Company = require('../models/Company');
+          const companyIds = [...new Set(cached.matches.filter((m) => m.companyName).map((m) => m.companyName))];
+          const companies = await Company.find({ companyName: { $in: companyIds } }).select('companyName isVerified').lean();
+          const verifMap = {};
+          for (const c of companies) {
+            verifMap[c.companyName] = c.isVerified;
+          }
+          const freshMatches = cached.matches.map((m) => ({
+            ...m,
+            isCompanyVerified: verifMap[m.companyName] || false,
+          }));
           return res.json({
-            matches: cached.matches,
+            matches: freshMatches,
             aiPowered: cached.aiPowered || false,
             cached: true,
             generatedAt: cached.generatedAt,

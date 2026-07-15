@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import SmartSearch from '@/components/shared/SmartSearch'
 import { useCachedFetch } from '@/hooks/useCachedFetch'
 import { TTL } from '@/lib/apiCache'
+import { getImageUrl } from '@/lib/imageUrl'
 
 interface StudentDashboardLayoutProps {
   children: ReactNode
@@ -215,7 +216,7 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
 
               <Link to="/student/profile" className="flex items-center gap-2 rounded-lg border border-[#EAECF0] dark:border-[#334155] py-1.5 pl-1.5 pr-3 transition-colors hover:bg-[#F7F9FC] dark:hover:bg-[#334155]">
                 <Avatar className="h-7 w-7">
-                  <AvatarImage src={user?.profilePicture || ''} alt={user?.fullName || 'User'} />
+                  <AvatarImage src={getImageUrl(user?.profilePicture)} alt={user?.fullName || 'User'} />
                   <AvatarFallback className="bg-blue-50 text-[11px] font-semibold text-[#1a6fa8]">{initials}</AvatarFallback>
                 </Avatar>
                 <span className="hidden text-[13px] font-medium text-[#101828] dark:text-[#F1F5F9] sm:block">{user?.fullName || 'User'}</span>

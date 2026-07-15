@@ -1,4 +1,29 @@
 /**
+ * NoSQL-injection-safe version of common MongoDB operators.
+ * Blocks keys containing $ or . to prevent query injection.
+ */
+function cleanKey(key) {
+  return key.replace(/[$.]/g, '');
+}
+
+/**
+ * Recursively sanitize an object to remove NoSQL injection (
+ * operators (keys starting with $).
+ */
+function sanitizeObject(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeObject);
+  const result = {};
+  for (const key of Object.keys(obj)) {
+    const clean = cleanKey(key);
+    if (clean) {
+      result[clean] = sanitizeObject(obj[key]);
+    }
+  }
+  return result;
+}
+
+/**
  * Validates that required fields are present and non-empty.
  * Returns 400 with specific error message if validation fails.
  *
@@ -35,15 +60,20 @@ function sanitize(str) {
 
 /**
  * Sanitize all string fields in req.body (mutates in place).
+ * Also strips NoSQL $ operators from object keys.
  * Use as middleware: router.post('/path', sanitizeBody, handler)
  */
 function sanitizeBody(req, _res, next) {
   if (req.body && typeof req.body === 'object') {
-    for (const key of Object.keys(req.body)) {
-      if (typeof req.body[key] === 'string') {
-        req.body[key] = sanitize(req.body[key]);
+    // Remove NoSQL injection operators from the entire body
+    const cleaned = sanitizeObject(req.body);
+    // Sanitize string fields
+    for (const key of Object.keys(cleaned)) {
+      if (typeof cleaned[key] === 'string') {
+        cleaned[key] = sanitize(cleaned[key]);
       }
     }
+    req.body = cleaned;
   }
   next();
 }
@@ -57,10 +87,14 @@ function isValidEmail(email) {
 }
 
 /**
- * Password strength validation (min 6 chars, basic check).
+ * Password strength validation — min 8 chars, at least 1 letter and 1 number.
  */
 function isValidPassword(password) {
-  return typeof password === 'string' && password.length >= 6;
+  if (typeof password !== 'string') return false;
+  if (password.length < 8) return false;
+  if (!/[A-Za-z]/.test(password)) return false;
+  if (!/[0-9]/.test(password)) return false;
+  return true;
 }
 
-module.exports = { requireFields, sanitize, sanitizeBody, isValidEmail, isValidPassword };
+module.exports = { requireFields, sanitize, sanitizeBody, isValidEmail, isValidPassword, sanitizeObject };

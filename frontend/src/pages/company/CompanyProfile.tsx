@@ -23,6 +23,7 @@ import {
   Plus,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { getImageUrl } from '@/lib/imageUrl'
 
 // ─── Industry options ──────────────────────────────────────
 const INDUSTRIES = [
@@ -208,7 +209,7 @@ export default function CompanyProfilePage() {
                   <div className="group relative">
                     <div className="flex h-28 w-28 items-center justify-center rounded-2xl border-2 border-dashed border-[#D0D5DD] bg-[#F7F9FC] overflow-hidden transition-all group-hover:border-[#1a6fa8]">
                       {logoPreview ? (
-                        <img src={logoPreview} alt="Company logo" className="h-full w-full object-cover" />
+                        <img src={getImageUrl(logoPreview)} alt="Company logo" className="h-full w-full object-cover" />
                       ) : (
                         <Building2 className="h-10 w-10 text-[#98A2B3]" />
                       )}

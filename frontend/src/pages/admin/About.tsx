@@ -14,6 +14,7 @@ import {
   User,
   GripVertical,
 } from 'lucide-react'
+import { getImageUrl } from '@/lib/imageUrl'
 
 interface Developer {
   name: string
@@ -327,8 +328,7 @@ function ImageUploader({
   return (
     <div>
       {imageUrl ? (
-        <div className="relative group inline-block rounded-lg overflow-hidden border border-[#EAECF0] dark:border-[#334155]">
-          <img src={imageUrl} alt={label} className="max-h-48 w-auto max-w-full object-contain bg-[#F7F9FC] dark:bg-[#0F172A]" />
+        <div className="relative group inline-block rounded-lg overflow-hidden border border-[#EAECF0] dark:border-[#334155]">                          <img src={getImageUrl(imageUrl)} alt={label} className="max-h-48 w-auto max-w-full object-contain bg-[#F7F9FC] dark:bg-[#0F172A]" />
           <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
             <label className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-[12px] font-medium text-[#101828] hover:bg-white transition-colors">
               <Upload className="h-3.5 w-3.5" /> Change
@@ -375,7 +375,7 @@ function DevImageUploader({
     <div className="h-10">
       {imageUrl ? (
         <div className="relative group flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden border border-[#EAECF0] dark:border-[#334155] bg-[#F7F9FC] dark:bg-[#0F172A]">
-          <img src={imageUrl} alt="Dev" className="h-full w-full object-cover" />
+          <img src={getImageUrl(imageUrl)} alt="Dev" className="h-full w-full object-cover" />
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
             <button onClick={onRemove} className="text-white"><Trash2 className="h-3.5 w-3.5" /></button>
           </div>

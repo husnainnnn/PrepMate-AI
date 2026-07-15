@@ -78,7 +78,7 @@ export default function Applications() {
         socket = io(getSocketUrl())
 
         socket.on('connect', () => {
-          socket.emit('join', user.id || user._id)
+          socket.emit('join', user.id || user._id, token)
         })
 
         // Interview scheduled → Application stage updated → refresh

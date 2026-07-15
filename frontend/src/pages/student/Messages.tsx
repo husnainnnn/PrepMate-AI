@@ -95,7 +95,7 @@ export default function StudentMessages() {
     const socket = io(getSocketUrl());
 
     socket.on('connect', () => {
-      socket.emit('join', user.id || user._id);
+      socket.emit('join', user.id || user._id, token);
     });
 
     socket.on('new-message', (msg: ChatMessage) => {

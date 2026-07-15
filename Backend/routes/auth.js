@@ -4,9 +4,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Student = require('../models/Student');
 const Company = require('../models/Company');
+const VerificationCode = require('../models/VerificationCode');
+const BlockedEmail = require('../models/BlockedEmail');
+const { generateCode, sendVerificationCode, sendPasswordResetCode } = require('../services/email');
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 const SALT_ROUNDS = 10;
+const CODE_EXPIRY_MINUTES = 10;
 
 // ─── Helper: extract user from JWT ────────────────────────
 function getUserFromToken(req) {
@@ -26,15 +30,137 @@ function getUserModel(role) {
   return role === 'company' ? Company : Student;
 }
 
-// ─── Student Signup ────────────────────────────────────────
+// ─── Helper: check if email exists ─────────────────────────
+async function emailExists(email) {
+  const [student, company] = await Promise.all([
+    Student.findOne({ email: email.toLowerCase() }),
+    Company.findOne({ email: email.toLowerCase() }),
+  ])
+  return !!student || !!company
+}
+
+// ─── Send Verification Code (for signup) ───────────────────
+router.post('/send-verification', async (req, res) => {
+  try {
+    const { email, type } = req.body
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required.' })
+    }
+
+    const normalizedEmail = email.toLowerCase().trim()
+
+    if (type === 'signup') {
+      // Check if account already exists
+      if (await emailExists(normalizedEmail)) {
+        return res.status(409).json({ error: 'An account with this email already exists.' })
+      }
+    }
+
+    // Check if email is blocked
+    if (type === 'signup') {
+      const blocked = await BlockedEmail.findOne({ email: normalizedEmail });
+      if (blocked) {
+        return res.status(403).json({ error: 'This email is blocked. You cannot create an account with this email.' });
+      }
+    }
+
+    // Generate code
+    const code = generateCode()
+    const expiresAt = new Date(Date.now() + CODE_EXPIRY_MINUTES * 60 * 1000)
+
+    // Delete any existing codes for this email + type
+    const verificationType = type === 'password_reset' ? 'password_reset' : 'email_verification'
+    await VerificationCode.deleteMany({ email: normalizedEmail, type: verificationType })
+
+    // Save new code
+    await VerificationCode.create({
+      email: normalizedEmail,
+      code,
+      type: verificationType,
+      expiresAt,
+    })
+
+    // Send email
+    if (verificationType === 'password_reset') {
+      await sendPasswordResetCode(normalizedEmail, code)
+    } else {
+      await sendVerificationCode(normalizedEmail, code)
+    }
+
+    res.json({ success: true, message: 'Verification code sent to your email.' })
+  } catch (err) {
+    console.error('POST /api/auth/send-verification error:', err)
+    res.status(500).json({ error: 'Failed to send verification code.' })
+  }
+})
+
+// ─── Verify Code ────────────────────────────────────────────
+router.post('/verify-code', async (req, res) => {
+  try {
+    const { email, code, type } = req.body
+    if (!email || !code) {
+      return res.status(400).json({ error: 'Email and code are required.' })
+    }
+
+    const normalizedEmail = email.toLowerCase().trim()
+    const verificationType = type === 'password_reset' ? 'password_reset' : 'email_verification'
+
+    const record = await VerificationCode.findOne({
+      email: normalizedEmail,
+      type: verificationType,
+      used: false,
+      expiresAt: { $gt: new Date() },
+    })
+
+    if (!record) {
+      return res.status(400).json({ error: 'No valid verification code found. Request a new one.' })
+    }
+
+    if (record.code !== code) {
+      return res.status(400).json({ error: 'Incorrect verification code. Please try again.' })
+    }
+
+    // Mark as used — only for email_verification, not password_reset
+    // (reset-password endpoint handles marking password reset codes as used)
+    if (verificationType !== 'password_reset') {
+      record.used = true
+      await record.save()
+    }
+
+    res.json({ success: true, message: 'Email verified successfully.' })
+  } catch (err) {
+    console.error('POST /api/auth/verify-code error:', err)
+    res.status(500).json({ error: 'Failed to verify code.' })
+  }
+})
+
+// ─── Student Signup (requires prior verification) ───────────
 router.post('/signup', async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { fullName, email, password, verificationCode } = req.body;
     if (!fullName || !email || !password) {
       return res.status(400).json({ error: 'Full name, email, and password are required.' });
     }
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters with at least one letter and one number.' });
+    }
 
-    const existing = await Student.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.toLowerCase().trim()
+
+    // Verify the code was used
+    if (verificationCode) {
+      const verified = await VerificationCode.findOne({
+        email: normalizedEmail,
+        code: verificationCode,
+        type: 'email_verification',
+        used: true,
+      })
+      if (!verified) {
+        return res.status(400).json({ error: 'Please verify your email first.' })
+      }
+    }
+
+    const existing = await Student.findOne({ email: normalizedEmail });
     if (existing) {
       return res.status(409).json({ error: 'An account with this email already exists.' });
     }
@@ -43,7 +169,7 @@ router.post('/signup', async (req, res) => {
 
     const newUser = new Student({
       fullName,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password: hashedPassword,
     });
 
@@ -65,15 +191,33 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-// ─── Company Signup ────────────────────────────────────────
+// ─── Company Signup (requires prior verification) ───────────
 router.post('/company-signup', async (req, res) => {
   try {
-    const { companyName, email, password } = req.body;
+    const { companyName, email, password, verificationCode } = req.body;
     if (!companyName || !email || !password) {
       return res.status(400).json({ error: 'Company name, email, and password are required.' });
     }
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters with at least one letter and one number.' });
+    }
 
-    const existing = await Company.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.toLowerCase().trim()
+
+    // Verify the code was used
+    if (verificationCode) {
+      const verified = await VerificationCode.findOne({
+        email: normalizedEmail,
+        code: verificationCode,
+        type: 'email_verification',
+        used: true,
+      })
+      if (!verified) {
+        return res.status(400).json({ error: 'Please verify your email first.' })
+      }
+    }
+
+    const existing = await Company.findOne({ email: normalizedEmail });
     if (existing) {
       return res.status(409).json({ error: 'A company with this email already exists.' });
     }
@@ -82,7 +226,7 @@ router.post('/company-signup', async (req, res) => {
 
     const newCompany = new Company({
       companyName,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password: hashedPassword,
     });
 
@@ -323,6 +467,103 @@ router.delete('/profile', async (req, res) => {
   }
 });
 
+// ─── Forgot Password — Send Reset Code ──────────────────
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required.' })
+    }
+
+    const normalizedEmail = email.toLowerCase().trim()
+
+    // Check if account exists (either student or company)
+    const exists = await emailExists(normalizedEmail)
+    if (!exists) {
+      return res.status(404).json({ error: 'No account found with this email.' })
+    }
+
+    // Generate and send code (handled by send-verification route logic above)
+    // We re-use the same mechanism
+    const code = generateCode()
+    const expiresAt = new Date(Date.now() + CODE_EXPIRY_MINUTES * 60 * 1000)
+
+    await VerificationCode.deleteMany({ email: normalizedEmail, type: 'password_reset' })
+
+    await VerificationCode.create({
+      email: normalizedEmail,
+      code,
+      type: 'password_reset',
+      expiresAt,
+    })
+
+    await sendPasswordResetCode(normalizedEmail, code)
+
+    res.json({ success: true, message: 'Password reset code sent to your email.' })
+  } catch (err) {
+    console.error('POST /api/auth/forgot-password error:', err)
+    res.status(500).json({ error: 'Failed to send reset code.' })
+  }
+})
+
+// ─── Reset Password ────────────────────────────────────────
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ error: 'Email, code, and new password are required.' })
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long.' })
+    }
+    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      return res.status(400).json({ error: 'Password must contain at least one letter and one number.' })
+    }
+
+    const normalizedEmail = email.toLowerCase().trim()
+
+    // Verify the reset code
+    const record = await VerificationCode.findOne({
+      email: normalizedEmail,
+      code,
+      type: 'password_reset',
+      used: false,
+      expiresAt: { $gt: new Date() },
+    })
+
+    if (!record) {
+      return res.status(400).json({ error: 'Invalid or expired reset code.' })
+    }
+
+    // Find the user (student or company)
+    let user = await Student.findOne({ email: normalizedEmail })
+    let role = 'student'
+    if (!user) {
+      user = await Company.findOne({ email: normalizedEmail })
+      role = 'company'
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' })
+    }
+
+    // Update password
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS)
+    user.password = hashedPassword
+    await user.save()
+
+    // Mark code as used
+    record.used = true
+    await record.save()
+
+    res.json({ success: true, message: 'Password reset successfully. You can now log in with your new password.' })
+  } catch (err) {
+    console.error('POST /api/auth/reset-password error:', err)
+    res.status(500).json({ error: 'Failed to reset password.' })
+  }
+})
+
 // ─── PUT /api/auth/change-password — JWT protected ───────
 router.put('/change-password', async (req, res) => {
   try {
@@ -337,8 +578,11 @@ router.put('/change-password', async (req, res) => {
       return res.status(400).json({ error: 'Current password and new password are required.' });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters long.' });
+    }
+    if (!/[A-Za-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      return res.status(400).json({ error: 'New password must contain at least one letter and one number.' });
     }
 
     if (currentPassword === newPassword) {

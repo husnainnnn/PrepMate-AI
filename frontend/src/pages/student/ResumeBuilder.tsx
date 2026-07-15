@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
 import { FileText, Plus, X, ArrowRight, ChevronLeft, Download, Save, Image, Crown, Lock } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { getImageUrl } from '@/lib/imageUrl'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 
@@ -372,7 +373,7 @@ function PhotoUploader({ photoUrl, onUpload }: { photoUrl: string; onUpload: (f:
   return (
     <div className="mb-5 flex items-center gap-4">
       <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-[#F7F9FC]">
-        {photoUrl ? <img src={photoUrl} alt="" className="h-full w-full object-cover" /> : <Image className="h-8 w-8 text-[#98A2B3]" />}
+        {photoUrl ? <img src={getImageUrl(photoUrl)} alt="" className="h-full w-full object-cover" /> : <Image className="h-8 w-8 text-[#98A2B3]" />}
       </div>
       <div>
         <button onClick={() => ref.current?.click()} className="flex items-center gap-2 rounded-xl border border-[#EAECF0] bg-white px-4 py-2 text-[13px] font-medium text-[#667085] transition-colors hover:bg-[#F7F9FC]">
@@ -846,7 +847,7 @@ function CreativeResume({ data, template }: { data: ResumeData; template: Resume
     <div id="resume-preview" className="flex w-full overflow-hidden rounded-2xl border border-[#EAECF0] bg-white shadow-sm print:border-0 print:shadow-none">
       <div className="w-1/3 space-y-6 p-8" style={{ background: `${c}0d` }}>
         {personalInfo.photoUrl ? (
-          <img src={personalInfo.photoUrl} alt={personalInfo.fullName} className="h-24 w-24 rounded-full object-cover" />
+          <img src={getImageUrl(personalInfo.photoUrl)} alt={personalInfo.fullName} className="h-24 w-24 rounded-full object-cover" />
         ) : (
           <div className="flex h-24 w-24 items-center justify-center rounded-full" style={{ background: `${c}30` }}>
             <span className="text-2xl font-bold" style={{ color: c }}>{initials(personalInfo.fullName)}</span>
@@ -964,7 +965,7 @@ function ExecutiveResume({ data, template }: { data: ResumeData; template: Resum
     <div id="resume-preview" className="w-full overflow-hidden rounded-2xl border border-[#EAECF0] bg-white shadow-sm print:border-0 print:shadow-none">
       <div className="flex items-center gap-5 px-10 py-6" style={{ background: `linear-gradient(90deg, ${c}, #d97706)` }}>
         {personalInfo.photoUrl ? (
-          <img src={personalInfo.photoUrl} alt={personalInfo.fullName} className="h-16 w-16 rounded-full object-cover ring-2 ring-white/60" />
+          <img src={getImageUrl(personalInfo.photoUrl)} alt={personalInfo.fullName} className="h-16 w-16 rounded-full object-cover ring-2 ring-white/60" />
         ) : (
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 ring-2 ring-white/60">
             <span className="text-lg font-bold text-white">{initials(personalInfo.fullName)}</span>
@@ -1099,7 +1100,7 @@ function PortfolioResume({ data, template }: { data: ResumeData; template: Resum
           <p className="mt-1 text-[12px] text-[#98A2B3]">{[personalInfo.email, personalInfo.phone].filter(Boolean).join(' · ')}</p>
         </div>
         {personalInfo.photoUrl ? (
-          <img src={personalInfo.photoUrl} alt={personalInfo.fullName} className="h-20 w-20 rounded-full object-cover" />
+          <img src={getImageUrl(personalInfo.photoUrl)} alt={personalInfo.fullName} className="h-20 w-20 rounded-full object-cover" />
         ) : (
           <div className="flex h-20 w-20 items-center justify-center rounded-full" style={{ background: `${c}25` }}>
             <span className="text-lg font-bold" style={{ color: c }}>{initials(personalInfo.fullName)}</span>

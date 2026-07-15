@@ -1,7 +1,17 @@
 /**
  * MOCK INTERVIEW DATA SERVICE
  * Connects to backend API which uses Gemini for AI-powered questions & analysis.
+ * All requests send the JWT auth token via Authorization header.
  */
+
+const TOKEN_KEY = 'prepmate_token'
+
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem(TOKEN_KEY)
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  return headers
+}
 
 export type ExperienceLevel = "fresher" | "junior" | "mid" | "senior"
 export type QuestionType = "technical" | "behavioral" | "situational"
@@ -79,7 +89,7 @@ export async function evaluateSingleAnswer(
 ): Promise<SingleAnswerEvaluation> {
   const res = await fetch("/api/interview/evaluate-answer", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ field, question, answer, topic, type }),
   })
   if (!res.ok) {
@@ -94,7 +104,7 @@ export async function fetchQuestions(setupData: SetupData, totalQuestions: numbe
   try {
     const res = await fetch("/api/interview/questions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ ...setupData, totalQuestions }),
     })
     if (!res.ok) {
@@ -119,7 +129,7 @@ export async function fetchFollowUp(
   try {
     const res = await fetch("/api/interview/followup", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ field, originalQuestion, candidateAnswer, topic }),
     })
     if (!res.ok) throw new Error("followup endpoint failed")
@@ -145,7 +155,7 @@ export async function fetchAnalysis(
   try {
     const res = await fetch("/api/interview/analyze", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ field, experience, answers }),
     })
     if (!res.ok) {

@@ -4,6 +4,8 @@ import { DarkModeProvider } from '@/context/DarkModeContext'
 import { CacheProvider } from '@/context/CacheContext'
 import { Landing } from '@/pages/Landing'
 import { Login } from '@/pages/Login'
+import ForgotPassword from '@/pages/ForgotPassword'
+import ResetPassword from '@/pages/ResetPassword'
 import NotFound from '@/pages/NotFound'
 
 // ─── Protected Route Wrapper ──────────────────────────────
@@ -78,6 +80,8 @@ import AdminCompanyVerification from '@/pages/admin/CompanyVerification'
 import AdminProPlan from '@/pages/admin/ProPlan'
 import AdminAbout from '@/pages/admin/About'
 import AdminNotifications from '@/pages/admin/Notifications'
+import AdminStudentDetail from '@/pages/admin/StudentDetail'
+import AdminCompanyDetail from '@/pages/admin/CompanyDetail'
 
 function App() {
   return (
@@ -88,6 +92,8 @@ function App() {
       {/* Public routes */}
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Student routes — file names match sidebar labels */}
       <Route path="/student/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
@@ -118,6 +124,8 @@ function App() {
       <Route path="/admin/pro-plan" element={<ProtectedRoute><AdminProPlan /></ProtectedRoute>} />
       <Route path="/admin/about" element={<ProtectedRoute><AdminAbout /></ProtectedRoute>} />
       <Route path="/admin/notifications" element={<ProtectedRoute><AdminNotifications /></ProtectedRoute>} />
+      <Route path="/admin/students/:id" element={<ProtectedRoute><AdminStudentDetail /></ProtectedRoute>} />
+      <Route path="/admin/companies/:id" element={<ProtectedRoute><AdminCompanyDetail /></ProtectedRoute>} />
 
       {/* Company routes — file names match sidebar labels */}
       <Route path="/company/dashboard" element={<ProtectedRoute><CompanyDashboard /></ProtectedRoute>} />

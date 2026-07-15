@@ -5,20 +5,24 @@ import { Hero } from '@/components/layout/Hero'
 
 export function Landing() {
   // Landing page hamesha light mode mein rahega
+  // Direct DOM manipulation — avoids touching DarkModeProvider's state/localStorage
   useEffect(() => {
     const root = document.documentElement
     const wasDark = root.classList.contains('dark')
     root.classList.remove('dark')
     return () => {
+      // Restore on unmount (navigating to login) so user's preference is preserved
       if (wasDark) root.classList.add('dark')
     }
   }, [])
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground">
+    <div className="animate-page-enter relative min-h-screen w-full overflow-hidden bg-background text-foreground">
       <style>{`
         @keyframes pulse-glow { 0%,100% { opacity: 0.15; } 50% { opacity: 0.35; } }
         .anim-glow { animation: pulse-glow 4s ease-in-out infinite; }
+        @keyframes page-enter { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+        .animate-page-enter { animation: page-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
       `}</style>
 
       {/* Ambient blue glow to bridge theme with login page */}

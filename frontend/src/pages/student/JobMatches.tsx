@@ -260,25 +260,9 @@ export default function JobMatches() {
     profileExperience,
   ].join('|||')
 
-  // ─── Load cached matches from localStorage ─────────────
-  const getCachedMatches = () => {
-    try {
-      const raw = localStorage.getItem('prepmate_job_matches')
-      if (!raw) return null
-      const cached = JSON.parse(raw)
-      if (cached.profileHash === profileHash && !cached.hasFilters) {
-        return cached.matches
-      }
-      return null
-    } catch { return null }
-  }
-
-  const saveCachedMatches = (matches: JobMatch[]) => {
-    try {
-      const data = { profileHash, matches, hasFilters: false, savedAt: Date.now() }
-      localStorage.setItem('prepmate_job_matches', JSON.stringify(data))
-    } catch { /* localStorage full */ }
-  }
+  // ─── localStorage caching removed for accuracy ────────
+  // Company verification status can change, so we always fetch fresh data.
+  // In-memory apiCache handles same-session performance.
 
   // Plan info — cached via useCachedFetch in Dashboard, no extra call!
   const [isPro, setIsPro] = useState(false)
@@ -294,18 +278,8 @@ export default function JobMatches() {
   }, [token])
 
   // ─── Fetch jobs on mount & when user/profile changes ───
-  const fetchMatches = useCallback(async (search: string, filterState: FiltersState, isManualSearch = false) => {
-    if (!token) return      // If not a manual search/filter change, try cache first
-    if (!isManualSearch) {
-      const cached = getCachedMatches()
-      if (cached) {
-        setAllMatches(cached)
-        setProfileLoaded(true)
-        setLoading(false)
-        return
-      }
-    }
-
+  const fetchMatches = useCallback(async (search: string, filterState: FiltersState) => {
+    if (!token) return
     setLoading(true)
     setError(null)
     try {
@@ -332,8 +306,6 @@ export default function JobMatches() {
         if (filterState.postedDays) body.filters.postedDays = filterState.postedDays
       }
 
-      const hasFilters = Object.keys(body.filters || {}).length > 0 || !!body.search
-
       const res = await fetch('/api/jobs/match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -345,10 +317,6 @@ export default function JobMatches() {
       setAllMatches(matches)
       setAiPowered(data.aiPowered || false)
 
-      // Cache only if no active filters (default view)
-      if (!hasFilters) {
-        saveCachedMatches(matches)
-      }
     } catch (err: any) {
       setError(err.message)
     }

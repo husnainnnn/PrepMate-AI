@@ -9,6 +9,8 @@ import {
   BarChart3,
   ShieldCheck,
   ArrowRight,
+  Loader2,
+  MailCheck,
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
@@ -33,6 +35,11 @@ export function Login() {
   const [lookAt, setLookAt] = useState({ x: 0, y: 0 })
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Verification step
+  const [verifyCode, setVerifyCode] = useState(['', '', '', '', '', ''])
+  const [verificationId, setVerificationId] = useState('')
+  const verifyRefs = useRef<(HTMLInputElement | null)[]>([])
 
   // Form fields
   const [fullName, setFullName] = useState('')
@@ -63,29 +70,67 @@ export function Login() {
   const leftPupil = lookingAtEmail ? { x: PUPIL_RANGE, y: 2 } : pupilOffset(leftEyeRef)
   const rightPupil = lookingAtEmail ? { x: PUPIL_RANGE, y: 2 } : pupilOffset(rightEyeRef)
 
+  const handleSendVerification = async () => {
+    if (!fullName.trim()) throw new Error(role === 'company' ? 'Company name is required.' : 'Full name is required.')
+    if (!email.trim()) throw new Error('Email is required.')
+    if (!password || password.length < 6) throw new Error('Password must be at least 6 characters.')
+
+    const res = await fetch('/api/auth/send-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), type: 'signup' }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to send verification')
+  }
+
+  const handleVerifySignup = async () => {
+    if (verifyCode.some(d => !d)) throw new Error('Please enter the full verification code.')
+    const code = verifyCode.join('')
+
+    // First verify the code
+    const verifyRes = await fetch('/api/auth/verify-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), code, type: 'email_verification' }),
+    })
+    const verifyData = await verifyRes.json()
+    if (!verifyRes.ok) throw new Error(verifyData.error || 'Invalid verification code')
+
+    // Then create account
+    const endpoint = role === 'company' ? '/api/auth/company-signup' : '/api/auth/signup'
+    const body = role === 'company'
+      ? { companyName: fullName.trim(), email: email.trim(), password, verificationCode: code }
+      : { fullName: fullName.trim(), email: email.trim(), password, verificationCode: code }
+    const signupRes = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const signupData = await signupRes.json()
+    if (!signupRes.ok) throw new Error(signupData.error || 'Signup failed')
+
+    // Auto-login
+    await login(email.trim(), password, role as 'student' | 'company')
+    const dashboardPath = role === 'company' ? '/company/dashboard' : '/student/dashboard'
+    navigate(dashboardPath, { replace: true })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
 
     try {
-      if (mode === 'signup') {
-        if (!fullName.trim()) throw new Error(role === 'company' ? 'Company name is required.' : 'Full name is required.')
-        // Signup: call API directly, don't auto-login
-        const endpoint = role === 'company' ? '/api/auth/company-signup' : '/api/auth/signup'
-        const body = role === 'company' ? { companyName: fullName.trim(), email: email.trim(), password } : { fullName: fullName.trim(), email: email.trim(), password }
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Signup failed')
-        // Switch to login mode with email pre-filled + success message
-        setMode('login')
-        setError('Account created successfully! You can now log in.')
-        setFullName('')
-        setPassword('')
+      if (mode === 'signup' && !verificationId) {
+        // Step 1: Send verification code
+        await handleSendVerification()
+        setVerificationId('pending')
+        setError('') // clear any previous error
+        setTimeout(() => verifyRefs.current[0]?.focus(), 100)
+      } else if (mode === 'signup' && verificationId === 'pending') {
+        // Step 2: Verify code + create account
+        await handleVerifySignup()
       } else {
         // Login: use context, then go to dashboard
         await login(email.trim(), password, role as 'student' | 'company')
@@ -98,6 +143,22 @@ export function Login() {
     setLoading(false)
   }
 
+  const handleVerificationKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !verifyCode[index] && index > 0) {
+      verifyRefs.current[index - 1]?.focus()
+    }
+  }
+
+  const handleVerificationPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault()
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    if (pasted.length === 6) {
+      const newCode = pasted.split('')
+      setVerifyCode(newCode)
+      setTimeout(() => handleSubmit(e as any), 200)
+    }
+  }
+
   return (
     <div className="min-h-screen w-full bg-white text-[#101828] font-sans antialiased">
       <style>{`
@@ -105,6 +166,7 @@ export function Login() {
         @keyframes floaty-slow { 0%,100% { transform: translateY(0) rotate(0);} 50% { transform: translateY(-8px) rotate(3deg);} }
         @keyframes pulse-ring { 0% { transform: scale(0.9); opacity: 0.6;} 100% { transform: scale(1.4); opacity: 0;} }
         @keyframes pulse-glow { 0%,100% { opacity: 0.4; } 50% { opacity: 0.55; } }
+        @keyframes page-enter { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
         .anim-float { animation: floaty 5s ease-in-out infinite; }
         .anim-float-slow { animation: floaty-slow 6s ease-in-out infinite; }
         .anim-float-delay { animation: floaty 5.5s ease-in-out infinite 0.6s; }
@@ -112,6 +174,7 @@ export function Login() {
         .anim-glow { animation: pulse-glow 4s ease-in-out infinite; }
         .pupil { transition: transform 0.15s ease-out; }
         .dotted-trail { stroke-dasharray: 2 6; }
+        .animate-page-enter { animation: page-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
         .pm-input {
           width: 100%; border-radius: 0.75rem; background: #fff;
           border: 1px solid #E4E7EC; padding: 0.75rem 1rem;
@@ -227,7 +290,7 @@ export function Login() {
 
         {/* RIGHT — form */}
         <div className="flex items-center justify-center bg-white px-10 py-12 sm:px-16 lg:px-20">
-          <div className="w-full max-w-lg">
+          <div className="w-full max-w-lg animate-page-enter">
             <div className="mb-8 flex items-center gap-2.5 lg:hidden">
               <img src="/images.png" alt="PrepMate AI" className="h-9 w-9 rounded-full" />
               <span className="text-lg font-semibold tracking-tight">
@@ -270,7 +333,7 @@ export function Login() {
             )}
 
             <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-              {mode === 'signup' && (
+              {mode === 'signup' && verificationId !== 'pending' && (
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-medium">Full name</span>
                   <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
@@ -278,59 +341,116 @@ export function Login() {
                 </label>
               )}
 
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium">Email</span>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@prepmate.ai"
-                  onFocus={() => setFocusField('email')}
-                  onBlur={() => setFocusField('none')}
-                  className="pm-input" />
-              </label>
-
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium">Password</span>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password} onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    onFocus={() => setFocusField('password')}
+              {verificationId !== 'pending' && (
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium">Email</span>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@prepmate.ai"
+                    onFocus={() => setFocusField('email')}
                     onBlur={() => setFocusField('none')}
-                    className="pm-input pr-11"
-                  />
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#667085] transition-colors hover:text-[#101828]"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </label>
-
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex cursor-pointer select-none items-center gap-2 text-[#667085]">
-                  <input type="checkbox" className="h-4 w-4 rounded border-[#E4E7EC] text-[#1a6fa8] focus:ring-[#1a6fa8]/30" />
-                  Remember me
+                    disabled={mode === 'signup' && verificationId === 'pending'}
+                    className="pm-input" />
                 </label>
-                <a href="#" className="font-medium text-[#1a6fa8] hover:underline"
-                  onClick={(e) => { e.preventDefault(); setError('Password reset coming soon!') }}>
-                  Forgot password?
-                </a>
-              </div>
+              )}
+
+              {verificationId !== 'pending' && (
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium">Password</span>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password} onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      onFocus={() => setFocusField('password')}
+                      onBlur={() => setFocusField('none')}
+                      className="pm-input pr-11"
+                    />
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#667085] transition-colors hover:text-[#101828]"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </label>
+              )}
+
+              {/* Verification code step */}
+              {mode === 'signup' && verificationId === 'pending' && (
+                <div className="rounded-xl border border-[#EAECF0] bg-[#F7F9FC] p-5">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <MailCheck className="h-5 w-5 text-[#1a6fa8]" />
+                    <span className="text-[13px] font-medium text-[#344054]">Verify your email</span>
+                  </div>
+                  <p className="text-[12.5px] text-[#667085] mb-4">
+                    A 6-digit code has been sent to <span className="font-medium text-[#101828]">{email}</span>
+                  </p>
+                  <div className="flex justify-center gap-2 mb-4" onPaste={handleVerificationPaste}>
+                    {verifyCode.map((digit, i) => (
+                      <input
+                        key={i}
+                        ref={(el) => { verifyRefs.current[i] = el }}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          if (val.length > 1) return
+                          const newCode = [...verifyCode]
+                          newCode[i] = val
+                          setVerifyCode(newCode)
+                          if (val && i < 5) verifyRefs.current[i + 1]?.focus()
+                        }}
+                        onKeyDown={(e) => handleVerificationKeyDown(i, e)}
+                        className="h-12 w-11 rounded-xl border-2 border-[#E4E7EC] bg-white text-center text-lg font-bold text-[#101828] outline-none transition-all focus:border-[#1a6fa8] focus:ring-[3px] focus:ring-[#1a6fa8]/15"
+                      />
+                    ))}
+                  </div>
+                  <p className="text-center text-[11px] text-[#98A2B3]">
+                    Didn't receive it?{' '}
+                    <button type="button" onClick={async () => {
+                      setLoading(true); setError(null)
+                      try { await handleSendVerification(); setError('') }
+                      catch (err: any) { setError(err.message) }
+                      finally { setLoading(false) }
+                    }} className="text-[#1a6fa8] hover:underline font-medium">
+                      Resend code
+                    </button>
+                  </p>
+                </div>
+              )}
+
+              {verificationId !== 'pending' && (
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex cursor-pointer select-none items-center gap-2 text-[#667085]">
+                    <input type="checkbox" className="h-4 w-4 rounded border-[#E4E7EC] text-[#1a6fa8] focus:ring-[#1a6fa8]/30" />
+                    Remember me
+                  </label>
+                  <Link to={`/forgot-password?role=${role}`} className="font-medium text-[#1a6fa8] hover:underline">
+                    Forgot password?
+                  </Link>
+                </div>
+              )}
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (mode === 'signup' && verificationId === 'pending' && verifyCode.some(d => !d))}
                 className="group relative flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-105 hover:shadow-xl hover:shadow-[#0b3b5c]/40 active:scale-[0.99] disabled:opacity-70"
               >
                 {loading ? (
-                  <>Please wait... <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /></>
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Please wait...</>
                 ) : (
-                  <>{mode === 'login' ? `Login as ${role === 'company' ? 'Company' : 'Student'}` : 'Sign up'}
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>
+                  <>
+                    {mode === 'login'
+                      ? `Login as ${role === 'company' ? 'Company' : 'Student'}`
+                      : verificationId === 'pending' ? 'Verify & Create Account' : 'Sign up'
+                    }
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </>
                 )}
               </button>
             </form>
@@ -351,7 +471,7 @@ export function Login() {
             </button>
               <p className="mt-8 text-center text-sm text-[#667085]">
                 {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-                <button type="button" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null) }}
+                <button type="button" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); setVerificationId('') }}
                   className="font-semibold text-[#1a6fa8] hover:underline">
                   {mode === 'login' ? 'Sign up' : 'Log in'}
                 </button>

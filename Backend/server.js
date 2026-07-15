@@ -66,10 +66,20 @@ const io = new Server(server, {
 app.set('io', io);
 
 // Socket.io — real-time messaging + WebRTC signaling
+const jwt = require('jsonwebtoken');
 io.on('connection', (socket) => {
-  socket.on('join', (userId) => {
-    if (userId) {
-      socket.join(userId.toString());
+  // ─── Authenticated room join ────────────────────────────
+  // Client must send a valid JWT to join a user's room
+  socket.on('join', (userId, token) => {
+    if (!userId || !token) return;
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // Only allow joining your own room (or admin can join any)
+      if (decoded.id === userId || decoded.role === 'admin') {
+        socket.join(userId.toString());
+      }
+    } catch {
+      // Invalid token — don't join
     }
   });
 
@@ -125,6 +135,16 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Stricter rate limit for file uploads (5 per minute)
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many uploads. Please slow down.' },
+});
+app.use('/api/upload', uploadLimiter);
+
 // Stricter rate limit for auth endpoints (10 requests per minute)
 const authLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -159,20 +179,20 @@ const { requireAuth } = require('./middleware/auth');
 
 // ─── Routes (public endpoints first, protected after) ────
 
-// Public:
-app.use('/api/auth', authRoutes); // login/signup/me
-app.use('/api/about', aboutRoutes); // GET is public
-
 // ─── Apply input validation & sanitization to all routes ──
 const { sanitizeBody } = require('./middleware/validate');
+
+// Public:
+app.use('/api/auth', sanitizeBody, authRoutes); // login/signup/me with NoSQL injection protection
+app.use('/api/about', aboutRoutes); // GET is public
 
 // Protected (require valid JWT):
 app.use('/api/resume', requireAuth, sanitizeBody, resumeRoutes);
 app.use('/api/jobs', jobsRoutes); // public listing + match, individual handlers check auth
 app.use('/api/applications', requireAuth, sanitizeBody, applicationsRoutes);
 app.use('/api/upload', requireAuth, uploadRoutes);
-app.use('/api/companies', companyDashboardRoutes);
-app.use('/api/companies', companiesRoutes);
+app.use('/api/companies', sanitizeBody, companyDashboardRoutes);
+app.use('/api/companies', sanitizeBody, companiesRoutes);
 app.use('/api/interview', requireAuth, sanitizeBody, interviewRoutes);
 app.use('/api/stats', requireAuth, statsRoutes);
 app.use('/api/company', requireAuth, sanitizeBody, companyJobsRoutes);

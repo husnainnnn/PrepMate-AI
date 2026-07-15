@@ -24,6 +24,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           ws: true, // proxy WebSocket (socket.io) connections too
         },
+        // Proxy uploaded files so relative /uploads/* paths work on any device
+        '/uploads': {
+          target: env.VITE_API_PROXY_TARGET || 'http://localhost:3001',
+          changeOrigin: true,
+        },
       },
     },
   }

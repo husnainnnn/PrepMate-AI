@@ -489,9 +489,9 @@ export default function LiveInterviewsPage() {
         const { io } = await import('socket.io-client')
         socket = io(getSocketUrl())
 
-        socket.on('connect', () => {
-          socket.emit('join', user.id || user._id)
-        })
+    socket.on('connect', () => {
+      socket.emit('join', user.id || user._id, token)
+    })
 
         // New interview scheduled by company → auto-refresh
         socket.on('interview-scheduled', () => {

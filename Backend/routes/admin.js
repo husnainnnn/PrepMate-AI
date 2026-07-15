@@ -6,6 +6,7 @@ const Admin = require('../models/Admin');
 const Student = require('../models/Student');
 const Company = require('../models/Company');
 const SupportTicket = require('../models/SupportTicket');
+const BlockedEmail = require('../models/BlockedEmail');
 const { createNotification } = require('../helpers/notifications');
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
@@ -232,6 +233,38 @@ router.get('/companies', async (req, res) => {
   }
 });
 
+// ─── GET /api/admin/students/:id — Single student detail ──
+router.get('/students/:id', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const student = await Student.findById(req.params.id).select('-password').lean();
+    if (!student) return res.status(404).json({ error: 'Student not found.' });
+
+    res.json({ student });
+  } catch (err) {
+    console.error('GET /api/admin/students/:id error:', err);
+    res.status(500).json({ error: 'Failed to fetch student.' });
+  }
+});
+
+// ─── GET /api/admin/companies/:id — Single company detail ──
+router.get('/companies/:id', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const company = await Company.findById(req.params.id).select('-password').lean();
+    if (!company) return res.status(404).json({ error: 'Company not found.' });
+
+    res.json({ company });
+  } catch (err) {
+    console.error('GET /api/admin/companies/:id error:', err);
+    res.status(500).json({ error: 'Failed to fetch company.' });
+  }
+});
+
 // ─── GET /api/admin/support-tickets ───────────────────────
 router.get('/support-tickets', async (req, res) => {
   try {
@@ -356,6 +389,83 @@ router.patch('/companies/:id/unverify', async (req, res) => {
   } catch (err) {
     console.error('PATCH /api/admin/companies/:id/unverify error:', err);
     res.status(500).json({ error: 'Failed to unverify company.' });
+  }
+});
+
+// ─── POST /api/admin/block ──────────────────────────────
+// Block a user by email — deletes their account + permanently blocks the email
+router.post('/block', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required.' });
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check if already blocked
+    const alreadyBlocked = await BlockedEmail.findOne({ email: normalizedEmail });
+    if (alreadyBlocked) {
+      return res.status(409).json({ error: 'This email is already blocked.' });
+    }
+
+    // Find and delete student account if exists
+    const student = await Student.findOne({ email: normalizedEmail });
+    if (student) {
+      const Application = require('../models/Application');
+      const Interview = require('../models/Interview');
+      await Application.deleteMany({ studentId: student._id });
+      await Interview.deleteMany({ studentId: student._id });
+      await Student.findByIdAndDelete(student._id);
+    }
+
+    // Find and delete company account if exists
+    const company = await Company.findOne({ email: normalizedEmail });
+    if (company) {
+      const Job = require('../models/Job');
+      const jobs = await Job.find({ companyId: company._id }).select('_id').lean();
+      const jobIds = jobs.map(j => j._id);
+      const Application = require('../models/Application');
+      await Application.deleteMany({ jobId: { $in: jobIds } });
+      await Job.deleteMany({ companyId: company._id });
+      await Company.findByIdAndDelete(company._id);
+    }
+
+    // Block the email permanently
+    await BlockedEmail.create({
+      email: normalizedEmail,
+      blockedBy: tokenData.id,
+    });
+
+    res.json({ success: true, message: `${normalizedEmail} has been blocked. Account deleted.` });
+  } catch (err) {
+    console.error('POST /api/admin/block error:', err);
+    res.status(500).json({ error: 'Failed to block user.' });
+  }
+});
+
+// ─── POST /api/admin/unblock ────────────────────────────
+// Unblock an email (remove from blocked list)
+router.post('/unblock', async (req, res) => {
+  try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'admin') return res.status(401).json({ error: 'Not authenticated as admin.' });
+
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required.' });
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const deleted = await BlockedEmail.findOneAndDelete({ email: normalizedEmail });
+    if (!deleted) {
+      return res.status(404).json({ error: 'Email not found in blocked list.' });
+    }
+
+    res.json({ success: true, message: `${normalizedEmail} has been unblocked.` });
+  } catch (err) {
+    console.error('POST /api/admin/unblock error:', err);
+    res.status(500).json({ error: 'Failed to unblock.' });
   }
 });
 

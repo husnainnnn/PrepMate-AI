@@ -5,7 +5,11 @@ const bcrypt = require('bcryptjs');
 const Company = require('../models/Company');
 const Job = require('../models/Job');
 
-const JWT_SECRET = process.env.JWT_SECRET || '';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is not set!');
+  process.exit(1);
+}
 
 function getUserFromToken(req) {
   const auth = req.headers.authorization;
@@ -64,6 +68,11 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Company name, email, and password are required' });
     }
 
+    // Password strength check
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters with at least one letter and one number.' });
+    }
+
     const existing = await Company.findOne({ email: email.toLowerCase() });
     if (existing) {
       return res.status(409).json({ error: 'A company with this email is already registered' });
@@ -94,12 +103,22 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// POST /api/companies/jobs — a company posts a new job
+// POST /api/companies/jobs — a company posts a new job (requires auth)
 router.post('/jobs', async (req, res) => {
   try {
+    const tokenData = getUserFromToken(req);
+    if (!tokenData || tokenData.role !== 'company') {
+      return res.status(401).json({ error: 'Not authenticated as company.' });
+    }
+
     const { companyId, jobTitle, location, requiredSkills, applyUrl } = req.body;
     if (!companyId || !jobTitle) {
       return res.status(400).json({ error: 'Company ID and job title are required' });
+    }
+
+    // Security: Only allow posting jobs for your own company
+    if (companyId !== tokenData.id) {
+      return res.status(403).json({ error: 'You can only post jobs for your own company.' });
     }
 
     // Verify company exists
@@ -122,6 +141,7 @@ router.post('/jobs', async (req, res) => {
     res.status(201).json(newJob.toObject());
   } catch (err) {
     console.error('POST /api/companies/jobs error:', err);
+    console.error(err);
     res.status(500).json({ error: 'Failed to post job' });
   }
 });

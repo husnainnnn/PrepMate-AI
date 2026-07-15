@@ -3,6 +3,7 @@ import { CompanyDashboardLayout } from '@/components/company/CompanyDashboardLay
 import { useAuth } from '@/context/AuthContext'
 import { Loader2, Smartphone, Code2, Quote, Target, Zap, Users } from 'lucide-react'
 import { getSocketUrl } from '@/lib/socketUrl'
+import { getImageUrl } from '@/lib/imageUrl'
 
 interface Developer {
   name: string
@@ -92,7 +93,7 @@ export default function CompanyAboutUs() {
             <div className="flex items-center justify-center">
               {about?.prepMateImage ? (
                 <div className="overflow-hidden rounded-xl border border-[#EAECF0] dark:border-[#334155] bg-[#F7F9FC] dark:bg-[#0F172A] shadow-sm">
-                  <img src={about.prepMateImage} alt="About PrepMate" className="max-h-80 w-full object-contain p-4" />
+                  <img src={getImageUrl(about.prepMateImage)} alt="About PrepMate" className="max-h-80 w-full object-contain p-4" />
                 </div>
               ) : (
                 <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-dashed border-[#EAECF0] dark:border-[#334155] bg-[#F7F9FC] dark:bg-[#0F172A]">
@@ -149,7 +150,7 @@ export default function CompanyAboutUs() {
                     {/* Avatar */}
                     <div className="mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-md">
                       {dev.image ? (
-                        <img src={dev.image} alt={dev.name || 'Developer'} className="h-full w-full object-cover" />
+                        <img src={getImageUrl(dev.image)} alt={dev.name || 'Developer'} className="h-full w-full object-cover" />
                       ) : (
                         <span className="text-2xl font-bold text-white">
                           {dev.name ? dev.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?'}

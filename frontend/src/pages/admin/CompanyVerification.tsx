@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Search, Loader2, Building2, CheckCircle, XCircle, ShieldCheck, Eye } from 'lucide-react'
+import { invalidateCache } from '@/lib/apiCache'
 
 export default function AdminCompanyVerification() {
   const [companies, setCompanies] = useState<any[]>([])
@@ -42,6 +43,10 @@ export default function AdminCompanyVerification() {
         setCompanies(prev => prev.map(c => c._id === selectedCompany._id ? { ...c, isVerified: true } : c))
         setVerifyConfirm(false)
         setSelectedCompany(null)
+        // Invalidate all company-related caches so every page picks up the change
+        invalidateCache('/api/admin/companies')
+        invalidateCache('/api/companies')
+        invalidateCache('/api/jobs')
       }
     } catch { /* ignore */ }
     setVerifying(false)
@@ -58,6 +63,10 @@ export default function AdminCompanyVerification() {
         setCompanies(prev => prev.map(c => c._id === selectedCompany._id ? { ...c, isVerified: false } : c))
         setUnverifyConfirm(false)
         setSelectedCompany(null)
+        // Invalidate all company-related caches so every page picks up the change
+        invalidateCache('/api/admin/companies')
+        invalidateCache('/api/companies')
+        invalidateCache('/api/jobs')
       }
     } catch { /* ignore */ }
     setVerifying(false)
