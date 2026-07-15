@@ -17,6 +17,7 @@ import {
   Briefcase,
   User,
   Info,
+  Menu,
 } from 'lucide-react'
 
 import { playNotificationSound, showDesktopNotification, requestDesktopNotifPermission, getDesktopNotifEnabled } from '@/lib/notificationSounds'
@@ -137,6 +138,10 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
     }
   }, [token, user?.id, user?._id])
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const plan = (user as any)?.stats?.plan || 'free'
+
   const initials = user?.fullName
     ? user.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
     : '?'
@@ -160,6 +165,8 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
           buttonText: 'Upgrade Now',
           buttonHref: '/student/pro-plan',
         }}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
       />
 
       {/* Main content */}
@@ -167,19 +174,35 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
         <div className="flex min-h-screen flex-1 flex-col">
           {/* Top Header */}
           <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[#EAECF0] dark:border-[#334155] bg-white/80 dark:bg-[#1E293B]/80 px-6 py-4 backdrop-blur-sm lg:px-8">
-            <div className="relative hidden max-w-sm flex-1 md:block">
-              <SmartSearch items={searchNavItems} placeholder="Search interviews, questions, resources..." />
+            {/* Left: hamburger (mobile) + smart search (desktop) */}
+            <div className="flex items-center gap-3">
+              {/* Mobile hamburger — only below lg */}
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#EAECF0] dark:border-[#334155] bg-white dark:bg-[#1E293B] text-[#667085] dark:text-[#94A3B8] shadow-sm transition-colors hover:bg-[#F7F9FC] dark:hover:bg-[#334155] lg:hidden"
+                aria-label="Open navigation menu"
+              >
+                <Menu className="h-[18px] w-[18px]" />
+              </button>
+              <div className="relative hidden max-w-sm flex-1 md:block">
+                <SmartSearch items={searchNavItems} placeholder="Search interviews, questions, resources..." />
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
               <Link
                 to="/student/interviews"
-                className="hidden h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-4 text-[13.5px] font-medium text-white hover:brightness-110 sm:flex"
+                className="hidden h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-4 text-[13.5px] font-medium text-white hover:brightness-110 lg:flex"
               >
                 <Mic className="h-4 w-4" />
                 Start Mock Interview
               </Link>
 
+              {plan === 'pro' && (
+                <span className="flex sm:hidden items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                  PRO
+                </span>
+              )}
               <Link to="/student/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-[#EAECF0] dark:border-[#334155] text-[#667085] dark:text-[#94A3B8] transition-colors hover:bg-[#F7F9FC] dark:hover:bg-[#334155]">
                 <Bell className="h-[18px] w-[18px]" />
                 {unreadNotifs > 0 && (
@@ -201,7 +224,7 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
           </header>
 
           {/* Page content with entrance animation */}
-          <main className="flex-1 animate-fade-in-fast">{children}</main>
+          <main className="flex-1 bg-[#F7F9FC] dark:bg-[#0F172A] animate-fade-in-fast">{children}</main>
         </div>
       </div>
     </div>

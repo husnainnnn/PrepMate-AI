@@ -31,7 +31,7 @@ interface Answer {
 
 const difficultyLabels: Record<Difficulty, string> = {
   beginner: 'Beginner',
-  intermediate: 'Intermediate',
+  intermediate: 'Inter',
   pro: 'Pro',
 }
 
@@ -255,7 +255,7 @@ export default function PracticePage() {
         <div className="space-y-6 px-6 py-6 lg:px-8">
             {/* Header */}
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
+              <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
                 <BrainCircuit className="h-5 w-5 text-white" />
               </div>
               <div>

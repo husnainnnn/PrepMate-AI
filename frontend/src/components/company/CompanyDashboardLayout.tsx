@@ -15,6 +15,7 @@ import {
   HelpCircle,
   Search,
   Info,
+  Menu,
 } from 'lucide-react'
 import { DashboardSidebar, type SidebarItem } from '@/components/shared/DashboardSidebar'
 import { playNotificationSound, showDesktopNotification, requestDesktopNotifPermission, getDesktopNotifEnabled } from '@/lib/notificationSounds'
@@ -131,6 +132,8 @@ export function CompanyDashboardLayout({ children }: CompanyDashboardLayoutProps
     }
   }, [token, user?.id, user?._id])
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   const handleLogout = () => {
     logout();
     navigate('/login?role=company', { replace: true });
@@ -151,6 +154,8 @@ export function CompanyDashboardLayout({ children }: CompanyDashboardLayoutProps
           buttonText: 'Upgrade Now',
           buttonHref: '/company/pro-plan',
         }}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
       />
 
       {/* Main content */}
@@ -158,14 +163,25 @@ export function CompanyDashboardLayout({ children }: CompanyDashboardLayoutProps
         <div className="flex min-h-screen flex-1 flex-col">
           {/* Top Header */}
           <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[#EAECF0] dark:border-[#334155] bg-white/80 dark:bg-[#1E293B]/80 px-6 py-4 backdrop-blur-sm lg:px-8">
-            <div className="relative hidden max-w-sm flex-1 md:block">
-              <SmartSearch items={searchNavItems} placeholder="Search applicants, jobs, messages..." />
+            {/* Left: hamburger (mobile) + smart search (desktop) */}
+            <div className="flex items-center gap-3">
+              {/* Mobile hamburger — only below lg */}
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#EAECF0] dark:border-[#334155] bg-white dark:bg-[#1E293B] text-[#667085] dark:text-[#94A3B8] shadow-sm transition-colors hover:bg-[#F7F9FC] dark:hover:bg-[#334155] lg:hidden"
+                aria-label="Open navigation menu"
+              >
+                <Menu className="h-[18px] w-[18px]" />
+              </button>
+              <div className="relative hidden max-w-sm flex-1 md:block">
+                <SmartSearch items={searchNavItems} placeholder="Search applicants, jobs, messages..." />
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
               <Link
                 to="/company/post-job"
-                className="hidden h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-4 text-[13.5px] font-medium text-white hover:brightness-110 sm:flex"
+                className="hidden h-10 items-center gap-2 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-4 text-[13.5px] font-medium text-white hover:brightness-110 lg:flex"
               >
                 <Briefcase className="h-4 w-4" />
                 Post a Job

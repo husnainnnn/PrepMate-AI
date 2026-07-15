@@ -255,20 +255,20 @@ export default function Shortlisted() {
     <CompanyDashboardLayout>
       <div className="space-y-6 px-6 py-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">Shortlisted</h1>
-            <p className="mt-1 text-[13.5px] text-[#667085]">
-              {applicants.length} shortlisted candidate{applicants.length !== 1 ? 's' : ''} across all jobs.
+            <h1 className="text-xl font-semibold tracking-tight text-[#101828] sm:text-2xl">Shortlisted</h1>
+            <p className="mt-0.5 text-[12.5px] text-[#667085] sm:text-[13.5px]">
+              {applicants.length} shortlisted candidate{applicants.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className="relative hidden sm:block">
+          <div className="relative w-full sm:w-60">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search shortlisted..."
-              className="h-10 w-60 rounded-lg border border-[#D0D5DD] bg-white pl-9 pr-3 text-[13px] text-[#101828] outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 placeholder:text-[#98A2B3]"
+              className="h-9 w-full rounded-lg border border-[#D0D5DD] bg-white pl-9 pr-3 text-[13px] text-[#101828] outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 placeholder:text-[#98A2B3] sm:h-10"
             />
           </div>
         </div>
@@ -313,17 +313,21 @@ export default function Shortlisted() {
                 <button
                   onClick={() => handleAction(selectedApplicant._id, 'reject')}
                   disabled={actionLoading === `reject-${selectedApplicant._id}`}
-                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-[12.5px] font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[12px] font-medium text-red-600 transition-colors hover:bg-red-100 disabled:opacity-50 sm:px-4 sm:text-[12.5px]"
                 >
-                  <Ban className="h-4 w-4" /> Reject
+                  <Ban className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Reject</span>
+                  <span className="sm:hidden">✕</span>
                 </button>
 
                 {/* Schedule Interview — go to Messages to communicate */}
                 <button
                   onClick={() => navigate('/company/messages')}
-                  className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-4 py-2 text-[12.5px] font-medium text-white shadow-lg shadow-[#0b3b5c]/20 transition-all hover:brightness-110"
+                  className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-3 py-2 text-[12px] font-medium text-white shadow-lg shadow-[#0b3b5c]/20 transition-all hover:brightness-110 sm:px-4 sm:text-[12.5px]"
                 >
-                  <Send className="h-4 w-4" /> Schedule Interview
+                  <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Schedule Interview</span>
+                  <span className="sm:hidden">Interview</span>
                 </button>
 
                 {/* Hired — update status + go to Messages */}
@@ -332,17 +336,21 @@ export default function Shortlisted() {
                     await handleAction(selectedApplicant._id, 'hire');
                     navigate('/company/messages');
                   }}
-                  className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-emerald-600"
+                  className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-2 text-[12px] font-medium text-white transition-colors hover:bg-emerald-600 sm:px-4 sm:text-[12.5px]"
                 >
-                  <CheckCircle className="h-4 w-4" /> Hired
+                  <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Hired</span>
+                  <span className="sm:hidden">✓</span>
                 </button>
 
                 {/* Direct Message button */}
                 <button
                   onClick={() => navigate('/company/messages')}
-                  className="flex items-center gap-1.5 rounded-lg border border-[#EAECF0] px-4 py-2 text-[12.5px] font-medium text-[#667085] transition-colors hover:bg-gray-50"
+                  className="flex items-center gap-1.5 rounded-lg border border-[#EAECF0] px-3 py-2 text-[12px] font-medium text-[#667085] transition-colors hover:bg-gray-50 sm:px-4 sm:text-[12.5px]"
                 >
-                  <MessageSquare className="h-4 w-4" /> Send Message
+                  <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Send Message</span>
+                  <span className="sm:hidden">Chat</span>
                 </button>
               </div>
               <p className="mt-2 text-[11px] text-[#98A2B3]">
@@ -359,22 +367,22 @@ export default function Shortlisted() {
                 onClick={() => setSelectedApplicant(app)}
                 className="cursor-pointer rounded-xl border border-[#EAECF0] bg-white shadow-sm transition-all hover:shadow-md hover:border-emerald-200"
               >
-                <div className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
-                      <Star className="h-5 w-5 text-emerald-500" />
+                <div className="p-3 sm:p-4">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 sm:h-10 sm:w-10">
+                      <Star className="h-4 w-4 text-emerald-500 sm:h-5 sm:w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-medium text-[#101828] truncate">
+                      <p className="text-[13px] font-medium text-[#101828] truncate sm:text-[14px]">
                         {app.fullName || "Unknown"}
                       </p>
-                      <div className="flex items-center gap-2 text-[12px] text-[#667085]">
-                        <span className="truncate">{app.email}</span>
-                        <span className="text-[#D0D5DD]">·</span>
+                      <div className="flex items-center gap-1.5 text-[11px] text-[#667085] sm:gap-2 sm:text-[12px]">
+                        <span className="hidden sm:inline truncate">{app.email}</span>
+                        <span className="text-[#D0D5DD] hidden sm:inline">·</span>
                         <span className="truncate">{app.jobTitle}</span>
                       </div>
                     </div>
-                    <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700 shrink-0">
+                    <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 shrink-0 sm:px-3 sm:py-1 sm:text-[11px]">
                       Shortlisted
                     </Badge>
                   </div>

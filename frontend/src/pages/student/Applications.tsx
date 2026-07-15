@@ -146,10 +146,10 @@ export default function Applications() {
 
   return (
     <StudentDashboardLayout>
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <div className="w-full">
           <div className="mb-6 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
+            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
               <SendHorizontal className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -216,20 +216,20 @@ export default function Applications() {
               {sorted.map((app) => {
                 const appId = app._id || app.id
                 return (
-                <div key={appId} className="rounded-2xl border border-[#EAECF0] bg-white p-6 shadow-sm">
+                <div key={appId} className="rounded-2xl border border-[#EAECF0] bg-white p-4 shadow-sm sm:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <h3 className="text-base font-semibold text-[#101828]">{app.jobTitle}</h3>
-                      <p className="text-[13px] text-[#667085]">{app.companyName} &middot; {app.location}</p>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-semibold text-[#101828] sm:text-base">{app.jobTitle}</h3>
+                      <p className="text-[12px] text-[#667085] sm:text-[13px]">{app.companyName} &middot; {app.location}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[12px] text-[#98A2B3]">Applied {formatDate(app.appliedDate)}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="hidden sm:inline text-[12px] text-[#98A2B3]">Applied {formatDate(app.appliedDate)}</span>
                       {deleteConfirm === appId ? (
                         <div className="flex items-center gap-1">
-                          <button onClick={() => handleDelete()} disabled={deleting} className="rounded-lg bg-red-500 px-2.5 py-1.5 text-[11px] font-medium text-white">
+                          <button onClick={() => handleDelete()} disabled={deleting} className="rounded-lg bg-red-500 px-2 py-1 text-[10px] font-medium text-white sm:px-2.5 sm:py-1.5 sm:text-[11px]">
                             {deleting ? '...' : 'Confirm'}
                           </button>
-                          <button onClick={() => setDeleteConfirm(null)} className="rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085]">
+                          <button onClick={() => setDeleteConfirm(null)} className="rounded-lg border border-[#EAECF0] px-2 py-1 text-[10px] font-medium text-[#667085] sm:px-2.5 sm:py-1.5 sm:text-[11px]">
                             Cancel
                           </button>
                         </div>
@@ -239,11 +239,13 @@ export default function Applications() {
                           className="rounded-lg border border-[#EAECF0] p-1.5 text-[#98A2B3] transition-colors hover:bg-red-50 hover:text-red-500"
                           title="Delete permanently"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                         </button>
                       )}
                     </div>
                   </div>
+                  {/* Show applied date below on mobile */}
+                  <p className="mt-1 text-[11px] text-[#98A2B3] sm:hidden">Applied {formatDate(app.appliedDate)}</p>
 
                   {/* Job Deleted Banner */}
                   {app.jobDeleted && (
@@ -259,41 +261,63 @@ export default function Applications() {
                   )}
 
                   {!app.jobDeleted && (
-                  // Status stepper
-                  <div className="mt-5 flex items-center">
-                    {STAGE_ORDER.map((stage, index) => {
-                      const currentIdx = STAGE_ORDER.indexOf(app.currentStage as Stage)
-                      const isPast = index < currentIdx
-                      const isCurrent = index === currentIdx
-                      const isRejectedHere = app.isRejected && isCurrent
-                      const isFuture = index > currentIdx
+                  <>
+                    {/* Mobile: compact stage badge */}
+                    <div className="mt-4 sm:hidden">
+                      {app.isRejected ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-[12px] font-medium text-red-600 border border-red-200">
+                          <XCircle className="h-3.5 w-3.5" /> Rejected
+                        </span>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium border ${
+                          app.currentStage === 'hired'
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                            : 'bg-blue-50 text-[#1a6fa8] border-blue-200'
+                        }`}>
+                          {app.currentStage === 'hired' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+                          {app.isRejected ? 'Rejected' : STAGE_LABELS[app.currentStage]}
+                        </span>
+                      )}
+                    </div>
 
-                      let circleClass = 'flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold shrink-0 '
-                      if (isRejectedHere) circleClass += 'bg-red-500 text-white'
-                      else if (isPast || (isCurrent && !app.isRejected)) circleClass += 'bg-emerald-500 text-white'
-                      else circleClass += 'bg-[#EAECF0] text-[#98A2B3]'
+                    {/* Desktop: full stepper */}
+                    <div className="mt-5 hidden sm:block overflow-x-auto pb-1">
+                    <div className="flex items-center min-w-[450px]">
+                      {STAGE_ORDER.map((stage, index) => {
+                        const currentIdx = STAGE_ORDER.indexOf(app.currentStage as Stage)
+                        const isPast = index < currentIdx
+                        const isCurrent = index === currentIdx
+                        const isRejectedHere = app.isRejected && isCurrent
+                        const isFuture = index > currentIdx
 
-                      return (
-                        <div key={stage} className="flex flex-col items-center" style={{ width: 90 }}>
-                          <div className={circleClass}>
-                            {isRejectedHere ? <XCircle className="h-4 w-4" /> :
-                             isPast || (isCurrent && !app.isRejected) ? <CheckCircle2 className="h-4 w-4" /> :
-                             <Clock className="h-4 w-4" />}
+                        let circleClass = 'flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold shrink-0 '
+                        if (isRejectedHere) circleClass += 'bg-red-500 text-white'
+                        else if (isPast || (isCurrent && !app.isRejected)) circleClass += 'bg-emerald-500 text-white'
+                        else circleClass += 'bg-[#EAECF0] text-[#98A2B3]'
+
+                        return (
+                          <div key={stage} className="flex flex-col items-center" style={{ width: 90 }}>
+                            <div className={circleClass}>
+                              {isRejectedHere ? <XCircle className="h-4 w-4" /> :
+                               isPast || (isCurrent && !app.isRejected) ? <CheckCircle2 className="h-4 w-4" /> :
+                               <Clock className="h-4 w-4" />}
+                            </div>
+                            <span className={`mt-1.5 text-center text-[11px] leading-tight ${
+                              isRejectedHere ? 'text-red-500 font-medium' :
+                              isFuture ? 'text-[#98A2B3]' :
+                              'text-[#101828] font-medium'
+                            }`}>
+                              {isRejectedHere ? 'Rejected' : STAGE_LABELS[stage]}
+                            </span>
+                            {index < STAGE_ORDER.length - 1 && (
+                              <div className={`h-0.5 w-full self-center ${index < currentIdx ? 'bg-emerald-400' : 'bg-[#EAECF0]'}`} />
+                            )}
                           </div>
-                          <span className={`mt-1.5 text-center text-[11px] leading-tight ${
-                            isRejectedHere ? 'text-red-500 font-medium' :
-                            isFuture ? 'text-[#98A2B3]' :
-                            'text-[#101828] font-medium'
-                          }`}>
-                            {isRejectedHere ? 'Rejected' : STAGE_LABELS[stage]}
-                          </span>
-                          {index < STAGE_ORDER.length - 1 && (
-                            <div className={`h-0.5 w-full self-center ${index < currentIdx ? 'bg-emerald-400' : 'bg-[#EAECF0]'}`} />
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
+                        )
+                      })}
+                    </div>
+                    </div>
+                  </>
                   )}
 
                   {!app.jobDeleted && app.isRejected && (

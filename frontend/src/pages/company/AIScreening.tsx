@@ -296,21 +296,20 @@ export default function AIScreeningPage() {
     <CompanyDashboardLayout>
       <div className="space-y-6 px-6 py-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">AI Screening</h1>
-            <p className="mt-1 text-[13.5px] text-[#667085]">
-              {applicants.length} candidate{applicants.length !== 1 ? 's' : ''} with AI match scores ≥ 50%.
-              Avg score: <strong>{avgScore}%</strong>
+            <h1 className="text-xl font-semibold tracking-tight text-[#101828] sm:text-2xl">AI Screening</h1>
+            <p className="mt-0.5 text-[12.5px] text-[#667085] sm:text-[13.5px]">
+              {applicants.length} candidate{applicants.length !== 1 ? 's' : ''} · Avg score: <strong>{avgScore}%</strong>
             </p>
           </div>
-          <div className="relative hidden sm:block">
+          <div className="relative w-full sm:w-60">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search candidates..."
-              className="h-10 w-60 rounded-lg border border-[#D0D5DD] bg-white pl-9 pr-3 text-[13px] text-[#101828] outline-none focus:border-[#1a6fa8] focus:ring-1 focus:ring-[#1a6fa8]/20 placeholder:text-[#98A2B3]"
+              className="h-9 w-full rounded-lg border border-[#D0D5DD] bg-white pl-9 pr-3 text-[13px] text-[#101828] outline-none focus:border-[#1a6fa8] focus:ring-1 focus:ring-[#1a6fa8]/20 placeholder:text-[#98A2B3] sm:h-10"
             />
           </div>
         </div>
@@ -406,51 +405,53 @@ export default function AIScreeningPage() {
                 onClick={() => handleView(app)}
                 className="cursor-pointer rounded-xl border border-[#EAECF0] bg-white shadow-sm transition-all hover:shadow-md hover:border-blue-200"
               >
-                <div className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 text-[12px] font-bold text-[#1a6fa8]">
+                <div className="p-3 sm:p-4">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 text-[11px] font-bold text-[#1a6fa8] sm:h-10 sm:w-10 sm:text-[12px]">
                       {getInitials(app.fullName)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[14px] font-medium text-[#101828] truncate">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <p className="text-[13px] font-medium text-[#101828] truncate sm:text-[14px]">
                           {app.fullName || "Unknown"}
                         </p>
-                        <Badge variant="outline" className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${scoreColor(app.matchScore)}`}>
+                        <Badge variant="outline" className={`rounded-full border px-1.5 py-0.5 text-[9px] font-semibold sm:px-2 sm:text-[10px] ${scoreColor(app.matchScore)}`}>
                           {app.matchScore}%
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-2 text-[12px] text-[#667085] mt-0.5">
-                        <span className="truncate">{app.email}</span>
-                        <span className="text-[#D0D5DD]">·</span>
+                      <div className="flex items-center gap-1.5 text-[11px] text-[#667085] mt-0.5 sm:gap-2 sm:text-[12px]">
+                        <span className="hidden sm:inline truncate">{app.email}</span>
+                        <span className="text-[#D0D5DD] hidden sm:inline">·</span>
                         <span className="truncate">{app.jobTitle}</span>
                       </div>
                       {app.matchedSkills?.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1.5">
-                          {app.matchedSkills.slice(0, 3).map(s => (
+                          {app.matchedSkills.slice(0, 2).map(s => (
                             <span key={s} className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">{s}</span>
                           ))}
-                          {app.matchedSkills.length > 3 && (
-                            <span className="text-[10px] text-[#98A2B3]">+{app.matchedSkills.length - 3}</span>
+                          {app.matchedSkills.length > 2 && (
+                            <span className="text-[10px] text-[#98A2B3]">+{app.matchedSkills.length - 2}</span>
                           )}
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <Badge variant="outline" className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${stageBadge(app.currentStage, app.isRejected)}`}>
-                        {app.isRejected ? "Rejected" : stageLabel(app.currentStage)}
+                    <div className="flex items-center gap-1.5 shrink-0 sm:gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Badge variant="outline" className={`rounded-full border px-1.5 py-0.5 text-[9px] font-semibold sm:px-2.5 sm:text-[11px] ${stageBadge(app.currentStage, app.isRejected)}`}>
+                        {app.isRejected ? "Rejected" : <><span className="sm:hidden">{app.currentStage === 'under_review' ? 'Review' : stageLabel(app.currentStage)}</span><span className="hidden sm:inline">{stageLabel(app.currentStage)}</span></>}
                       </Badge>
                       {app.isRejected && (
                         deleteConfirm === app._id ? (
                           <div className="flex items-center gap-1">
-                            <button onClick={() => handleAction(app._id, 'delete')} disabled={actionLoading === `delete-${app._id}`} className="rounded-lg bg-red-500 px-2 py-1 text-[10px] font-medium text-white">
-                              {actionLoading === `delete-${app._id}` ? '...' : 'Confirm'}
+                            <button onClick={() => handleAction(app._id, 'delete')} disabled={actionLoading === `delete-${app._id}`} className="rounded-lg bg-red-500 px-1.5 py-1 text-[10px] font-medium text-white sm:px-2">
+                              {actionLoading === `delete-${app._id}` ? '...' : <><span className="hidden sm:inline">Confirm</span><span className="sm:hidden">✓</span></>}
                             </button>
-                            <button onClick={() => setDeleteConfirm(null)} className="rounded-lg border border-[#EAECF0] px-2 py-1 text-[10px] font-medium text-[#667085]">X</button>
+                            <button onClick={() => setDeleteConfirm(null)} className="rounded-lg border border-[#EAECF0] px-1.5 py-1 text-[10px] font-medium text-[#667085] sm:px-2">
+                              <span className="hidden sm:inline">X</span><span className="sm:hidden">✕</span>
+                            </button>
                           </div>
                         ) : (
                           <button onClick={() => setDeleteConfirm(app._id)} className="rounded-lg border border-[#EAECF0] p-1.5 text-[#667085] hover:bg-red-50 hover:text-red-600" title="Delete from my view">
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                           </button>
                         )
                       )}

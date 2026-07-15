@@ -1167,9 +1167,10 @@ export default function CompanyInterviewsPage() {
           </div>
           <button
             onClick={() => setShowScheduleModal(true)}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/20 transition-all hover:brightness-110"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-3 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#0b3b5c]/20 transition-all hover:brightness-110 sm:px-5"
           >
-            <Plus className="h-4 w-4" /> Schedule Interview
+            <span className="sm:hidden">+ Schedule</span>
+            <span className="hidden sm:inline"><Plus className="h-4 w-4 inline mr-1" /> Schedule Interview</span>
           </button>
         </div>
 

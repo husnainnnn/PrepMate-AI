@@ -171,7 +171,7 @@ export default function CompanyProfilePage() {
         {/* ── Header ─────────────────────────────────────── */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
+            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
               <Building2 className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -181,19 +181,19 @@ export default function CompanyProfilePage() {
           </div>
 
           {/* Save button */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {saved && (
-              <span className="flex items-center gap-1.5 text-[13px] font-medium text-emerald-600 animate-fade-rise">
+              <span className="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-emerald-600 animate-fade-rise">
                 <Check className="h-4 w-4" /> Saved
               </span>
             )}
             <button
               onClick={handleSubmit}
               disabled={saving}
-              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-5 py-2.5 text-[13px] font-medium text-white shadow-lg shadow-[#0b3b5c]/20 transition-all hover:brightness-110 disabled:opacity-60"
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-2.5 py-2.5 text-[13px] font-medium text-white shadow-lg shadow-[#0b3b5c]/20 transition-all hover:brightness-110 disabled:opacity-60 sm:gap-2 sm:px-5"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              {saving ? 'Saving...' : 'Save Changes'}
+              <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save Changes'}</span>
             </button>
           </div>
         </div>

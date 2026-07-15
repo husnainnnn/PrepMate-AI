@@ -191,9 +191,9 @@ export default function CompanySupport() {
       <div className="space-y-6 px-6 py-6 lg:px-8">
         {/* ── Header ───────────────────────────────────── */}
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
-            <HelpCircle className="h-5 w-5 text-white" />
-          </div>
+        <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
+          <HelpCircle className="h-5 w-5 text-white" />
+        </div>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-[#101828] dark:text-[#F1F5F9]">Help & Support</h1>
             <p className="text-[13.5px] text-[#667085] dark:text-[#94A3B8]">

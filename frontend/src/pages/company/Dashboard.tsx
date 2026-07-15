@@ -603,13 +603,13 @@ export default function CompanyDashboard() {
         {/* Welcome Header */}
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">
-                {data ? `${data.company.name} Dashboard 🏢` : 'Company Dashboard 🏢'}
-              </h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">
+              {data ? `${data.company.name} Dashboard 🏢` : 'Company Dashboard 🏢'}
+            </h1>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
               {data?.company.plan === 'pro' && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">
-                  ⭐ PRO
+                  <span className="hidden sm:inline">⭐</span> PRO
                 </span>
               )}
               {data?.company.isVerified && (
@@ -617,12 +617,12 @@ export default function CompanyDashboard() {
                   ✅ Verified
                 </span>
               )}
+              <p className="text-[13.5px] text-[#667085]">
+                {data
+                  ? `${data.stats.activeJobs} active job${data.stats.activeJobs !== 1 ? 's' : ''}, ${data.stats.totalApplicants} total applicants`
+                  : 'Manage job postings, screen candidates, and track hiring progress.'}
+              </p>
             </div>
-            <p className="mt-1 text-[13.5px] text-[#667085]">
-              {data
-                ? `Manage job postings, screen candidates, and track hiring progress. ${data.stats.activeJobs} active job${data.stats.activeJobs !== 1 ? 's' : ''}, ${data.stats.totalApplicants} total applicants`
-                : 'Manage your job postings, screen candidates, and track hiring progress.'}
-            </p>
           </div>
           <Link
             to="/company/post-job"

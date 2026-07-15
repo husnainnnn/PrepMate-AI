@@ -238,37 +238,37 @@ function ApplicantRow({
   return (
     <div
       onClick={onView}
-      className="flex cursor-pointer items-center justify-between py-3 transition-colors hover:bg-gray-50/80 -mx-1 px-1 rounded-lg"
+      className="flex cursor-pointer items-center justify-between py-2.5 transition-colors hover:bg-gray-50/80 -mx-1 px-1.5 rounded-lg sm:py-3 sm:px-2"
     >
-      <div className="flex items-center gap-3 min-w-0 flex-1">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[12px] font-semibold text-[#1a6fa8]">
+      <div className="flex items-center gap-2.5 min-w-0 flex-1 sm:gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[11px] font-semibold text-[#1a6fa8] sm:h-9 sm:w-9 sm:text-[12px]">
           {getInitials(app.fullName)}
         </div>
         <div className="min-w-0">
-          <p className="text-[13.5px] font-medium text-[#101828] truncate">
+          <p className="text-[13px] font-medium text-[#101828] truncate sm:text-[13.5px]">
             {app.fullName || "Unknown"}
           </p>
-          <p className="text-[12px] text-[#667085] truncate">{app.email}</p>
+          <p className="hidden sm:block text-[12px] text-[#667085] truncate">{app.email}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-        <Badge variant="outline" className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${stageBadge(app.currentStage, app.isRejected)}`}>
+      <div className="flex items-center gap-1.5 shrink-0 sm:gap-2" onClick={(e) => e.stopPropagation()}>
+        <Badge variant="outline" className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold sm:px-2.5 sm:text-[11px] ${stageBadge(app.currentStage, app.isRejected)}`}>
           {app.isRejected ? "Rejected" : stageLabel(app.currentStage)}
         </Badge>
         {/* Delete button — only after rejection */}
         {app.isRejected && (
           deleteConfirm === app._id ? (
             <div className="flex items-center gap-1">
-              <button onClick={onDelete} disabled={loading === `delete-${app._id}`} className="rounded-lg bg-red-500 px-2 py-1 text-[10px] font-medium text-white">
-                {loading === `delete-${app._id}` ? '...' : 'Confirm'}
+              <button onClick={onDelete} disabled={loading === `delete-${app._id}`} className="rounded-lg bg-red-500 px-1.5 py-1 text-[10px] font-medium text-white sm:px-2">
+                {loading === `delete-${app._id}` ? '...' : <><span className="hidden sm:inline">Confirm</span><span className="sm:hidden">✓</span></>}
               </button>
-              <button onClick={() => setDeleteConfirm(null)} className="rounded-lg border border-[#EAECF0] px-2 py-1 text-[10px] font-medium text-[#667085]">
-                X
+              <button onClick={() => setDeleteConfirm(null)} className="rounded-lg border border-[#EAECF0] px-1.5 py-1 text-[10px] font-medium text-[#667085] sm:px-2">
+                <span className="hidden sm:inline">X</span><span className="sm:hidden">✕</span>
               </button>
             </div>
           ) : (
             <button onClick={() => setDeleteConfirm(app._id)} disabled={loading === `delete-${app._id}`} className="rounded-lg border border-[#EAECF0] p-1.5 text-[#667085] hover:bg-red-50 hover:text-red-600 disabled:opacity-50" title="Delete from my view">
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
             </button>
           )
         )}
@@ -372,20 +372,20 @@ export default function Applicants() {
     <CompanyDashboardLayout>
       <div className="space-y-6 px-6 py-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">Applicants</h1>
-            <p className="mt-1 text-[13.5px] text-[#667085]">
-              Review and manage candidates across all your job postings. {totalApplicants} total applicant{totalApplicants !== 1 ? 's' : ''}.
+            <h1 className="text-xl font-semibold tracking-tight text-[#101828] sm:text-2xl">Applicants</h1>
+            <p className="mt-0.5 text-[12.5px] text-[#667085] sm:text-[13.5px]">
+              {totalApplicants} total applicant{totalApplicants !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className="relative hidden sm:block">
+          <div className="relative w-full sm:w-60">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
             <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search applicants..."
-              className="h-10 w-60 rounded-lg border border-[#D0D5DD] bg-white pl-9 pr-3 text-[13px] text-[#101828] outline-none focus:border-[#1a6fa8] focus:ring-1 focus:ring-[#1a6fa8]/20 placeholder:text-[#98A2B3]"
+              className="h-9 w-full rounded-lg border border-[#D0D5DD] bg-white pl-9 pr-3 text-[13px] text-[#101828] outline-none focus:border-[#1a6fa8] focus:ring-1 focus:ring-[#1a6fa8]/20 placeholder:text-[#98A2B3] sm:h-10"
             />
           </div>
         </div>
@@ -501,42 +501,43 @@ export default function Applicants() {
                   {/* Job Header */}
                   <button
                     onClick={() => toggleJob(jd.job._id)}
-                    className="flex w-full items-center justify-between p-5 text-left transition-colors hover:bg-gray-50/50"
+                    className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-gray-50/50 sm:p-5"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
-                        <Briefcase className="h-5 w-5 text-[#1a6fa8]" />
+                    <div className="flex items-center gap-2.5 sm:gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 sm:h-10 sm:w-10">
+                        <Briefcase className="h-4 w-4 text-[#1a6fa8] sm:h-5 sm:w-5" />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-[15px] font-semibold text-[#101828]">{jd.job.jobTitle}</h3>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <h3 className="truncate text-[14px] font-semibold text-[#101828] sm:text-[15px]">{jd.job.jobTitle}</h3>
                           {jd.job.isClosed && (
-                            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">Closed</span>
+                            <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">Closed</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 text-[12px] text-[#667085]">
-                          <span className="flex items-center gap-1">
+                        <div className="flex items-center gap-2 text-[11px] text-[#667085] sm:gap-3 sm:text-[12px]">
+                          <span className="hidden sm:flex sm:items-center sm:gap-1">
                             <MapPin className="h-3 w-3" />{jd.job.city}, {jd.job.country}
                           </span>
-                          <span>{jd.job.employmentType?.replace('-', ' ')}</span>
+                          <span className="sm:hidden">{jd.job.city}</span>
+                          <span className="hidden sm:inline">{jd.job.employmentType?.replace('-', ' ')}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="rounded-full bg-blue-50 px-3 py-1 text-[13px] font-semibold text-[#1a6fa8]">
-                        {jd.applicantCount} applicant{jd.applicantCount !== 1 ? 's' : ''}
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                      <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-[#1a6fa8] sm:px-3 sm:py-1 sm:text-[13px]">
+                        {jd.applicantCount}
                       </span>
                       {expandedJobs.has(jd.job._id) ? (
-                        <ChevronDown className="h-4 w-4 text-[#667085]" />
+                        <ChevronDown className="h-3.5 w-3.5 text-[#667085] sm:h-4 sm:w-4" />
                       ) : (
-                        <ChevronRight className="h-4 w-4 text-[#667085]" />
+                        <ChevronRight className="h-3.5 w-3.5 text-[#667085] sm:h-4 sm:w-4" />
                       )}
                     </div>
                   </button>
 
                   {/* Applicants List */}
                   {expandedJobs.has(jd.job._id) && (
-                    <div className="border-t border-[#EAECF0] px-5 py-2">
+                    <div className="border-t border-[#EAECF0] px-4 py-2 sm:px-5">
                       {jd.applicants.length === 0 ? (
                         <p className="py-4 text-center text-[13px] text-[#98A2B3]">No applicants for this position yet.</p>
                       ) : (
@@ -554,19 +555,19 @@ export default function Applicants() {
                           ))}
                         </div>
                       )}
-                      {/* Upgrade prompt for non-pro companies — always visible */}
+                      {/* Upgrade prompt for non-pro companies */}
                       {!jd.isPro && (
-                        <div className="mt-4 rounded-xl border border-dashed border-amber-200 bg-amber-50/50 p-4 text-center">
-                          <Crown className="mx-auto h-6 w-6 text-amber-400" />
-                          <p className="mt-1.5 text-[13px] font-semibold text-[#101828]">
+                        <div className="mt-3 rounded-xl border border-dashed border-amber-200 bg-amber-50/50 p-3 text-center sm:mt-4 sm:p-4">
+                          <Crown className="mx-auto h-5 w-5 text-amber-400 sm:h-6 sm:w-6" />
+                          <p className="mt-1 text-[12px] font-semibold text-[#101828] sm:text-[13px]">
                             {jd.hiddenCount > 0
                               ? `+${jd.hiddenCount} more applicant${jd.hiddenCount > 1 ? 's' : ''} hidden`
                               : 'Unlimited applicant reviews'}
                           </p>
-                          <p className="text-[11px] text-[#667085]">
+                          <p className="text-[10px] text-[#667085] sm:text-[11px]">
                             {jd.hiddenCount > 0
-                              ? 'Upgrade to Pro to view all applicants'
-                              : 'Upgrade to Pro for unlimited applicant reviews & job postings'}
+                              ? 'Upgrade to Pro to view all'
+                              : 'Upgrade to Pro for unlimited access'}
                           </p>
                           <Link
                             to="/company/pro-plan"

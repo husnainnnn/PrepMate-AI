@@ -553,24 +553,22 @@ export default function StudentDashboard() {
     <StudentDashboardLayout>
       <div className="space-y-6 px-6 py-6 lg:px-8">
         {/* Welcome */}
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[#101828] dark:text-[#F1F5F9]">
-              Welcome back, {user?.fullName?.split(' ')[0] || 'Student'} 👋
-            </h1>
-          </div>
-          {stats.plan === 'pro' && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">
-              ⭐ PRO
-            </span>
-          )}
-        </div>
         <div>
-          <p className="mt-1 text-[13.5px] text-[#667085] dark:text-[#94A3B8]">
-            {stats.interviewCount === 0
-              ? "Ready to ace your first interview?"
-              : `Keep it up! You've completed ${stats.interviewCount} interview${stats.interviewCount > 1 ? 's' : ''} so far.`}
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#101828] dark:text-[#F1F5F9]">
+            Welcome back, {user?.fullName?.split(' ')[0] || 'Student'} 👋
+          </h1>
+          <div className="mt-2 flex items-center gap-2">
+            {stats.plan === 'pro' && (
+              <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">
+                ⭐ PRO
+              </span>
+            )}
+            <p className="text-[13.5px] text-[#667085] dark:text-[#94A3B8]">
+              {stats.interviewCount === 0
+                ? "Ready to ace your first interview?"
+                : `Keep it up! You've completed ${stats.interviewCount} interview${stats.interviewCount > 1 ? 's' : ''} so far.`}
+            </p>
+          </div>
         </div>
 
         <StatsSection stats={stats} />

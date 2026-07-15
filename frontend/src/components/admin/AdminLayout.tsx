@@ -10,6 +10,7 @@ import {
   Crown,
   Info,
   Bell,
+  Menu,
 } from 'lucide-react'
 import { DashboardSidebar, type SidebarItem } from '@/components/shared/DashboardSidebar'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -90,6 +91,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [token, user?.id])
 
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   const handleLogout = () => {
     localStorage.removeItem('prepmate_token')
     // Go to landing page (homepage with background video)
@@ -108,6 +111,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         footerItems={[]}
         onLogout={handleLogout}
         upgradeCard={null}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
       />
 
       {/* Main content area */}
@@ -115,29 +120,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex min-h-screen flex-1 flex-col">
           {/* Sticky Top Header — same pattern as student/company */}
           <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[#EAECF0] dark:border-[#334155] bg-white/80 dark:bg-[#1E293B]/80 px-6 py-4 backdrop-blur-sm lg:px-8">
-            <div className="relative hidden max-w-sm flex-1 md:block">
-              <SmartSearch items={searchNavItems} placeholder="Search students, companies, tickets..." />
+            {/* Left: hamburger (mobile) + smart search (desktop) */}
+            <div className="flex items-center gap-3">
+              {/* Mobile hamburger — only below lg */}
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#EAECF0] dark:border-[#334155] bg-white dark:bg-[#1E293B] text-[#667085] dark:text-[#94A3B8] shadow-sm transition-colors hover:bg-[#F7F9FC] dark:hover:bg-[#334155] lg:hidden"
+                aria-label="Open navigation menu"
+              >
+                <Menu className="h-[18px] w-[18px]" />
+              </button>
+              <div className="relative hidden max-w-sm flex-1 md:block">
+                <SmartSearch items={searchNavItems} placeholder="Search students, companies, tickets..." />
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 to="/admin/notifications"
-                className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-[#EAECF0] dark:border-[#334155] text-[#667085] dark:text-[#94A3B8] transition-colors hover:bg-[#F7F9FC] dark:hover:bg-[#334155]"
+                className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg border border-[#EAECF0] dark:border-[#334155] text-[#667085] dark:text-[#94A3B8] transition-colors hover:bg-[#F7F9FC] dark:hover:bg-[#334155]"
               >
-                <Bell className="h-[18px] w-[18px]" />
+                <Bell className="h-[16px] w-[16px] sm:h-[18px] sm:w-[18px]" />
                 {unreadNotifs > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-lg">
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] sm:h-5 sm:min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] sm:text-[10px] font-bold text-white shadow-lg">
                     {unreadNotifs > 99 ? '99+' : unreadNotifs}
                   </span>
                 )}
               </Link>
 
-              <div className="flex items-center gap-2 rounded-lg border border-[#EAECF0] dark:border-[#334155] py-1.5 pl-1.5 pr-3">
-                <Avatar className="h-7 w-7">
+              <div className="flex items-center gap-1.5 sm:gap-2 rounded-lg border border-[#EAECF0] dark:border-[#334155] py-1 sm:py-1.5 pl-1 sm:pl-1.5 pr-2 sm:pr-3">
+                <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
                   <AvatarImage src="" alt="Admin" />
-                  <AvatarFallback className="bg-blue-50 text-[11px] font-semibold text-[#1a6fa8]">{initials}</AvatarFallback>
+                  <AvatarFallback className="bg-blue-50 text-[10px] sm:text-[11px] font-semibold text-[#1a6fa8]">{initials}</AvatarFallback>
                 </Avatar>
-                <span className="hidden text-[13px] font-medium text-[#101828] dark:text-[#F1F5F9] sm:block">
+                <span className="hidden text-[12px] sm:text-[13px] font-medium text-[#101828] dark:text-[#F1F5F9] sm:block">
                   {user?.email?.split('@')[0] || 'Admin'}
                 </span>
               </div>

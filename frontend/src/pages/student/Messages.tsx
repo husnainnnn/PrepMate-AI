@@ -203,7 +203,7 @@ export default function StudentMessages() {
     <StudentDashboardLayout>
       <div className="flex h-[calc(100vh-73px)]">
         {/* ── Left Panel: Conversation List ──────────────── */}
-        <div className="w-80 shrink-0 border-r border-[#EAECF0] bg-white flex flex-col">
+        <div className={`${activeConv ? 'hidden md:flex' : 'flex'} w-full md:w-80 md:shrink-0 flex-col border-r border-[#EAECF0] bg-white`}>
           <div className="p-4 border-b border-[#EAECF0]">
             <h1 className="text-lg font-semibold text-[#101828]">Messages</h1>
             <div className="relative mt-2">
@@ -273,12 +273,21 @@ export default function StudentMessages() {
         </div>
 
         {/* ── Right Panel: Chat ──────────────────────────── */}
-        <div className="flex flex-1 flex-col bg-white">
+        <div className={`${activeConv ? 'flex' : 'hidden md:flex'} flex-1 flex-col bg-white`}>
           {activeConv ? (
             <>
               {/* Chat Header */}
               <div className="flex items-center gap-3 border-b border-[#EAECF0] px-5 py-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a6fa8] text-white">
+                {/* Back button — mobile only */}
+                <button
+                  onClick={() => setActiveConv(null)}
+                  className="flex md:hidden h-9 w-9 items-center justify-center rounded-lg text-[#667085] hover:bg-gray-100 transition-colors shrink-0"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a6fa8] text-white shrink-0">
                   <Building2 className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">

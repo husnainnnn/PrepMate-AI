@@ -833,35 +833,39 @@ export default function MockInterviewsPage() {
   if (stage === 'setup') {
     return (
       <StudentDashboardLayout>
-        <div className="p-8">
-          <div className="w-full rounded-2xl border border-[#EAECF0] bg-white p-8 shadow-sm">
-            <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
-              <Mic className="h-6 w-6 text-white" />
+        <div className="min-h-screen bg-[#F7F9FC] space-y-6 px-6 py-6 lg:px-8">
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] shadow-lg shadow-[#0b3b5c]/30">
+              <Mic className="h-5 w-5 text-white" />
             </div>
-            <h1 className="mt-4 text-2xl font-semibold tracking-tight text-[#101828]">AI Mock Interview</h1>
-            <p className="mt-1 text-[13.5px] text-[#667085]">
-              Practice with an AI interviewer. {totalQuestions.current} questions per interview.
-            </p>
-            <p className="mt-1 text-[12px] text-[#667085]">
-              {isProPlan ? (
-                <span className="text-emerald-600 font-medium">⭐ Pro: Unlimited interviews</span>
-              ) : (
-                <>Free plan: {Math.max(0, FREE_PLAN_LIMIT - monthlyInterviewCount)} of {FREE_PLAN_LIMIT} interviews this month</>
-              )}
-            </p>
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight text-[#101828]">AI Mock Interview</h1>
+              <p className="text-[13px] text-[#667085]">
+                Practice with an AI interviewer. {totalQuestions.current} questions per interview.
+                {isProPlan ? (
+                  <span className="ml-2 text-emerald-600 font-medium">⭐ Pro: Unlimited interviews</span>
+                ) : (
+                  <span className="ml-2">Free: {Math.max(0, FREE_PLAN_LIMIT - monthlyInterviewCount)}/{FREE_PLAN_LIMIT} this month</span>
+                )}
+              </p>
+            </div>
+          </div>
 
-            {error && (
-              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">{error}</div>
-            )}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-600">{error}</div>
+          )}
 
-            <div className="mt-4 rounded-xl border border-[#1a6fa8]/10 bg-blue-50/50 px-4 py-3">
+          {/* Form card */}
+          <div className="w-full rounded-2xl border border-[#EAECF0] bg-white p-6 shadow-sm sm:p-8">
+            <div className="mb-4 rounded-xl border border-[#1a6fa8]/10 bg-blue-50/50 px-4 py-3">
               <p className="text-[13px] text-[#667085]">
                 Fields autofill from your{' '}
                 <a href="/student/profile" className="font-medium text-[#1a6fa8] underline hover:text-[#0b3b5c]">profile</a>.
               </p>
             </div>
 
-            <form onSubmit={handleSetupSubmit} className="mt-6 space-y-5">
+            <form onSubmit={handleSetupSubmit} className="space-y-5">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-[#101828]">Field / role <span className="text-red-500">*</span></label>
                 <input value={field} onChange={e => setField(e.target.value)} placeholder="e.g. Frontend Developer"
@@ -877,12 +881,12 @@ export default function MockInterviewsPage() {
                 <div className="grid grid-cols-4 gap-3">
                   {(['fresher', 'junior', 'mid', 'senior'] as ExperienceLevel[]).map(level => (
                     <button key={level} type="button" onClick={() => setExperience(level)}
-                      className={`rounded-xl border-2 px-3 py-3 text-center text-sm font-medium transition-all capitalize ${
+                      className={`rounded-xl border-2 px-3 py-3 flex items-center justify-center text-sm font-medium transition-all capitalize ${
                         experience === level
                           ? 'border-[#1a6fa8] bg-blue-50 text-[#1a6fa8] shadow-sm'
                           : 'border-[#EAECF0] bg-white text-[#667085] hover:border-[#D0D5DD] hover:text-[#101828]'
                       }`}>
-                      {level === 'fresher' ? 'Fresher' : level.charAt(0).toUpperCase() + level.slice(1)}
+                      {level === 'fresher' ? 'Fresh' : level === 'junior' ? 'Jnr' : level === 'mid' ? 'Mid' : 'Snr'}
                     </button>
                   ))}
                 </div>

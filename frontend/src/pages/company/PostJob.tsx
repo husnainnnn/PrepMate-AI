@@ -422,8 +422,8 @@ function JobManagementCard({
           {jobs.map((job) => (
             <div key={job._id} className="flex items-center justify-between py-3">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className={`text-[13.5px] font-medium ${job.isClosed ? 'text-[#98A2B3] line-through' : 'text-[#101828]'}`}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className={`truncate text-[13.5px] font-medium ${job.isClosed ? 'text-[#98A2B3] line-through' : 'text-[#101828]'}`}>
                     {job.jobTitle}
                   </p>
                   {job.isClosed ? (
@@ -436,37 +436,37 @@ function JobManagementCard({
                   {job.employmentType.replace('-', ' ')} · {job.workplace.replace('-', ' ')} · {job.country || 'Remote'}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {/* Edit button — loads job data into form */}
                 <button
                   onClick={() => onEdit(job)}
                   disabled={disabled || actionLoading === job._id}
-                  className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-blue-50 hover:text-[#1a6fa8] disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-blue-50 hover:text-[#1a6fa8] disabled:opacity-30 disabled:cursor-not-allowed"
                   title={disabled ? 'Save or cancel current edit first' : 'Edit job posting'}
                 >
                   <PencilLine className="h-3.5 w-3.5" />
-                  Edit
+                  <span className="hidden sm:inline">Edit</span>
                 </button>
                 {!job.isClosed && (
                   <button
                     onClick={() => handleClose(job._id)}
                     disabled={disabled || actionLoading === job._id}
-                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-amber-50 hover:text-amber-600 disabled:opacity-30 disabled:cursor-not-allowed"
                     title={disabled ? 'Save or cancel current edit first' : 'Close job (hide from students)'}
                   >
                     <EyeOff className="h-3.5 w-3.5" />
-                    Close
+                    <span className="hidden sm:inline">Close</span>
                   </button>
                 )}
                 {job.isClosed && (
                   <button
                     onClick={() => handleReopen(job._id)}
                     disabled={disabled || actionLoading === job._id}
-                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-emerald-50 hover:text-emerald-600 disabled:opacity-30 disabled:cursor-not-allowed"
                     title={disabled ? 'Save or cancel current edit first' : 'Reopen job'}
                   >
                     <EyeOff className="h-3.5 w-3.5" />
-                    Reopen
+                    <span className="hidden sm:inline">Reopen</span>
                   </button>
                 )}
                 {deleteConfirm === job._id ? (
@@ -474,27 +474,27 @@ function JobManagementCard({
                     <button
                       onClick={() => handleDelete(job._id)}
                       disabled={disabled || actionLoading === job._id}
-                      className="rounded-lg bg-red-500 px-2.5 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="rounded-lg bg-red-500 px-2 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      {actionLoading === job._id ? '...' : 'Confirm'}
+                      {actionLoading === job._id ? '...' : <><span className="hidden sm:inline">Confirm</span><span className="sm:hidden">✓</span></>}
                     </button>
                     <button
                       onClick={() => setDeleteConfirm(null)}
                       disabled={disabled}
-                      className="rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="rounded-lg border border-[#EAECF0] px-2 py-1.5 text-[11px] font-medium text-[#667085] disabled:opacity-30 disabled:cursor-not-allowed"
                     >
-                      Cancel
+                      <span className="hidden sm:inline">Cancel</span><span className="sm:hidden">✕</span>
                     </button>
                   </div>
                 ) : (
                   <button
                     onClick={() => setDeleteConfirm(job._id)}
                     disabled={disabled}
-                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2.5 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1 rounded-lg border border-[#EAECF0] px-2 py-1.5 text-[11px] font-medium text-[#667085] transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
                     title={disabled ? 'Save or cancel current edit first' : 'Delete permanently from database'}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Delete
+                    <span className="hidden sm:inline">Delete</span>
                   </button>
                 )}
               </div>
@@ -703,18 +703,16 @@ export default function PostJob() {
     <CompanyDashboardLayout>
       <div className="space-y-6 px-6 py-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-[#101828]">Post a Job</h1>
-              <p className="mt-1 text-[13.5px] text-[#667085]">
-                Create a detailed job listing to attract top talent. Fields marked with * are required.
-              </p>
-            </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-[#101828] sm:text-2xl">Post a Job</h1>
+            <p className="mt-1 text-[12.5px] text-[#667085] sm:text-[13.5px]">
+              Create a detailed job listing to attract top talent. Fields marked with * are required.
+            </p>
           </div>
           {/* Plan indicator */}
           {companyData && (
-            <div className="flex items-center gap-2">
+            <div className="self-start sm:self-auto">
               {isPro ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">
                   ⭐ PRO — Unlimited Jobs
@@ -1061,7 +1059,7 @@ export default function PostJob() {
           </Section>
 
           {/* ── Submit ──────────────────────────────────── */}
-          <div className="flex items-center justify-end gap-3 pb-8">
+          <div className="flex flex-wrap items-center justify-end gap-3 pb-8">
             {editingJobId && (
               <button
                 type="button"
@@ -1074,21 +1072,22 @@ export default function PostJob() {
             <button
               type="button"
               onClick={() => navigate('/company/dashboard')}
-              className="rounded-lg border border-[#D0D5DD] px-5 py-2.5 text-[13px] font-medium text-[#667085] transition-colors hover:bg-gray-50"
+              className="rounded-lg border border-[#D0D5DD] px-4 py-2.5 text-[13px] font-medium text-[#667085] transition-colors hover:bg-gray-50"
             >
-              Cancel
+              <span className="hidden sm:inline">Cancel</span><span className="sm:hidden">✕ Back</span>
             </button>
             <button
               type="submit"
               disabled={submitting || !form.jobTitle.trim()}
-              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-6 py-2.5 text-[13px] font-medium text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-5 py-2.5 text-[13px] font-medium text-white shadow-lg shadow-[#0b3b5c]/30 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 sm:px-6"
             >
               {submitting ? (
                 editingJobId ? "Updating..." : "Posting..."
               ) : (
                 <>
                   <Send className="h-4 w-4" />
-                  {editingJobId ? 'Update Job' : 'Post Job'}
+                  <span>{editingJobId ? 'Update' : 'Post'}</span>
+                  <span className="hidden sm:inline"> Job</span>
                 </>
               )}
             </button>

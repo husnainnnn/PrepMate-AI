@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Crown } from 'lucide-react'
+import { Crown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
@@ -21,35 +22,24 @@ interface DashboardSidebarProps {
     buttonHref?: string
   } | null
   onLogout?: () => void
+  /** Mobile sidebar state — managed by parent layout */
+  mobileOpen?: boolean
+  /** Called when mobile sidebar should close (backdrop click, link click, etc.) */
+  onMobileClose?: () => void
 }
 
-export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgradeCard, onLogout }: DashboardSidebarProps) {
+export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgradeCard, onLogout, mobileOpen, onMobileClose }: DashboardSidebarProps) {
   const { pathname } = useLocation()
 
-  return (
+  // Close mobile menu on route change
+  useEffect(() => {
+    onMobileClose?.()
+  }, [pathname])
+
+  const sidebarContent = (
     <>
-      <style>{`
-        @keyframes typewriter {
-          from { width: 0; opacity: 1; }
-          to { width: var(--tw); opacity: 1; }
-        }
-        .typewriter-label {
-          overflow: hidden;
-          white-space: nowrap;
-          display: inline-block;
-          vertical-align: middle;
-          width: 0;
-          opacity: 0;
-          transition: opacity 0.15s;
-        }
-        .group:hover .typewriter-label {
-          opacity: 1;
-          animation: typewriter 0.35s steps(var(--steps, 10), end) forwards;
-        }
-      `}</style>
-    <aside className="fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-r border-[#EAECF0] dark:border-[#334155] bg-white dark:bg-[#1E293B] lg:flex">
       {/* Logo */}
-      <Link to={logoHref} className="flex items-center gap-2 px-6 py-6">
+      <Link to={logoHref} className="flex items-center gap-2 px-6 py-6" onClick={() => onMobileClose?.()}>
         <img src="/images.png" alt="PrepMate AI" className="h-8 w-8 rounded-full" />
         <span className="text-[15px] font-semibold tracking-tight text-[#101828] dark:text-[#F1F5F9]">
           PrepMate <span className="text-[#1a6fa8]">AI</span>
@@ -87,7 +77,7 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
         </ul>
       </nav>
 
-      {/* Footer items (fixed — outside scrollable area) */}
+      {/* Footer items */}
       {(footerItems.length > 0 || onLogout) && (
         <div className="px-3 py-2">
           <ul className="space-y-0.5">
@@ -122,7 +112,7 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
             {onLogout && (
               <li>
                 <button
-                  onClick={onLogout}
+                  onClick={() => { onMobileClose?.(); onLogout() }}
                   className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium text-[#98A2B3] transition-all duration-200 hover:bg-red-50 hover:text-red-500 hover:translate-x-0.5"
                   title="Logout"
                 >
@@ -144,7 +134,7 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
         </div>
       )}
 
-      {/* Upgrade card — only shown if provided */}
+      {/* Upgrade card */}
       {upgradeCard && (
         <div className="p-4">
           <div className="rounded-xl bg-gradient-to-br from-[#0b3b5c] to-[#1a6fa8] p-4 text-white shadow-sm transition-all duration-300 hover:shadow-lg hover:shadow-[#0b3b5c]/30 hover:-translate-y-0.5">
@@ -172,7 +162,76 @@ export function DashboardSidebar({ logoHref, navItems, footerItems, badge, upgra
           </div>
         </div>
       )}
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      <style>{`
+        @keyframes typewriter {
+          from { width: 0; opacity: 1; }
+          to { width: var(--tw); opacity: 1; }
+        }
+        .typewriter-label {
+          overflow: hidden;
+          white-space: nowrap;
+          display: inline-block;
+          vertical-align: middle;
+          width: 0;
+          opacity: 0;
+          transition: opacity 0.15s;
+        }
+        .group:hover .typewriter-label {
+          opacity: 1;
+          animation: typewriter 0.35s steps(var(--steps, 10), end) forwards;
+        }
+
+        .sidebar-overlay {
+          animation: fade-in 0.2s ease-out both;
+        }
+        .sidebar-panel {
+          animation: slide-in-left 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slide-in-left {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+      `}</style>
+
+      {/* Mobile sidebar overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="sidebar-overlay absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => onMobileClose?.()}
+          />
+          {/* Sidebar panel */}
+          <aside className="sidebar-panel relative flex h-full w-72 flex-col border-r border-[#EAECF0] dark:border-[#334155] bg-white dark:bg-[#1E293B] shadow-2xl">
+            {/* Close button */}
+            <div className="absolute right-3 top-3">
+              <button
+                onClick={() => onMobileClose?.()}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#667085] dark:text-[#94A3B8] transition-colors hover:bg-[#F7F9FC] dark:hover:bg-[#334155]"
+                aria-label="Close menu"
+              >
+                <X className="h-[16px] w-[16px]" />
+              </button>
+            </div>
+            {sidebarContent}
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop sidebar — visible lg+ */}
+      <aside className="fixed left-0 top-0 z-20 hidden h-screen w-64 flex-col border-r border-[#EAECF0] dark:border-[#334155] bg-white dark:bg-[#1E293B] lg:flex">
+        {sidebarContent}
+      </aside>
     </>
   )
 }
