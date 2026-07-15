@@ -1,5 +1,7 @@
 <div align="center">
-# 🚀 PrepMate AI
+
+# 🚀 **PrepMate AI**
+
 </div>
 <div align="center">
 
