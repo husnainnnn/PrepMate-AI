@@ -2,14 +2,15 @@
 
 # 🚀 **PrepMate AI**
 
-</div>
-<div align="center">
-
 ### AI-Powered Interview Preparation & Recruitment Platform
 
-Connecting **Students**, **Companies**, and **Administrators** on a single intelligent platform.
+Connect students with companies through AI-driven hiring, live interviews, resume analysis, skill matching, and career development tools.
 
-Built with **React • Node.js • Express • MongoDB • AI • WebRTC • Socket.IO • Stripe**
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Node.js](https://img.shields.io/badge/Node.js-Express-green)
+![React](https://img.shields.io/badge/React-TypeScript-61DAFB)
+![MongoDB](https://img.shields.io/badge/Database-MongoDB-success)
+![Status](https://img.shields.io/badge/Status-Completed-brightgreen)
 
 </div>
 
@@ -17,13 +18,9 @@ Built with **React • Node.js • Express • MongoDB • AI • WebRTC • Soc
 
 # 📖 Overview
 
-PrepMate AI is an AI-powered interview preparation and recruitment platform designed to bridge the gap between students and recruiters.
+PrepMate AI is a full-stack AI-powered interview preparation and recruitment platform designed to simplify the hiring process for both students and companies.
 
-Students can build professional profiles, receive AI-powered career guidance, prepare for interviews, participate in live interviews, and communicate directly with companies.
-
-Companies can post jobs, screen applicants using AI, conduct live interviews, manage candidates, and hire efficiently through one platform.
-
-An Admin Panel enables complete platform management, company verification, and user support.
+Students can build professional profiles, receive AI-powered career guidance, practice interviews, and apply for jobs, while companies can intelligently screen applicants, conduct live interviews, and hire suitable candidates efficiently.
 
 ---
 
@@ -31,217 +28,109 @@ An Admin Panel enables complete platform management, company verification, and u
 
 ## 👨‍🎓 Student Portal
 
-- Secure Authentication
-- Student Dashboard
-- Profile Management
+- Secure Login & Signup
+- Email Verification
+- Professional Profile Management
 - Resume Builder
 - AI Resume Feedback
+- AI Career Resources
 - AI Job Matching
-- AI-Powered Learning Resources
 - Practice Questions
 - Mock Interviews
 - Live Interviews
-- Job Applications
-- Company Messaging
 - Real-Time Notifications
+- Real-Time Messaging
+- Applications Tracking
 - Analytics Dashboard
 - Settings
 - Help & Support
-- Upgrade to Pro
 
 ---
 
 ## 🏢 Company Portal
 
 - Secure Authentication
-- Company Dashboard
 - Company Profile
+- Company Verification
 - Job Posting
 - Applicant Management
 - AI Resume Screening
-- AI Match Score
-- Candidate Shortlisting
-- Interview Scheduling
+- AI Candidate Match Score
+- Applicant Shortlisting
 - Live Interviews
-- Student Messaging
+- Real-Time Messaging
+- Notifications
 - Analytics Dashboard
-- Real-Time Notifications
 - Settings
 - Help & Support
 
 ---
 
-## 👨‍💼 Admin Portal
+## 👨‍💼 Admin Panel
 
 - Dashboard
-- Manage Students
-- Manage Companies
-- Verify Company Accounts
-- Resolve Reported Issues
-- Monitor Platform Activities
-- Platform Administration
+- Student Management
+- Company Management
+- Company Verification
+- Platform Monitoring
+- Issue Management
+- Report Handling
+- User Activity Monitoring
 
 ---
 
 # 🤖 AI Features
 
-## AI Resume Screening
-
-Analyzes student resumes and profiles to recommend the most suitable candidates.
-
----
-
-## AI Job Matching
-
-Matches students with jobs based on:
-
-- Skills
-- Education
-- Experience
-- Career Interests
-- Profile Analysis
+- AI Resume Screening
+- AI Job Matching
+- AI Career Feedback
+- AI Resource Recommendations
+- Intelligent Skill Matching
+- Personalized Career Suggestions
 
 ---
 
-## AI Feedback
+# 🎥 Live Interview Features
 
-Provides personalized improvement suggestions by analyzing:
-
-- Student Profile
-- Resume
-- Practice Sessions
-- Mock Interviews
-- Application History
-
----
-
-## AI Learning Resources
-
-Recommends personalized learning materials based on:
-
-- Student Field
-- Skills
-- Career Goals
-
----
-
-# 🎥 Live Interview System
-
-- Real-Time Video Calling
-- WebRTC Integration
-- Socket.IO
+- WebRTC Video Calling
 - Screen Sharing
-- Student ↔ Company Communication
+- Real-Time Communication
+- Interview Management
 
 ---
 
-# 💬 Messaging System
+# 🔐 Security Features
 
-- Real-Time Chat
-- Student ↔ Company Messaging
-- Delete Messages
-- Conversation History
-
----
-
-# 🔔 Notification System
-
-- Instant Real-Time Notifications
-- Desktop Notifications
-- Notification Preferences
-- Multiple Notification Tones
+- JWT Authentication
+- Email Verification
+- Password Hashing (bcrypt)
+- Protected Routes
+- Input Validation
+- Request Rate Limiting
+- Helmet Security Headers
+- Environment Variables
+- Secure API Design
+- Authentication Middleware
+- Brute Force Protection
 
 ---
 
-# ⚙️ Settings
+# 💳 Premium Features
 
-- Dark Mode
-- Change Password
-- Delete Profile
-- Notification Settings
-- Notification Tone Selection
-- Account Preferences
+- Stripe Payment Integration
+- Upgrade to Pro
+- Premium Interview Credits
 
 ---
 
-# 📚 Learning Resources
+# 📱 Responsive Design
 
-Students receive AI-powered learning resources related to their:
+Fully optimized for
 
-- Academic Field
-- Skills
-- Career Path
-- Interview Preparation
-
----
-
-# 💳 Pro Membership
-
-Premium subscription powered by **Stripe**.
-
-### Upgrade to Pro
-
-Premium users can unlock advanced platform features through secure Stripe payment integration.
-
----
-
-# 👥 About Us
-
-A dedicated About Us page introduces:
-
-- PrepMate AI
-- Platform Vision
-- Development Team
-- Project Mission
-
----
-
-# 🛠 Help & Support
-
-Users can:
-
-- Browse FAQs
-- Report Bugs
-- Suggest Features
-- Contact Support
-
----
-
-# 📊 Dashboards
-
-## Student Dashboard
-
-- AI Job Matches
-- Applications
-- Resume Builder
-- AI Feedback
-- Resources
-- Live Interviews
-- Notifications
-- Analytics
-
----
-
-## Company Dashboard
-
-- Posted Jobs
-- AI Screening
-- Applicants
-- Shortlisted Candidates
-- Live Interviews
-- Messages
-- Analytics
-
----
-
-## Admin Dashboard
-
-- Student Management
-- Company Management
-- Company Verification
-- Reports Management
-- Issue Resolution
-- Platform Monitoring
+- Desktop
+- Laptop
+- Tablet
+- Mobile Devices
 
 ---
 
@@ -254,50 +143,249 @@ Users can:
 - Tailwind CSS
 - Vite
 
----
-
 ## Backend
 
 - Node.js
 - Express.js
-
----
-
-## Database
-
 - MongoDB
 - Mongoose
 
----
+## AI
+
+- Google Gemini API
+- Groq API
 
 ## Authentication
 
-- JWT Authentication
+- JWT
+- bcrypt
 
----
-
-## Artificial Intelligence
-
-- Groq API
-- Llama 3.3 70B
-
----
-
-## Real-Time Technologies
+## Real-Time
 
 - Socket.IO
 - WebRTC
 
----
-
-## Payment Gateway
+## Payments
 
 - Stripe
 
+---
+
+# 🚀 Getting Started
+
+## Prerequisites
+
+Before running the project, install:
+
+- Node.js
+- MongoDB (Local or MongoDB Atlas)
+- Git
+
+---
+
+# 📥 Installation
+
+## 1️⃣ Clone Repository
+
+```bash
+git clone https://github.com/husnainnnn/PrepMate-AI.git
+
+cd Interview-platform
+```
+
+---
+
+## 2️⃣ Backend Setup
+
+Navigate to backend
+
+```bash
+cd Backend
+```
+
+Install dependencies
+
+```bash
+npm install
+```
+
+Create environment file
+
+```bash
+cp .env.example .env
+```
+
+Open the newly created `.env` file and add your own credentials.
+
+---
+
+## 3️⃣ Frontend Setup
+
+```bash
+cd ../frontend
+
+npm install
+```
+
+---
+
+# ▶️ Running the Project
+
+Open **two terminals**.
+
+### Terminal 1
+
+```bash
+cd Backend
+
+npm run dev
+```
+
+---
+
+### Terminal 2
+
+```bash
+cd frontend
+
+npm run dev
+```
+
+The application will now be running locally.
+
+---
+
+# 🔑 Environment Variables
+
+Create a `.env` file inside the **Backend** directory.
+
+| Variable | Description |
+|------------|------------------------------------------------|
+| MONGO_URI | MongoDB Connection String |
+| JWT_SECRET | JWT Secret Key |
+| GEMINI_API_KEY | Google Gemini API Key |
+| GEMINI_AI_KEY | Gemini AI Key (Optional same/differnt) |
+| GROQ_API_KEY | Groq API Key |
+| GROQ_INTERVIEW_KEY | Groq Interview API Key (Optional same/differnt) |
+| GMAIL_USER | Gmail Address |
+| GMAIL_APP_PASSWORD | Gmail App Password |
+| ADMIN_EMAIL | Default Admin Email |
+| ADMIN_PASSWORD | Default Admin Password |
+| STRIPE_SECRET_KEY | Stripe Secret Key |
+
+---
+
+# 🔗 API Key Resources
+
+| Service | Link |
+|----------|------|
+| Google Gemini | https://aistudio.google.com/apikey |
+| Groq | https://console.groq.com/keys |
+| MongoDB Atlas | https://www.mongodb.com/cloud/atlas |
+| Stripe | https://dashboard.stripe.com/apikeys |
+
+---
+
+# ⚡ Feature Require API Keys
+
+| Feature | Requires API Keys |
+|----------|------------------|
+|Signup | ✅  Gmail Credentials |
+| Email Verification | ✅ Gmail Credentials |
+| Profile Management | ❌ No |
+| Job Posting | ❌ No |
+| Resume Builder | ❌ No |
+| Messaging | ❌ No |
+| Notifications | ❌ No |
+| Live Interviews | ❌ No |
+| AI Resume Screening | ✅ Gemini / Groq |
+| AI Feedback | ✅ Groq |
+| AI Job Matching | ✅ Gemini |
+| AI Resources | ✅ Gemini |
+| Stripe Payments | ✅ Stripe |
+
+> **Note:**  
+> Most core platform features work without AI keys. AI-powered features, email verification, and payment functionality require their respective API credentials.
+
+---
+
+# 🔒 Security
+
+PrepMate AI follows modern backend security practices, including:
+
+- JWT Authentication
+- Password Hashing
+- Email Verification
+- Input Validation
+- Secure HTTP Headers
+- Rate Limiting
+- Environment Variables
+- Protected API Routes
+
+---
+
+# 📸 Screenshots
+
+> Screenshots and demo GIFs will be added soon.
+
+---
+
+# 🚀 Future Improvements
+
+- Docker Support
+- CI/CD Pipeline
+- Multi-language Support
+- AI Interview Voice Analysis
+- Resume PDF Parsing
+- Interview Recording
+- Advanced Analytics
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome.
+
+1. Fork the repository
+
+2. Create your feature branch
+
+```bash
+git checkout -b feature/NewFeature
+```
+
+3. Commit your changes
+
+```bash
+git commit -m "feat: add new feature"
+```
+
+4. Push to your branch
+
+```bash
+git push origin feature/NewFeature
+```
+
+5. Open a Pull Request
+
+---
+
+# 📄 License
+
+This project is licensed under the MIT License.
+
+---
 # 👨‍💻 Developer
 
 **Husnain Sattar**
 
 ---
+<div align="center">
 
-## ⭐ If you like this project, consider giving it a Star!
+## ⭐ If you like this project, don't forget to give it a Star!
+
+Made with ❤️ using React, Node.js, Express, MongoDB & AI
+
+</div>
+
+
