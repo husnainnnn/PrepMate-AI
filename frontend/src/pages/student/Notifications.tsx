@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
 import { useAuth } from '@/context/AuthContext'
 import { showDesktopNotification, playNotificationSound, requestDesktopNotifPermission } from '@/lib/notificationSounds'
+import { getSocketUrl } from '@/lib/socketUrl'
 import {
   Bell,
   Briefcase,
@@ -138,7 +139,7 @@ export default function StudentNotifications() {
         const { io } = await import('socket.io-client')
         if (disposed) return // effect cleaned up while loading
 
-        const s = io('http://localhost:3001')
+        const s = io(getSocketUrl())
         socketRef.current = s
 
         s.on('connect', () => {

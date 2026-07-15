@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
 import { useAuth } from '@/context/AuthContext'
 import { Loader2, Smartphone, Code2, Quote, Target, Zap, Users } from 'lucide-react'
+import { getSocketUrl } from '@/lib/socketUrl'
 
 interface Developer {
   name: string
@@ -44,7 +45,7 @@ export default function StudentAboutUs() {
       try {
         const { io } = await import('socket.io-client')
         if (disposed) return
-        const s = io('http://localhost:3001')
+        const s = io(getSocketUrl())
         socketRef.current = s
         s.on('about_updated', () => { fetchAbout() })
       } catch { /* socket unavailable */ }

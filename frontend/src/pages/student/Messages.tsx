@@ -10,6 +10,7 @@ import {
 import { StudentDashboardLayout } from "@/components/student/StudentDashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 import { io } from "socket.io-client";
+import { getSocketUrl } from '@/lib/socketUrl'
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ export default function StudentMessages() {
   // ─── Socket.io real-time messages ────────────────────────
   useEffect(() => {
     if (!token || !user) return;
-    const socket = io('http://localhost:3001');
+    const socket = io(getSocketUrl());
 
     socket.on('connect', () => {
       socket.emit('join', user.id || user._id);

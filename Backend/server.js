@@ -3,27 +3,26 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { Server } = require('socket.io');
 
-// Load .env file if present (for GEMINI_API_KEY)
-try {
-  const envPath = path.join(__dirname, '.env');
-  if (fs.existsSync(envPath)) {
-    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const eqIdx = trimmed.indexOf('=');
-        if (eqIdx > 0) {
-          const key = trimmed.slice(0, eqIdx).trim();
-          const val = trimmed.slice(eqIdx + 1).trim();
-          if (!process.env[key]) process.env[key] = val;
-        }
-      }
-    }
-  }
-} catch (e) {
-  console.warn('Could not load .env file:', e.message);
+// Load .env file
+const dotenv = require('dotenv');
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+// ─── Security: Validate critical env vars on startup ─────
+const REQUIRED_ENV = ['JWT_SECRET', 'MONGO_URI'];
+const missing = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missing.length > 0) {
+  console.error(`FATAL: Missing required environment variables: ${missing.join(', ')}`);
+  console.error('Create a .env file from .env.example with these values.');
+  process.exit(1);
+}
+
+// Warn if JWT_SECRET looks like default
+if (process.env.JWT_SECRET === 'change-me-in-production' || process.env.JWT_SECRET === 'your-secret-key') {
+  console.warn('⚠️  WARNING: JWT_SECRET is set to a default value! Change it in production.');
 }
 
 // Ensure uploads directory exists
@@ -57,8 +56,12 @@ const PORT = process.env.PORT || 3001;
 
 // ─── HTTP Server + Socket.io ────────────────────────────
 const server = http.createServer(app);
+const isDev = process.env.NODE_ENV !== 'production'
+const allowedIoOrigins = isDev
+  ? '*'  // Dev mode: allow any origin (safe on local network)
+  : [process.env.FRONTEND_URL || 'http://localhost:5173'];
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] },
+  cors: { origin: allowedIoOrigins, methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] },
 });
 app.set('io', io);
 
@@ -107,34 +110,80 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), (re
   paymentRoutes.handleWebhook(req, res);
 });
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ─── Security Middleware ────────────────────────────────────
+
+// Security headers (helmet)
+app.use(helmet());
+
+// Rate limiting — 100 requests per minute per IP
+const limiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' },
+});
+app.use('/api/', limiter);
+
+// Stricter rate limit for auth endpoints (10 requests per minute)
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again later.' },
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/company-login', authLimiter);
+app.use('/api/admin/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
+app.use('/api/auth/company-signup', authLimiter);
+
+// CORS — restrict to frontend origin in production
+const allowedOrigins = isDev
+  ? true  // Dev mode: echo back request origin (safe on local network)
+  : [process.env.FRONTEND_URL || 'http://localhost:5173'];
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
+
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/resume', resumeRoutes);
-app.use('/api/jobs', jobsRoutes);
-app.use('/api/applications', applicationsRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/companies', companyDashboardRoutes); // MUST be before companiesRoutes (/:id would catch "dashboard")
+// ─── Import auth middleware ────────────────────────────────
+const { requireAuth } = require('./middleware/auth');
+
+// ─── Routes (public endpoints first, protected after) ────
+
+// Public:
+app.use('/api/auth', authRoutes); // login/signup/me
+app.use('/api/about', aboutRoutes); // GET is public
+
+// ─── Apply input validation & sanitization to all routes ──
+const { sanitizeBody } = require('./middleware/validate');
+
+// Protected (require valid JWT):
+app.use('/api/resume', requireAuth, sanitizeBody, resumeRoutes);
+app.use('/api/jobs', jobsRoutes); // public listing + match, individual handlers check auth
+app.use('/api/applications', requireAuth, sanitizeBody, applicationsRoutes);
+app.use('/api/upload', requireAuth, uploadRoutes);
+app.use('/api/companies', companyDashboardRoutes);
 app.use('/api/companies', companiesRoutes);
-app.use('/api/interview', interviewRoutes);
-app.use('/api/stats', statsRoutes);
-app.use('/api/company', companyJobsRoutes);
-app.use('/api/jobs', jobsExtendedRoutes);
-app.use('/api/messages', messagesRoutes);
-app.use('/api/live-interviews', liveInterviewsRoutes);
-app.use('/api/feedback', feedbackRoutes);
-app.use('/api/resources', resourcesRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/support', supportRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/about', aboutRoutes);
+app.use('/api/interview', requireAuth, sanitizeBody, interviewRoutes);
+app.use('/api/stats', requireAuth, statsRoutes);
+app.use('/api/company', requireAuth, sanitizeBody, companyJobsRoutes);
+app.use('/api/jobs', jobsExtendedRoutes); // partial auth, individual handlers check
+app.use('/api/messages', requireAuth, sanitizeBody, messagesRoutes);
+app.use('/api/live-interviews', requireAuth, sanitizeBody, liveInterviewsRoutes);
+app.use('/api/feedback', requireAuth, sanitizeBody, feedbackRoutes);
+app.use('/api/resources', requireAuth, resourcesRoutes);
+app.use('/api/notifications', requireAuth, notificationRoutes);
+app.use('/api/support', requireAuth, sanitizeBody, supportRoutes);
+app.use('/api/admin', adminRoutes); // admin routes have own role check
 app.use('/api/payments', require('./routes/payments'));
 
 // Health check — includes DB status

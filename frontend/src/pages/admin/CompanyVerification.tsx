@@ -70,6 +70,59 @@ export default function AdminCompanyVerification() {
         <p className="text-[13px] text-[#667085]">Verify company accounts</p>
       </div>
       <div className="p-8">
+        {/* Company Detail Panel — opens as a modal popup (form ki tarah) */}
+        {selectedCompany && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setSelectedCompany(null)}>
+            <div className="w-full max-w-lg rounded-xl border border-[#EAECF0] bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-[15px] font-semibold text-[#101828]">Company Details</h3>
+                <button onClick={() => setSelectedCompany(null)}
+                  className="flex items-center gap-1 rounded-lg border border-[#D0D5DD] px-3 py-1.5 text-[12px] font-medium text-[#667085] transition-colors hover:bg-[#F7F9FC] hover:text-[#101828]">
+                  <XCircle className="h-3.5 w-3.5" />
+                  Close
+                </button>
+              </div>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-[15px] font-semibold text-[#101828]">{selectedCompany.companyName}</h3>
+                    <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${
+                      selectedCompany.isVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                    }`}>
+                      {selectedCompany.isVerified ? '✅ Verified' : '⏳ Pending'}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-x-8 gap-y-2 text-[12.5px] sm:grid-cols-2">
+                    <div><span className="text-[#98A2B3]">Email:</span> <span className="text-[#667085]">{selectedCompany.email}</span></div>
+                    <div><span className="text-[#98A2B3]">Industry:</span> <span className="text-[#667085]">{selectedCompany.industry || '—'}</span></div>
+                    <div><span className="text-[#98A2B3]">Website:</span> <span className="text-[#667085]">{selectedCompany.website || '—'}</span></div>
+                    <div><span className="text-[#98A2B3]">Phone:</span> <span className="text-[#667085]">{selectedCompany.phone || '—'}</span></div>
+                    <div><span className="text-[#98A2B3]">Size:</span> <span className="text-[#667085]">{selectedCompany.employeeCount || '—'}</span></div>
+                    <div><span className="text-[#98A2B3]">Location:</span> <span className="text-[#667085]">{[selectedCompany.city, selectedCompany.country].filter(Boolean).join(', ') || '—'}</span></div>
+                    <div><span className="text-[#98A2B3]">Joined:</span> <span className="text-[#667085]">{new Date(selectedCompany.createdAt).toLocaleDateString()}</span></div>
+                    {selectedCompany.description && <div className="sm:col-span-2"><span className="text-[#98A2B3]">About:</span> <span className="text-[#667085]">{selectedCompany.description}</span></div>}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end border-t border-[#EAECF0] pt-4">
+                  {selectedCompany.isVerified ? (
+                    <button onClick={() => setUnverifyConfirm(true)}
+                      className="flex items-center justify-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-amber-600 shadow-sm">
+                      <XCircle className="h-4 w-4" />
+                      Remove Verification
+                    </button>
+                  ) : (
+                    <button onClick={() => setVerifyConfirm(true)}
+                      className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-emerald-700 shadow-sm">
+                      <CheckCircle className="h-4 w-4" />
+                      Verify Company
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="mb-6 flex items-center gap-1 rounded-lg bg-[#F7F9FC] p-1 w-fit">
           <button onClick={() => setTab('pending')}
@@ -134,56 +187,6 @@ export default function AdminCompanyVerification() {
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {/* Company Detail Panel */}
-        {selectedCompany && (
-          <div className="mt-6 rounded-xl border border-[#EAECF0] bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-[#101828]">Company Details</h3>
-              <button onClick={() => setSelectedCompany(null)}
-                className="flex items-center gap-1 rounded-lg border border-[#D0D5DD] px-3 py-1.5 text-[12px] font-medium text-[#667085] transition-colors hover:bg-[#F7F9FC] hover:text-[#101828]">
-                <XCircle className="h-3.5 w-3.5" />
-                Close
-              </button>
-            </div>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-[15px] font-semibold text-[#101828]">{selectedCompany.companyName}</h3>
-                  <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${
-                    selectedCompany.isVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                  }`}>
-                    {selectedCompany.isVerified ? '✅ Verified' : '⏳ Pending'}
-                  </span>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-2 text-[12.5px]">
-                  <div><span className="text-[#98A2B3]">Email:</span> <span className="text-[#667085]">{selectedCompany.email}</span></div>
-                  <div><span className="text-[#98A2B3]">Industry:</span> <span className="text-[#667085]">{selectedCompany.industry || '—'}</span></div>
-                  <div><span className="text-[#98A2B3]">Website:</span> <span className="text-[#667085]">{selectedCompany.website || '—'}</span></div>
-                  <div><span className="text-[#98A2B3]">Phone:</span> <span className="text-[#667085]">{selectedCompany.phone || '—'}</span></div>
-                  <div><span className="text-[#98A2B3]">Size:</span> <span className="text-[#667085]">{selectedCompany.employeeCount || '—'}</span></div>
-                  <div><span className="text-[#98A2B3]">Location:</span> <span className="text-[#667085]">{[selectedCompany.city, selectedCompany.country].filter(Boolean).join(', ') || '—'}</span></div>
-                  <div><span className="text-[#98A2B3]">Joined:</span> <span className="text-[#667085]">{new Date(selectedCompany.createdAt).toLocaleDateString()}</span></div>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {selectedCompany.isVerified ? (
-                  <button onClick={() => setUnverifyConfirm(true)}
-                    className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-amber-600 shadow-sm">
-                    <XCircle className="h-4 w-4" />
-                    Remove Verification
-                  </button>
-                ) : (
-                  <button onClick={() => setVerifyConfirm(true)}
-                    className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-emerald-700 shadow-sm">
-                    <CheckCircle className="h-4 w-4" />
-                    Verify Company
-                  </button>
-                )}
-              </div>
-            </div>
           </div>
         )}
 

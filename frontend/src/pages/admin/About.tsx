@@ -163,10 +163,10 @@ export default function AdminAbout() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-5 py-2.5 text-[13px] font-medium text-white hover:brightness-110 disabled:opacity-50 transition-all"
+          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-3 py-2.5 sm:px-5 text-[13px] font-medium text-white hover:brightness-110 disabled:opacity-50 transition-all"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <CheckCircle2 className="h-4 w-4 text-green-300" /> : <Save className="h-4 w-4" />}
-          {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
+          <span className="hidden sm:inline">{saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}</span>
         </button>
       </div>
 
@@ -220,10 +220,10 @@ export default function AdminAbout() {
             </div>
             <button
               onClick={addDeveloper}
-              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-4 py-2 text-[12px] font-medium text-white hover:brightness-110 transition-all"
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#0b3b5c] to-[#1a6fa8] px-3 py-2 sm:px-4 text-[12px] font-medium text-white hover:brightness-110 transition-all"
             >
               <Plus className="h-3.5 w-3.5" />
-              Add Developer
+              <span className="hidden sm:inline">Add Developer</span>
             </button>
           </div>
 

@@ -66,17 +66,14 @@ export default function AdminStudentHelp() {
               return (
                 <div key={t._id} className="rounded-xl border border-[#EAECF0] bg-white p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 min-w-0">
+                    <div className="flex items-start gap-2.5 min-w-0">
                       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${typeInfo.color}`}>
                         <Icon className="h-[18px] w-[18px]" />
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-[13.5px] font-medium text-[#101828]">{detail}</p>
-                          <span className={`rounded-md px-2 py-0.5 text-[10px] font-medium ${typeInfo.color}`}>{typeInfo.label}</span>
-                        </div>
-                        <p className="mt-0.5 text-[12.5px] text-[#667085] line-clamp-2">{t.bugDetails || t.featureDescription || t.companyReason || t.helpMessage || 'No details'}</p>
-                        <p className="mt-1 text-[11px] text-[#98A2B3]">{new Date(t.createdAt).toLocaleString()}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] sm:text-[13.5px] font-medium text-[#101828] truncate">{detail}</p>
+                        <p className="mt-0.5 text-[12px] sm:text-[12.5px] text-[#667085] line-clamp-2">{t.bugDetails || t.featureDescription || t.companyReason || t.helpMessage || 'No details'}</p>
+                        <p className="mt-1 text-[10px] sm:text-[11px] text-[#98A2B3]">{new Date(t.createdAt).toLocaleString()}</p>
                       </div>
                     </div>
                     <button onClick={() => handleResolve(t._id)} disabled={resolving === t._id}

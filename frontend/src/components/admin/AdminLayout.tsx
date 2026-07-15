@@ -62,8 +62,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           socketRef.current = null
         }
         const { io } = await import('socket.io-client')
+        const { getSocketUrl, SOCKET_OPTIONS } = await import('@/lib/socketUrl')
         if (disposed) return
-        const s = io('http://localhost:3001', { transports: ['websocket', 'polling'] })
+        const s = io(getSocketUrl(), SOCKET_OPTIONS)
         socketRef.current = s
         s.on('connect', () => {
           s.emit('join', user.id.toString())
@@ -91,6 +92,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [token, user?.id])
 
+  // Admin panel hamesha light mode mein rahega — dark class forcefully remove
+  useEffect(() => {
+    const root = document.documentElement
+    const wasDark = root.classList.contains('dark')
+    root.classList.remove('dark')
+    return () => {
+      // Cleanup: admin logout par restore karo jo pahle tha
+      if (wasDark) root.classList.add('dark')
+    }
+  }, [])
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
@@ -102,8 +114,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F9FC] dark:bg-[#0F172A] text-[#101828] dark:text-[#F1F5F9]">
-      {/* Shared sidebar — fixed, static, same as student/company */}
+    <div className="flex h-screen bg-[#F7F9FC] text-[#101828]">
+      {/* Shared sidebar — fixed, same as student/company */}
       <DashboardSidebar
         logoHref="/admin/dashboard"
         badge="Admin"
@@ -115,11 +127,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         onMobileClose={() => setMobileMenuOpen(false)}
       />
 
-      {/* Main content area */}
-      <div className="flex lg:pl-64">
-        <div className="flex min-h-screen flex-1 flex-col">
-          {/* Sticky Top Header — same pattern as student/company */}
-          <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[#EAECF0] dark:border-[#334155] bg-white/80 dark:bg-[#1E293B]/80 px-6 py-4 backdrop-blur-sm lg:px-8">
+      {/* Main content area — independent scroll inside, header fixed at top */}
+      <div className="flex flex-1 flex-col lg:pl-64 min-w-0">
+        {/* Fixed Top Header — always visible, never scrolls */}
+        <header className="shrink-0 z-10 flex items-center justify-between gap-4 border-b border-[#EAECF0] bg-white px-6 py-4 lg:px-8">
             {/* Left: hamburger (mobile) + smart search (desktop) */}
             <div className="flex items-center gap-3">
               {/* Mobile hamburger — only below lg */}
@@ -160,10 +171,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </header>
 
-          {/* Page content with entrance animation */}
-          <main className="flex-1 animate-fade-in-fast">{children}</main>
+          {/* Page content — scrolls independently below the header */}
+          <main className="flex-1 overflow-y-auto bg-[#F7F9FC] animate-fade-in-fast">{children}</main>
         </div>
       </div>
-    </div>
   )
 }

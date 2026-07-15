@@ -22,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import { io } from "socket.io-client";
+import { getSocketUrl } from '@/lib/socketUrl'
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -104,7 +105,7 @@ export default function Messages() {
   // ─── Socket.io real-time messages ────────────────────────
   useEffect(() => {
     if (!token || !user) return;
-    const socket = io('http://localhost:3001');
+    const socket = io(getSocketUrl());
 
     socket.on('connect', () => {
       socket.emit('join', user.id || user._id);

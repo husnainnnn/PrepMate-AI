@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Bell, Loader2, CheckCircle, Trash2, Bug, Lightbulb, AlertTriangle, HelpCircle, UserX, Building2 } from 'lucide-react'
 import { playNotificationSound, showDesktopNotification, requestDesktopNotifPermission } from '@/lib/notificationSounds'
+import { getSocketUrl } from '@/lib/socketUrl'
 
 const TYPE_ICONS: Record<string, any> = {
   bug: Bug,
@@ -97,7 +98,7 @@ export default function AdminNotifications() {
         const { io } = await import('socket.io-client')
         if (disposed) return
 
-        const s = io('http://localhost:3001')
+        const s = io(getSocketUrl())
         socketRef.current = s
 
         // Extract admin id from token payload

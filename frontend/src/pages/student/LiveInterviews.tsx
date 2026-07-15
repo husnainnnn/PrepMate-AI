@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { getSocketUrl, SOCKET_OPTIONS } from '@/lib/socketUrl'
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -152,7 +153,7 @@ function VideoRoom({
     if (!localStreamRef.current) return
     setStatus('connecting')
 
-    const socket = (await import('socket.io-client')).io('http://localhost:3001', { transports: ['websocket', 'polling'] })
+    const socket = (await import('socket.io-client')).io(getSocketUrl(), SOCKET_OPTIONS)
     socketRef.current = socket
 
     const pc = new RTCPeerConnection(ICE_SERVERS)
@@ -486,7 +487,7 @@ export default function LiveInterviewsPage() {
     const connectSocket = async () => {
       try {
         const { io } = await import('socket.io-client')
-        socket = io('http://localhost:3001')
+        socket = io(getSocketUrl())
 
         socket.on('connect', () => {
           socket.emit('join', user.id || user._id)

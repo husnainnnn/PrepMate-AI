@@ -488,6 +488,7 @@ function DashboardSkeleton() {
 export default function StudentDashboard() {
   const { user, token } = useAuth()
   const [confirmDone, setConfirmDone] = useState(false)
+  const [checkinDone, setCheckinDone] = useState(false)
 
   // ── Check if redirected from Stripe payment success ──
   useEffect(() => {
@@ -515,18 +516,20 @@ export default function StudentDashboard() {
     }
   }, [token, user?.id])
 
-  // ── Fire-and-forget: daily checkin ───────────────────
+  // ── Daily checkin (must complete BEFORE dashboard fetch) ──
   useEffect(() => {
     if (!token || !confirmDone) return
     fetch('/api/stats/checkin', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-    }).catch(() => {})
+    })
+      .catch(() => {})
+      .finally(() => setCheckinDone(true))
   }, [confirmDone])
 
-  // ── Fetch dashboard with caching ─────────────────────
+  // ── Fetch dashboard with caching (waits for checkin first) ─
   const { data, loading } = useCachedFetch<DashboardData>(
-    token && confirmDone ? '/api/stats/dashboard' : null,
+    token && confirmDone && checkinDone ? '/api/stats/dashboard' : null,
     { headers: { Authorization: `Bearer ${token}` } },
     TTL.DYNAMIC,
   )

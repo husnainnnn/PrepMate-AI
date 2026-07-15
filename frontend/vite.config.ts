@@ -15,12 +15,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
+      host: true, // expose to network (same WiFi devices can access)
       // Proxy API calls to the backend during local development so the
       // frontend can call relative paths like /api/... with no CORS setup.
       proxy: {
         '/api': {
           target: env.VITE_API_PROXY_TARGET || 'http://localhost:3001',
           changeOrigin: true,
+          ws: true, // proxy WebSocket (socket.io) connections too
         },
       },
     },

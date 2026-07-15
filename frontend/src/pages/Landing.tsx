@@ -1,8 +1,19 @@
+import { useEffect } from 'react'
 import { BackgroundVideo } from '@/components/layout/BackgroundVideo'
 import { Navbar } from '@/components/layout/Navbar'
 import { Hero } from '@/components/layout/Hero'
 
 export function Landing() {
+  // Landing page hamesha light mode mein rahega
+  useEffect(() => {
+    const root = document.documentElement
+    const wasDark = root.classList.contains('dark')
+    root.classList.remove('dark')
+    return () => {
+      if (wasDark) root.classList.add('dark')
+    }
+  }, [])
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground">
       <style>{`

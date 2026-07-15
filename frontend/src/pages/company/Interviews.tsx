@@ -10,6 +10,7 @@ import { CompanyDashboardLayout } from "@/components/company/CompanyDashboardLay
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
+import { getSocketUrl, SOCKET_OPTIONS } from '@/lib/socketUrl'
 
 // --- Types ---
 
@@ -434,7 +435,7 @@ function VideoRoom({
     if (!localStreamRef.current) return;
     setStatus("connecting");
 
-    const socket = (await import("socket.io-client")).io("http://localhost:3001", { transports: ['websocket', 'polling'] });
+    const socket = (await import("socket.io-client")).io(getSocketUrl(), SOCKET_OPTIONS);
     socketRef.current = socket;
 
     const pc = new RTCPeerConnection(ICE_SERVERS);

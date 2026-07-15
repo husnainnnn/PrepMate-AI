@@ -44,7 +44,7 @@ export default function AdminCompanies() {
             <p className="mt-3 text-[13px] text-[#667085]">No companies found</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-[#EAECF0] bg-white">
+          <div className="overflow-x-auto rounded-xl border border-[#EAECF0] bg-white">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#EAECF0] bg-[#F7F9FC]">
@@ -65,7 +65,7 @@ export default function AdminCompanies() {
                     <td className="px-4 py-3">
                       {c.plan === 'pro' ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
-                          ⭐ PRO
+                          PRO
                         </span>
                       ) : (
                         <span className="rounded-md bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-500">Free</span>

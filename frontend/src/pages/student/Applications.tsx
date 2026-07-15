@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { StudentDashboardLayout } from '@/components/student/StudentDashboardLayout'
 import { SendHorizontal, CheckCircle2, XCircle, Clock, Sparkles, Trash2, AlertTriangle } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { getSocketUrl } from '@/lib/socketUrl'
 
 type Stage = 'applied' | 'under_review' | 'shortlisted' | 'interview' | 'hired' | 'rejected'
 type FilterTab = 'all' | 'active' | 'hired' | 'rejected'
@@ -74,7 +75,7 @@ export default function Applications() {
     const connectSocket = async () => {
       try {
         const { io } = await import('socket.io-client')
-        socket = io('http://localhost:3001')
+        socket = io(getSocketUrl())
 
         socket.on('connect', () => {
           socket.emit('join', user.id || user._id)

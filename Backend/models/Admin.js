@@ -11,13 +11,19 @@ const adminSchema = new mongoose.Schema({
 
 // ─── Auto-seed superadmin on first use ────────────────────
 adminSchema.statics.seedSuperAdmin = async function () {
-  const email = 'superadmin@gmail.com';
-  const password = 'superAdmin@2026';
+  // Read credentials from env or use defaults (must be changed in production)
+  const email = process.env.ADMIN_EMAIL || 'superadmin@gmail.com';
+  const password = process.env.ADMIN_PASSWORD || 'superAdmin@2026';
+  
+  if (!process.env.ADMIN_EMAIL && !process.env.ADMIN_PASSWORD) {
+    console.warn('⚠️  Using default admin credentials! Set ADMIN_EMAIL and ADMIN_PASSWORD in .env for production.');
+  }
+  
   const existing = await this.findOne({ email });
   if (!existing) {
     const hashed = await bcrypt.hash(password, 10);
     await this.create({ email, password: hashed, fullName: 'Super Admin' });
-    console.log('✅ Super admin seeded: superadmin@gmail.com');
+    console.log('✅ Super admin seeded:', email);
   }
 };
 

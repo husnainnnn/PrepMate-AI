@@ -23,6 +23,7 @@ import {
 import { playNotificationSound, showDesktopNotification, requestDesktopNotifPermission, getDesktopNotifEnabled } from '@/lib/notificationSounds'
 import { useAuth } from '@/context/AuthContext'
 import { DashboardSidebar, type SidebarItem } from '@/components/shared/DashboardSidebar'
+import { getSocketUrl, SOCKET_OPTIONS } from '@/lib/socketUrl'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import SmartSearch from '@/components/shared/SmartSearch'
 import { useCachedFetch } from '@/hooks/useCachedFetch'
@@ -94,7 +95,7 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
         const { io } = await import('socket.io-client')
         if (disposed) return // effect cleaned up while we were loading
 
-        const s = io('http://localhost:3001', { transports: ['websocket', 'polling'] })
+        const s = io(getSocketUrl(), SOCKET_OPTIONS)
         socketRef.current = s
 
         s.on('connect', () => {

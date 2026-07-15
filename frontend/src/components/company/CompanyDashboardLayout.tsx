@@ -22,6 +22,7 @@ import { playNotificationSound, showDesktopNotification, requestDesktopNotifPerm
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import SmartSearch from '@/components/shared/SmartSearch'
 import { useAuth } from '@/context/AuthContext'
+import { getSocketUrl, SOCKET_OPTIONS } from '@/lib/socketUrl'
 import { useCachedFetch } from '@/hooks/useCachedFetch'
 import { TTL } from '@/lib/apiCache'
 
@@ -89,7 +90,7 @@ export function CompanyDashboardLayout({ children }: CompanyDashboardLayoutProps
         const { io } = await import('socket.io-client')
         if (disposed) return
 
-        const s = io('http://localhost:3001', { transports: ['websocket', 'polling'] })
+        const s = io(getSocketUrl(), SOCKET_OPTIONS)
         socketRef.current = s
 
         s.on('connect', () => {

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { CompanyDashboardLayout } from '@/components/company/CompanyDashboardLayout'
 import { useAuth } from '@/context/AuthContext'
 import { showDesktopNotification, playNotificationSound, requestDesktopNotifPermission } from '@/lib/notificationSounds'
+import { getSocketUrl } from '@/lib/socketUrl'
 import {
   Bell,
   UserPlus,
@@ -117,7 +118,7 @@ export default function CompanyNotifications() {
         const { io } = await import('socket.io-client')
         if (disposed) return
 
-        const s = io('http://localhost:3001')
+        const s = io(getSocketUrl())
         socketRef.current = s
 
         s.on('connect', () => {
