@@ -1,5 +1,6 @@
+<div align="center">
 # 🚀 PrepMate AI
-
+</div>
 <div align="center">
 
 ### AI-Powered Interview Preparation & Recruitment Platform
