@@ -183,95 +183,149 @@ Before running the project, install:
 
 ---
 
-# 📥 Installation
+# 🚀 Installation & Setup
 
-## 1️⃣ Clone Repository
+Follow the steps below to run PrepMate AI on your local machine.
+
+
+## 1. Clone the Repository
 
 ```bash
 git clone https://github.com/husnainnnn/PrepMate-AI.git
-
-cd Interview-platform
+cd PrepMate-AI
 ```
 
 ---
 
-## 2️⃣ Backend Setup
+## 2. Install Dependencies
 
-Navigate to backend
+### Backend
 
 ```bash
 cd Backend
-```
-
-Install dependencies
-
-```bash
 npm install
 ```
 
-Create environment file
-
-```bash
-cp .env.example .env
-```
-
-Open the newly created `.env` file and add your own credentials.
-
----
-
-## 3️⃣ Frontend Setup
+### Frontend
 
 ```bash
 cd ../frontend
-
 npm install
 ```
 
 ---
 
-# ▶️ Running the Project
+## 3. Configure Environment Variables
 
-Open **two terminals**.
+Both the **Backend** and **Frontend** require a `.env` file.
 
-### Terminal 1
+Copy the provided `.env.example` file and rename it to `.env`.
+
+### Backend
 
 ```bash
 cd Backend
-
-npm run dev
+cp .env.example .env
 ```
 
----
-
-### Terminal 2
+### Frontend
 
 ```bash
-cd frontend
-
-npm run dev
+cd ../frontend
+cp .env.example .env
 ```
 
-The application will now be running locally.
+Now open both `.env` files and replace the placeholder values with your own credentials.
 
 ---
 
-# 🔑 Environment Variables
+## Backend Environment Variables
 
 Create a `.env` file inside the **Backend** directory.
 
 | Variable | Description |
-|------------|------------------------------------------------|
-| MONGO_URI | MongoDB Connection String |
-| JWT_SECRET | JWT Secret Key |
-| GEMINI_API_KEY | Google Gemini API Key |
-| GEMINI_AI_KEY | Gemini AI Key (Optional same/differnt) |
-| GROQ_API_KEY | Groq API Key |
-| GROQ_INTERVIEW_KEY | Groq Interview API Key (Optional same/differnt) |
-| GMAIL_USER | Gmail Address |
-| GMAIL_APP_PASSWORD | Gmail App Password |
-| ADMIN_EMAIL | Default Admin Email |
-| ADMIN_PASSWORD | Default Admin Password |
-| STRIPE_SECRET_KEY | Stripe Secret Key |
+|----------|-------------|
+| `MONGO_URI` | MongoDB Connection String |
+| `JWT_SECRET` | Secret key for JWT Authentication |
+| `GEMINI_API_KEY` | Google Gemini API Key |
+| `GEMINI_AI_KEY` | Gemini AI Key |
+| `GROQ_API_KEY` | Groq API Key |
+| `GROQ_INTERVIEW_KEY` | Groq API Key for AI Interviews |
+| `GMAIL_USER` | Gmail Account |
+| `GMAIL_APP_PASSWORD` | Gmail App Password |
+| `STRIPE_SECRET_KEY` | Stripe Secret Key |
+| `STRIPE_WEBHOOK_SECRET` | Stripe Webhook Secret |
+| `CLIENT_URL` | Frontend URL |
+| `ADMIN_EMAIL` | Default Admin Email |
+| `ADMIN_PASSWORD` | Default Admin Password |
+
+---
+
+## Frontend Environment Variables
+
+Create a `.env` file inside the **Frontend** directory.
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_URL` | Backend API URL |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth Client ID |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe Publishable Key |
+
+---
+
+## 4. Start the Project
+
+Open **two terminals**.
+
+### Terminal 1 (Backend)
+
+```bash
+cd Backend
+npm run dev
+```
+
+### Terminal 2 (Frontend)
+
+```bash
+cd frontend
+npm run dev
+```
+
+---
+
+## 5. Open the Application
+
+```text
+http://localhost:5173
+```
+---
+
+# 🔑 Required Services
+
+To use all features of PrepMate AI, create free accounts and obtain API keys from the following services:
+
+- MongoDB Atlas
+- Google AI Studio (Gemini)
+- Groq AI
+- Google Cloud Console (Google OAuth)
+- Gmail App Password
+- Stripe Developers
+
+---
+
+# ⚙️ Features Requiring API Keys
+
+| Feature | Required Service |
+|----------|------------------|
+| AI Mock Interviews | Gemini / Groq |
+| AI Feedback | Groq |
+| AI Job Matching | Gemini |
+| AI Resource Recommendations | Gemini |
+| Google Sign-In | Google OAuth |
+| Email Verification | Gmail SMTP |
+| Forgot Password | Gmail SMTP |
+| Stripe Pro Plan | Stripe |
+| Real-Time Interviews | WebRTC + Socket.IO |
 
 ---
 
@@ -285,24 +339,9 @@ Create a `.env` file inside the **Backend** directory.
 | Stripe | https://dashboard.stripe.com/apikeys |
 
 ---
+## 🎉 You're Ready!
 
-# ⚡ Feature Require API Keys
-
-| Feature | Requires API Keys |
-|----------|------------------|
-|Signup | ✅  Gmail Credentials |
-| Email Verification | ✅ Gmail Credentials |
-| Profile Management | ❌ No |
-| Job Posting | ❌ No |
-| Resume Builder | ❌ No |
-| Messaging | ❌ No |
-| Notifications | ❌ No |
-| Live Interviews | ❌ No |
-| AI Resume Screening | ✅ Gemini / Groq |
-| AI Feedback | ✅ Groq |
-| AI Job Matching | ✅ Gemini |
-| AI Resources | ✅ Gemini |
-| Stripe Payments | ✅ Stripe |
+Once everything is configured, PrepMate AI will be available locally with all features enabled.
 
 > **Note:**  
 > Most core platform features work without AI keys. AI-powered features, email verification, and payment functionality require their respective API credentials.
