@@ -12,6 +12,7 @@ Connect students with companies through AI-driven hiring, live interviews, resum
 ![MongoDB](https://img.shields.io/badge/Database-MongoDB-success)
 ![Status](https://img.shields.io/badge/Status-Completed-brightgreen)
 
+🎥 Watch the complete project demo in the Releases-section➡️
 </div>
 
 ---
