@@ -1,11 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
 const Student = require('../models/Student');
 const Company = require('../models/Company');
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
+
+// Validate Stripe key on first use
+const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || '';
+if (!STRIPE_KEY || STRIPE_KEY === 'sk_test_placeholder') {
+  console.error('❌ STRIPE_SECRET_KEY is not set or is a placeholder. Get your test key from https://dashboard.stripe.com/test/apikeys');
+}
+const stripe = require('stripe')(STRIPE_KEY);
 
 // ─── Helper: get user from token ────────────────────────
 function getUserFromToken(req) {
@@ -76,7 +82,14 @@ router.post('/create-checkout-session', async (req, res) => {
 
     res.json({ url: session.url });
   } catch (err) {
-    console.error('POST /api/payments/create-checkout-session error:', err);
+    console.error('POST /api/payments/create-checkout-session error:', err.message);
+    // Detect Stripe auth errors (invalid key) and give a helpful message
+    if (err.type === 'StripeAuthenticationError' || err.statusCode === 401) {
+      return res.status(500).json({
+        error: 'Payment system not configured. Contact support.',
+        details: 'Stripe API key is invalid. Add a valid STRIPE_SECRET_KEY to Backend/.env',
+      });
+    }
     res.status(500).json({ error: 'Failed to create checkout session.' });
   }
 });

@@ -67,7 +67,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const s = io(getSocketUrl(), SOCKET_OPTIONS)
         socketRef.current = s
         s.on('connect', () => {
-          s.emit('join', user.id.toString())
+          s.emit('join', user.id.toString(), token)
         })
         s.on('notification', async () => {
           try {

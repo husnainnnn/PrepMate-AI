@@ -144,7 +144,7 @@ export default function StudentNotifications() {
 
         s.on('connect', () => {
           if (user?.id || user?._id) {
-            s.emit('join', (user.id || user._id).toString())
+            s.emit('join', (user.id || user._id).toString(), token)
           }
         })
 

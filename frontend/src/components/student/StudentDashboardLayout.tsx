@@ -100,7 +100,7 @@ export function StudentDashboardLayout({ children }: StudentDashboardLayoutProps
         socketRef.current = s
 
         s.on('connect', () => {
-          s.emit('join', (user.id || user._id).toString())
+          s.emit('join', (user.id || user._id).toString(), token)
         })
 
         s.on('notification', async (notifData: any) => {

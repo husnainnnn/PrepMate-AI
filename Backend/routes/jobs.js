@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || '';
 
 // ─── Gemini AI config (new key for Job Matches) ─────────
 const GEMINI_AI_KEY = process.env.GEMINI_AI_KEY || '';
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 async function askGemini(systemPrompt, userPrompt) {

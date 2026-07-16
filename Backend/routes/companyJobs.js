@@ -480,7 +480,7 @@ router.patch('/applicants/:id/reject', async (req, res) => {
 
 // ─── Gemini AI config (new key for AI Screening) ──────────
 const GEMINI_AI_KEY = process.env.GEMINI_AI_KEY || '';
-const GEMINI_MODEL_S = 'gemini-3.5-flash';
+const GEMINI_MODEL_S = 'gemini-2.0-flash';
 const GEMINI_URL_S = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_S}:generateContent`;
 
 async function askGeminiScreening(systemPrompt, userPrompt) {

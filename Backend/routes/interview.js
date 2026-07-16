@@ -5,7 +5,7 @@ const Interview = require('../models/Interview');
 
 const JWT_SECRET = process.env.JWT_SECRET || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const GROQ_INTERVIEW_KEY = process.env.GROQ_INTERVIEW_KEY || process.env.GROQ_API_KEY || '';
@@ -17,29 +17,32 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 async function askGemini(systemPrompt, userPrompt) {
   if (!GEMINI_API_KEY || GEMINI_API_KEY === 'your_gemini_api_key_here') {
     const err = new Error('GEMINI_API_KEY not configured');
-    err.isQuotaError = true; // fall through to Groq or local
+    err.isFallback = true;
     throw err;
   }
 
-  const res = await fetch(GEMINI_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
-    }),
-  });
+  let res;
+  try {
+    res = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+      }),
+    });
+  } catch (fetchErr) {
+    const err = new Error(`Gemini network error: ${fetchErr.message}`);
+    err.isFallback = true;
+    throw err;
+  }
 
   if (!res.ok) {
     const errText = await res.text();
-    // Detect quota exceeded — trigger fallback
-    if (res.status === 429 || res.status === 403) {
-      const err = new Error(`Gemini API error (${res.status}): ${errText}`);
-      err.statusCode = res.status;
-      err.isQuotaError = true;
-      throw err;
-    }
-    throw new Error(`Gemini API error (${res.status}): ${errText}`);
+    const err = new Error(`Gemini API error (${res.status}): ${errText}`);
+    err.statusCode = res.status;
+    err.isFallback = true;
+    throw err;
   }
 
   const data = await res.json();
@@ -51,35 +54,39 @@ async function askGemini(systemPrompt, userPrompt) {
 async function askGroq(systemPrompt, userPrompt) {
   if (!GROQ_INTERVIEW_KEY) {
     const err = new Error('GROQ_INTERVIEW_KEY not configured');
-    err.isQuotaError = true; // fall through to local templates
+    err.isFallback = true;
     throw err;
   }
 
-  const res = await fetch(GROQ_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_INTERVIEW_KEY}`,
-    },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 4096,
-    }),
-  });
+  let res;
+  try {
+    res = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_INTERVIEW_KEY}`,
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 4096,
+      }),
+    });
+  } catch (fetchErr) {
+    const err = new Error(`Groq network error: ${fetchErr.message}`);
+    err.isFallback = true;
+    throw err;
+  }
 
   if (!res.ok) {
     const errText = await res.text();
-    if (res.status === 429) {
-      const err = new Error(`Groq API rate limit (${res.status})`);
-      err.isQuotaError = true;
-      throw err;
-    }
-    throw new Error(`Groq API error (${res.status}): ${errText}`);
+    const err = new Error(`Groq API error (${res.status}): ${errText}`);
+    err.isFallback = true;
+    throw err;
   }
 
   const data = await res.json();
@@ -484,14 +491,14 @@ Format:
       const parsed = parseGeminiJson(raw, totalQuestions);
       questions = parsed.questions;
     } catch (geminiErr) {
-      if (geminiErr.isQuotaError) {
+      if (geminiErr.isFallback) {
         console.warn('Gemini quota — trying Groq...');
         try {
           const raw = await askGroq(systemPrompt, userPrompt);
           const parsed = parseGeminiJson(raw, totalQuestions);
           questions = parsed.questions;
         } catch (groqErr) {
-          if (groqErr.isQuotaError) {
+          if (groqErr.isFallback) {
             console.warn('Groq also quota exceeded — using local fallback questions');
             questions = generateLocalQuestions(field, skills, experience, totalQuestions);
           } else {
@@ -538,13 +545,13 @@ Generate a follow-up question on "${topic}" that tests deeper understanding.`;
       const raw = await askGemini(systemPrompt, userPrompt);
       followup = parseGeminiJson(raw);
     } catch (geminiErr) {
-      if (geminiErr.isQuotaError) {
+      if (geminiErr.isFallback) {
         console.warn('Gemini quota — trying Groq for follow-up...');
         try {
           const raw = await askGroq(systemPrompt, userPrompt);
           followup = parseGeminiJson(raw);
         } catch (groqErr) {
-          if (groqErr.isQuotaError) {
+          if (groqErr.isFallback) {
             console.warn('Groq also quota exceeded — using local follow-up fallback');
             followup = generateLocalFollowUp(originalQuestion, topic);
           } else {
@@ -622,13 +629,13 @@ Return ONLY valid JSON (no markdown, no explanation):
       const raw = await askGemini(systemPrompt, userPrompt);
       analysis = parseGeminiJson(raw);
     } catch (geminiErr) {
-      if (geminiErr.isQuotaError) {
+      if (geminiErr.isFallback) {
         console.warn('Gemini quota — trying Groq for analysis...');
         try {
           const raw = await askGroq(systemPrompt, userPrompt);
           analysis = parseGeminiJson(raw);
         } catch (groqErr) {
-          if (groqErr.isQuotaError) {
+          if (groqErr.isFallback) {
             console.warn('Groq also quota exceeded — using local analysis fallback');
             analysis = generateLocalAnalysis(field, experience, answers);
           } else {
@@ -690,13 +697,13 @@ Return ONLY valid JSON (no markdown, no explanation):
       const raw = await askGemini(systemPrompt, userPrompt);
       result = parseGeminiJson(raw);
     } catch (geminiErr) {
-      if (geminiErr.isQuotaError) {
+      if (geminiErr.isFallback) {
         console.warn('Gemini quota — trying Groq for evaluation...');
         try {
           const raw = await askGroq(systemPrompt, userPrompt);
           result = parseGeminiJson(raw);
         } catch (groqErr) {
-          if (groqErr.isQuotaError) {
+          if (groqErr.isFallback) {
             console.warn('Groq also quota exceeded — using strict local evaluation');
             result = evaluateSingleAnswerLocally(question, answer, field);
           } else {

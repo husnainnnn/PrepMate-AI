@@ -110,7 +110,7 @@ export default function AdminNotifications() {
 
         s.on('connect', () => {
           if (adminId) {
-            s.emit('join', adminId.toString())
+            s.emit('join', adminId.toString(), token)
           }
         })
 
